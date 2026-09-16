@@ -1,4 +1,4 @@
-import { ArrowLeftRight } from 'lucide-preact';
+import { Scale } from 'lucide-preact';
 import { useMemo } from 'preact/hooks';
 import type { EntityInfo, EquipmentSlot, ItemRef, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, socketableTooltip } from '@/lib/tooltip/tooltip-model';
@@ -81,7 +81,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
               title="Find on the official trade site"
               onClick={(event) => event.stopPropagation()}
             >
-              <ArrowLeftRight size={11} aria-hidden="true" />
+              <Scale size={12} aria-hidden="true" />
             </a>
           )}
         </div>
