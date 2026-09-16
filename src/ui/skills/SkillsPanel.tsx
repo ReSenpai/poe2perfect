@@ -11,6 +11,8 @@ const EMPTY = "The author hasn't listed skills for this variant.";
 export function SkillsPanel({ variant, entities }: { variant: Variant; entities: Record<string, EntityInfo> }) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
   const [selected, setSelected] = useState(0);
+  // Which gem the gem priority points at, so Active Skills can mark it.
+  const [pointedAt, setPointedAt] = useState<GemPointer | null>(null);
   const skill = variant.skills[selected] ?? variant.skills[0];
 
   if (!skill && !variant.skillNotes) {
@@ -29,11 +31,19 @@ export function SkillsPanel({ variant, entities }: { variant: Variant; entities:
               </div>
               <ul class="skill-rows" aria-label="Active skills">
                 {variant.skills.map((entry, i) => (
-                  <SkillRow key={`${entry.gem.slug}-${i}`} skill={entry} selected={entry === skill} onSelect={() => setSelected(i)} />
+                  <SkillRow
+                    key={`${entry.gem.slug}-${i}`}
+                    skill={entry}
+                    selected={entry === skill}
+                    onSelect={() => setSelected(i)}
+                    pointedAt={pointedAt}
+                  />
                 ))}
               </ul>
             </section>
-            {variant.gemPriority.length > 0 && <GemPriorityCard entries={variant.gemPriority} currentSkillSlug={skill.gem.slug} />}
+            {variant.gemPriority.length > 0 && (
+              <GemPriorityCard entries={variant.gemPriority} currentSkillSlug={skill.gem.slug} onPointAt={setPointedAt} />
+            )}
           </div>
           <SkillDetails skill={skill} />
         </div>
@@ -50,10 +60,28 @@ export function SkillsPanel({ variant, entities }: { variant: Variant; entities:
   );
 }
 
-function SkillRow({ skill, selected, onSelect }: { skill: Skill; selected: boolean; onSelect: () => void }) {
+/** A gem the gem priority points at: a support inside its skill, or an active skill on its own. */
+export interface GemPointer {
+  gemSlug: string;
+  parentSlug: string | null;
+}
+
+function SkillRow({
+  skill,
+  selected,
+  onSelect,
+  pointedAt,
+}: {
+  skill: Skill;
+  selected: boolean;
+  onSelect: () => void;
+  pointedAt: GemPointer | null;
+}) {
   const { gem, supports } = skill;
+  const matchesSkill = pointedAt !== null && pointedAt.parentSlug === null && pointedAt.gemSlug === gem.slug;
+  const matchesSupport = (support: Gem) => pointedAt !== null && pointedAt.parentSlug === gem.slug && pointedAt.gemSlug === support.slug;
   return (
-    <li class={selected ? 'skill-row skill-row--selected' : 'skill-row'}>
+    <li class={`skill-row${selected ? ' skill-row--selected' : ''}${matchesSkill ? ' skill-row--match' : ''}`}>
       <button type="button" class="skill-row__main" aria-pressed={selected} onClick={onSelect}>
         <GemIcon gem={gem} class="skill-row__icon" />
         <span class="skill-row__text">
@@ -65,7 +93,10 @@ function SkillRow({ skill, selected, onSelect }: { skill: Skill; selected: boole
         <span class="skill-row__supports">
           {supports.map((support, i) => (
             <WithTooltip key={`${support.slug}-${i}`} model={gemTooltip(support)}>
-              <GemIcon gem={support} class={`skill-row__support gem-socket gem-socket--${gemAttribute(support) ?? 'none'}`} />
+              <GemIcon
+                gem={support}
+                class={`skill-row__support gem-socket gem-socket--${gemAttribute(support) ?? 'none'}${matchesSupport(support) ? ' skill-row__support--match' : ''}`}
+              />
             </WithTooltip>
           ))}
         </span>
@@ -74,7 +105,15 @@ function SkillRow({ skill, selected, onSelect }: { skill: Skill; selected: boole
   );
 }
 
-function GemPriorityCard({ entries, currentSkillSlug }: { entries: GemPriorityEntry[]; currentSkillSlug: string }) {
+function GemPriorityCard({
+  entries,
+  currentSkillSlug,
+  onPointAt,
+}: {
+  entries: GemPriorityEntry[];
+  currentSkillSlug: string;
+  onPointAt: (pointer: GemPointer | null) => void;
+}) {
   return (
     <section class="card gem-priority">
       <h2 class="card__title">Gem Priority</h2>
@@ -83,6 +122,10 @@ function GemPriorityCard({ entries, currentSkillSlug }: { entries: GemPriorityEn
           <li
             key={`${entry.gem.slug}-${i}`}
             class={entry.parentSlug === currentSkillSlug ? 'gem-priority__row gem-priority__row--current' : 'gem-priority__row'}
+            onPointerEnter={() => onPointAt({ gemSlug: entry.gem.slug, parentSlug: entry.parentSlug })}
+            onPointerLeave={() => onPointAt(null)}
+            onFocusIn={() => onPointAt({ gemSlug: entry.gem.slug, parentSlug: entry.parentSlug })}
+            onFocusOut={() => onPointAt(null)}
           >
             <span class="gem-priority__number">{i + 1}</span>
             <WithTooltip model={gemTooltip(entry.gem)}>

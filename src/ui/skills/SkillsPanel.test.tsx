@@ -105,6 +105,33 @@ describe('SkillsPanel', () => {
     expect(new Set(current())).toEqual(new Set(['Contagion']));
   });
 
+  it('marks the support in Active Skills while the pointer rests on its gem priority entry', () => {
+    renderPanel();
+    const row = within(screen.getByRole('list', { name: 'Gem priority' })).getAllByRole('listitem')[0]!;
+    const marks = () =>
+      [...screen.getByRole('list', { name: 'Active skills' }).querySelectorAll('.skill-row__support--match')].map(
+        (icon) => [icon.closest('.skill-row')!.querySelector('.skill-row__name')!.textContent, icon.getAttribute('src')],
+      );
+
+    fireEvent.pointerEnter(row);
+    // Chain II belongs to Essence Drain: only that row's socket lights up, even if another skill uses the same support.
+    expect(marks()).toEqual([['Essence Drain', ENDGAME.gemPriority[0]!.gem.iconUrl]]);
+
+    fireEvent.pointerLeave(row);
+    expect(marks()).toEqual([]);
+  });
+
+  it('marks the skill itself for a priority entry that is an active skill', () => {
+    const skill = ENDGAME.skills[1]!;
+    renderPanel({ ...ENDGAME, gemPriority: [{ gem: skill.gem, parentSlug: null, parentName: null }] });
+    const row = within(screen.getByRole('list', { name: 'Gem priority' })).getAllByRole('listitem')[0]!;
+
+    fireEvent.focusIn(row);
+
+    const marked = screen.getByRole('list', { name: 'Active skills' }).querySelectorAll('.skill-row--match');
+    expect([...marked].map((el) => el.querySelector('.skill-row__name')?.textContent)).toEqual([skill.gem.name]);
+  });
+
   it('leaves out the gem priority when the author set none', () => {
     renderPanel({ ...ENDGAME, gemPriority: [] });
 

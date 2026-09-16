@@ -79,6 +79,10 @@
   background: var(--accent-soft);
 }
 
+.gem-priority__row:hover {
+  background: var(--surface-hover);
+}
+
 .gem-priority__number {
   flex: none;
   width: 18px;
@@ -174,6 +178,16 @@
 .skill-row--selected:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* Pointed at from the gem priority: the row, or the one socket the entry is about. */
+.skill-row--match {
+  border-color: var(--accent);
+}
+
+.skill-row__support--match {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .skill-row__main {
