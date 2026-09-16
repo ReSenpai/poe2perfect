@@ -1,0 +1,374 @@
+/* Stages · the selected stage · quest rewards, each scrolling on its own so the tab fits one screen. */
+.progression {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 220px minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 300px;
+}
+
+.progression--no-quests {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+@media (max-width: 1000px) {
+  .progression,
+  .progression--no-quests {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+}
+
+.progression > .card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+}
+
+.progression .card__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.progression p,
+.progression ul,
+.progression ol {
+  margin: 0;
+}
+
+/* Stages */
+
+.stages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  font: 500 13px/18px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.stage:hover {
+  background: var(--surface-hover);
+}
+
+.stage[aria-current='step'] {
+  border-left-color: var(--accent);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Names anywhere on the tab keep to one line and end with an ellipsis instead of pushing out of their block. */
+.stage__title,
+.stage__meta,
+.progression .stage-header .card__title,
+.gear-change__slot,
+.gear-change__from,
+.change__name,
+.quest__name,
+.quest__area {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage__meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Selected stage */
+
+.stage-header {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.progression .stage-header .card__title {
+  margin: 0;
+}
+
+.stage-header__from {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.stage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.stage__description {
+  max-width: 90ch;
+}
+
+/* The three change blocks share a row height: each reaches down to the tallest one. */
+.stage-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.stage-group {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.stage-group__heading {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.stage-group__title {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.stage-group__empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font: 500 12px/16px var(--font);
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+.link-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stage-points {
+  margin-bottom: 6px !important;
+  font-size: 13px;
+}
+
+.changes,
+.gear-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.change {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.change__sign {
+  flex: none;
+  width: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.change--added .change__sign {
+  color: var(--gem-dex);
+}
+
+.change--removed .change__sign {
+  color: var(--gem-str);
+}
+
+.change--removed .change__name {
+  color: var(--text-muted);
+}
+
+.change .tooltip-trigger,
+.gear-change .tooltip-trigger {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.change__entry {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.change__icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.change__icon--round {
+  border-radius: 50%;
+}
+
+.change__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-change {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 0 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.gear-change + .gear-change {
+  border-top: 1px solid var(--border);
+}
+
+.gear-change__slot {
+  grid-row: span 2;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gear-change__from {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-decoration: line-through;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-change__to {
+  display: flex;
+  grid-column: 2;
+  min-width: 0;
+}
+
+.gear-change__to--empty {
+  color: var(--text-muted);
+}
+
+/* Quest rewards */
+
+.quests {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+.quests__act {
+  margin-bottom: 4px !important;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.quest {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.quest__head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.quest__name {
+  font-weight: 500;
+}
+
+.quest__tag {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.quest__area {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.quest__reward {
+  color: var(--rarity-magic);
+}

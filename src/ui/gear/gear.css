@@ -1,0 +1,336 @@
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 13px/18px var(--font);
+  cursor: pointer;
+  transition:
+    color 120ms,
+    border-color 120ms,
+    background-color 120ms;
+}
+
+.chip:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gear {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gear__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .gear__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.gear__slots,
+.gear__priority,
+.gear__notes {
+  padding: 12px;
+}
+
+.gear__priority .card__title,
+.gear__notes .card__title {
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+/* Armour column plus a two-column grid of the rest; rows stretch to the height of the row (the priority card). */
+.gear__slots {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);
+  gap: 8px;
+}
+
+.gear__armour {
+  display: grid;
+  grid-template-rows: repeat(4, minmax(min-content, 1fr));
+  gap: 8px;
+}
+
+.gear__other {
+  display: grid;
+  grid-auto-rows: minmax(min-content, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.gear__armour > .tooltip-trigger,
+.gear__other > .tooltip-trigger {
+  display: block;
+  min-width: 0;
+}
+
+.item-slot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  transition: background-color 120ms;
+}
+
+.item-slot:hover {
+  background: var(--surface-hover);
+}
+
+.item-slot--empty {
+  border-style: dashed;
+  background: transparent;
+}
+
+.item-slot--empty:hover {
+  background: transparent;
+}
+
+.item-slot--empty .item-slot__art {
+  background: transparent;
+}
+
+.item-slot__placeholder {
+  color: var(--text-disabled);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.item-slot--large {
+  padding: 8px;
+}
+
+.item-slot--compact {
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+}
+
+.item-slot__art {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.item-slot--large .item-slot__art {
+  width: 52px;
+  height: 64px;
+}
+
+.item-slot--compact .item-slot__art {
+  width: 36px;
+  height: 36px;
+}
+
+.item-slot__icon {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.item-slot__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.item-slot__label {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.item-name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-slot--large .item-name {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.item-slot--compact .item-name {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.item-name--unique {
+  color: var(--rarity-unique);
+}
+
+.item-name--rare {
+  color: var(--rarity-rare);
+}
+
+.item-name--magic {
+  color: var(--rarity-magic);
+}
+
+.item-name--normal {
+  color: var(--rarity-normal);
+}
+
+/* A skill the item grants (wands, staves…): a gem line with its own tooltip. */
+.item-slot__body > .tooltip-trigger {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.item-slot__grants {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rarity-magic);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-slot__grants-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.item-slot__mods {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 15px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.item-slot__sockets {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  align-self: center;
+}
+
+.item-slot--compact .item-slot__sockets {
+  flex-direction: row;
+}
+
+.item-slot__sockets > .tooltip-trigger {
+  display: flex;
+  border-radius: 50%;
+}
+
+.item-slot__socket {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.item-slot__socket--empty {
+  box-sizing: border-box;
+  border: 1px dashed var(--border);
+  border-radius: 50%;
+}
+
+.priority {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.priority__row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.priority__number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.priority__row > .tooltip-trigger {
+  min-width: 0;
+}
+
+.priority__item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.priority__icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.priority__slot {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .item-slot {
+    transition: none;
+  }
+}

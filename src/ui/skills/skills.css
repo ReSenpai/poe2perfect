@@ -1,0 +1,418 @@
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skills__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+  gap: 12px;
+}
+
+@media (max-width: 1000px) {
+  .skills__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.skills__main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The last card of the left column (gem priority, or the skill list) takes the height the details column needs. */
+.skills__main > :last-child {
+  flex: 1;
+}
+
+.skills__list,
+.skill-details,
+.skills__notes,
+.gem-priority {
+  padding: 12px;
+}
+
+.skills__heading {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.skills__heading .card__title,
+.skills__notes .card__title,
+.gem-priority .card__title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.skills__notes .card__title,
+.gem-priority .card__title {
+  margin-bottom: 8px;
+}
+
+/* Numbered top to bottom, column by column, so a 30-gem order stays short. */
+.gem-priority__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  column-gap: 16px;
+  columns: 4 220px;
+}
+
+.gem-priority__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 1px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  break-inside: avoid;
+}
+
+.gem-priority__row--current {
+  background: var(--accent-soft);
+}
+
+.gem-priority__number {
+  flex: none;
+  width: 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.gem-priority__row--current .gem-priority__number {
+  color: var(--accent);
+}
+
+.gem-priority__row > .tooltip-trigger {
+  min-width: 0;
+}
+
+.gem-priority__gem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.gem-priority__icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* Name and owning skill on one line keeps a long priority list short. */
+.gem-priority__text {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  line-height: 20px;
+}
+
+.gem-priority__name {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gem-priority__parent {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills__requirements {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  transition:
+    background-color 120ms,
+    border-color 120ms;
+}
+
+.skill-row:hover {
+  background: var(--surface-hover);
+}
+
+.skill-row--selected,
+.skill-row--selected:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.skill-row__main {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.skill-row__main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.skill-row__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--surface);
+  object-fit: contain;
+}
+
+.skill-row__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.skill-row__name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-row--selected .skill-row__name {
+  color: var(--accent);
+}
+
+.skill-row__tags {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-row__supports {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.skill-row__supports > .tooltip-trigger,
+.skill-details__supports .tooltip-trigger {
+  display: flex;
+}
+
+/* Support gems sit in a ring coloured by their main attribute, like sockets in the game. */
+.gem-socket {
+  box-sizing: border-box;
+  padding: 1px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  object-fit: contain;
+}
+
+.gem-socket--str {
+  border-color: var(--gem-str);
+}
+
+.gem-socket--dex {
+  border-color: var(--gem-dex);
+}
+
+.gem-socket--int {
+  border-color: var(--gem-int);
+}
+
+.skill-row__support {
+  width: 24px;
+  height: 24px;
+}
+
+.skill-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.skill-details p,
+.skill-details ul,
+.skill-details dl {
+  margin: 0;
+}
+
+.skill-details__header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.skill-details__icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  object-fit: contain;
+}
+
+.skill-details__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.skill-details__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px !important;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-details__tags li {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.skill-details__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 2px 16px;
+}
+
+.skill-details__stats div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.skill-details__stats dt {
+  color: var(--text-muted);
+}
+
+.skill-details__stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-details__requirements,
+.skill-details__description {
+  color: var(--text-muted);
+}
+
+.skill-details__effects,
+.skill-details__quality ul,
+.skill-details__supports ul {
+  padding: 0;
+  list-style: none;
+}
+
+.skill-details__effects li {
+  color: var(--rarity-magic);
+}
+
+.skill-details__quality li {
+  color: var(--text-muted);
+}
+
+.skill-details__quality,
+.skill-details__supports {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.skill-details__section-title {
+  margin-bottom: 4px !important;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.skill-details__supports ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px;
+}
+
+.skill-details__support {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.skill-details__support-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.skill-details__support-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gem-icon--missing {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-row {
+    transition: none;
+  }
+}

@@ -1,0 +1,32 @@
+poe2perfect
+Copyright (C) 2026 ReSenpai
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
+version. See the LICENSE file for the full text.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Name and logo
+-------------
+The name "poe2perfect" and its logo are not covered by the GPL. Forks and modified versions must use a different name
+and logo so they are not mistaken for this extension.
+
+Unofficial project
+------------------
+poe2perfect is an unofficial fan project. It is not affiliated with or endorsed by Mobalytics or Grinding Gear Games.
+Path of Exile is a trademark of Grinding Gear Games. Build guides, game data and images shown by the extension come
+from mobalytics.gg at run time and belong to their respective owners; they are not part of this program.
+
+Third-party components included in the built extension
+------------------------------------------------------
+- Preact 10 — MIT License — https://github.com/preactjs/preact
+- Lucide icons (lucide-preact) — ISC License — https://github.com/lucide-icons/lucide
+- Inter font (via @fontsource-variable/inter) — SIL Open Font License 1.1 — https://github.com/rsms/inter
+- WXT runtime utilities, @wxt-dev/storage, @wxt-dev/browser — MIT License — https://github.com/wxt-dev/wxt
+- @webext-core/isolated-element — MIT License — https://github.com/aklinker1/webext-core
+- superlock — MIT License — https://github.com/fabiospampinato/superlock
+- is-potential-custom-element-name — MIT License — https://github.com/mathiasbynens/is-potential-custom-element-name
+
+The full license texts of these components are included in their packages in node_modules.

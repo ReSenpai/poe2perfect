@@ -1,0 +1,202 @@
+/* The Passives tab fills the panel instead of scrolling it: the tree takes all the height there is. */
+.build-view__panel--fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.passives {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 300px;
+}
+
+@media (max-width: 1000px) {
+  .passives {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 480px auto;
+  }
+}
+
+/* The site's tree is laid over the stage; until then the stage shows its status. */
+.passives__tree {
+  overflow: hidden;
+  padding: 0;
+  background: #000;
+}
+
+.passives__stage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+
+.passives__status {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.passives__side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 6px 12px 12px;
+}
+
+.passives__heading {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-right: 6px;
+}
+
+.passives .card__title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.passives__points {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.passives__lists {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding-right: 6px;
+  overflow-y: auto;
+}
+
+.passives__label {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.passives__empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.passive-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passive-row .tooltip-trigger {
+  display: block;
+}
+
+.passive-row__body {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 3px 4px;
+  border-radius: var(--radius-control);
+}
+
+.passive-row__body:hover {
+  background: var(--surface-hover);
+}
+
+.passive-row__number {
+  flex: none;
+  width: 18px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.passive-row__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg);
+  object-fit: contain;
+}
+
+.passive-row__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.passive-row__name,
+.passive-row__effect {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.passive-row__name {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.passive-row--keystone .passive-row__name {
+  color: var(--accent);
+}
+
+.passive-row__effect {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Key passives / author's notes switch in the side panel heading. */
+.side-tabs {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+.side-tabs__tab {
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: 600 13px/18px var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.side-tabs__tab:hover {
+  color: var(--text);
+}
+
+.side-tabs__tab[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.side-tabs__tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.passives__notes {
+  font-size: 13px;
+  line-height: 19px;
+}

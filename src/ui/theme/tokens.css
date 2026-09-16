@@ -1,0 +1,33 @@
+/* Design tokens from reference/DESIGN.md. Defined on :host so they live inside the UI's shadow root. */
+:host {
+  --bg: #0e0f12;
+  --surface: #16181d;
+  --surface-hover: #1c1f25;
+  --border: #2a2d33;
+  --accent: #e8a15a;
+  --accent-soft: rgba(232, 161, 90, 0.12);
+  --accent-strong: #f0b478;
+  --text: #e8e6d9;
+  --text-muted: #9aa0a6;
+  --text-disabled: #5f646b;
+  --scrollbar-thumb: #33363d;
+  --scrollbar-thumb-hover: #4a4e57;
+
+  --res-fire: #e0703a;
+  --res-cold: #5aa9e6;
+  --res-lightning: #e8c547;
+  --res-chaos: #a57bd8;
+
+  --rarity-unique: #e8a15a;
+  --rarity-rare: #e8d98a;
+  --rarity-magic: #8fa8ff;
+  --rarity-normal: #e8e6d9;
+
+  --gem-str: #d9534f;
+  --gem-dex: #5cb85c;
+  --gem-int: #5b8def;
+
+  --font: 'PoE2 Guide Inter', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --radius-card: 8px;
+  --radius-control: 6px;
+}

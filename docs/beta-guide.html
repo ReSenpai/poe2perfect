@@ -1,0 +1,698 @@
+<title>Бета-тест poe2perfect</title>
+<meta name="description" content="Как установить и протестировать бета-версию расширения poe2perfect для гайдов Path of Exile 2 на mobalytics.gg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Dark-first, like the extension itself. */
+  :root {
+    --ground: #0e0f12;
+    --surface: #16181d;
+    --surface-2: #1c1f25;
+    --border: #2a2d33;
+    --text: #e8e6d9;
+    --muted: #9aa0a6;
+    --accent: #e8a15a;
+    --accent-ink: #0e0f12;
+    --accent-soft: rgba(232, 161, 90, 0.12);
+    --good: #5cb85c;
+    --warn: #e8c547;
+    --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #f3f4f6;
+      --surface: #ffffff;
+      --surface-2: #eceef1;
+      --border: #d9dce1;
+      --text: #1b1d22;
+      --muted: #5c626b;
+      --accent: #a9580f;
+      --accent-ink: #ffffff;
+      --accent-soft: rgba(169, 88, 15, 0.1);
+      --good: #2f8a3a;
+      --warn: #9a7400;
+      color-scheme: light;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --ground: #f3f4f6;
+    --surface: #ffffff;
+    --surface-2: #eceef1;
+    --border: #d9dce1;
+    --text: #1b1d22;
+    --muted: #5c626b;
+    --accent: #a9580f;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(169, 88, 15, 0.1);
+    --good: #2f8a3a;
+    --warn: #9a7400;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-inline: 20px;
+    background: var(--ground);
+    color: var(--text);
+    font: 16px/1.65 var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:hover { text-decoration-thickness: 2px; }
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  code, kbd, .mono { font-family: var(--mono); font-size: 0.86em; }
+  code {
+    padding: 0.1em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  kbd {
+    display: inline-block;
+    min-width: 1.6em;
+    padding: 0.05em 0.45em;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--surface);
+    text-align: center;
+  }
+  .ui {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .page {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding-block: 56px 72px;
+  }
+
+  /* Header */
+  .masthead {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px 24px;
+    align-items: center;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  .badge {
+    position: relative;
+    display: grid;
+    width: 72px;
+    height: 72px;
+    place-items: center;
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    background: #16181d;
+    color: #e8a15a;
+    font: 800 30px/1 var(--font);
+    letter-spacing: -0.02em;
+  }
+  .badge::after {
+    position: absolute;
+    bottom: 13px;
+    left: 50%;
+    width: 30px;
+    height: 4px;
+    border-radius: 2px;
+    background: #e8a15a;
+    transform: translateX(-50%);
+    content: '';
+  }
+  .eyebrow {
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .eyebrow span { color: var(--accent); }
+  h1 {
+    margin: 0;
+    font-size: clamp(34px, 5vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .lede {
+    grid-column: 1 / -1;
+    max-width: 66ch;
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .facts {
+    display: flex;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+  }
+  .facts dt { color: var(--muted); }
+  .facts div { display: flex; gap: 8px; }
+  .facts dd { margin: 0; font-weight: 500; }
+
+  /* Body layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 56px;
+    padding-top: 40px;
+  }
+  .toc {
+    position: sticky;
+    top: calc(24px + env(safe-area-inset-top, 0px));
+    align-self: start;
+  }
+  .toc p {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .toc ol {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .toc a {
+    display: block;
+    padding: 5px 10px;
+    border-left: 2px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .toc a:hover { border-left-color: var(--accent); color: var(--text); }
+
+  main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+  section { max-width: 70ch; scroll-margin-top: 24px; }
+  h2 {
+    margin: 0 0 14px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  h3 { margin: 0 0 4px; font-size: 17px; font-weight: 600; line-height: 1.35; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+
+  /* Install steps: a real sequence */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+  .steps li {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 16px;
+    counter-increment: step;
+  }
+  .steps li::before {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 700 15px/1 var(--font);
+    content: counter(step);
+  }
+  .steps p { margin: 0; }
+
+  .note {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    font-size: 15px;
+  }
+  .note strong { color: var(--warn); }
+
+  /* Tabs table */
+  .table-wrap { overflow-x: auto; margin-top: 18px; border: 1px solid var(--border); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--surface); }
+  th, td { padding: 12px 16px; text-align: left; vertical-align: top; }
+  th {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  tr + tr td { border-top: 1px solid var(--border); }
+  td:first-child { width: 140px; white-space: nowrap; }
+  .tab {
+    display: inline-block;
+    padding-bottom: 2px;
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .controls li { padding-left: 18px; position: relative; }
+  .controls li::before {
+    position: absolute;
+    top: 0.72em;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    content: '';
+  }
+
+  /* Checklist */
+  .checklist { display: flex; flex-direction: column; gap: 2px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .checklist label {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .checklist label:hover { background: var(--surface); }
+  .checklist input {
+    width: 18px;
+    height: 18px;
+    margin: 3px 0 0;
+    accent-color: var(--accent);
+  }
+  .checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+  .progress { margin: 10px 0 0; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+  /* Limits */
+  .limits { display: flex; flex-direction: column; gap: 18px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .limits li { padding-left: 16px; border-left: 2px solid var(--border); }
+  .limits p { margin: 0; }
+
+  /* Report template */
+  .template {
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .template__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 8px 8px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .copy {
+    padding: 6px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--accent);
+    font: 600 13px/1.2 var(--font);
+    cursor: pointer;
+  }
+  .copy:hover { background: var(--accent-soft); }
+  pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+    font: 14px/1.7 var(--mono);
+  }
+  pre .key { color: var(--muted); }
+
+  .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
+  .split > div { padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  .split p { margin: 0; font-size: 15px; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+    .toc { position: static; }
+    .toc ol { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    .toc a { border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; }
+  }
+
+  @media (max-width: 480px) {
+    .page { padding-block: 32px 48px; }
+    .badge { width: 56px; height: 56px; font-size: 23px; border-radius: 14px; }
+    .badge::after { bottom: 10px; width: 24px; height: 3px; }
+    .lede { font-size: 16px; }
+    td:first-child { width: auto; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <div class="badge" aria-hidden="true">P2</div>
+    <div>
+      <p class="eyebrow">Бета-тест · <span>версия 0.1.0 beta</span></p>
+      <h1>poe2perfect</h1>
+    </div>
+    <p class="lede">
+      Расширение для Chrome, которое показывает гайды по билдам Path of Exile 2 с mobalytics.gg в аккуратном
+      интерфейсе с вкладками: скиллы, экипировка, дерево пассивок, атлас и прокачка по стадиям — на одном экране,
+      с подсказками при наведении.
+    </p>
+    <dl class="facts">
+      <div><dt>Браузер</dt><dd>Chrome, Edge, Brave, Opera на ПК</dd></div>
+      <div><dt>Сайт</dt><dd class="mono">mobalytics.gg/poe-2/builds</dd></div>
+      <div><dt>Установка</dt><dd>около 2 минут</dd></div>
+    </dl>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Разделы">
+      <p>Разделы</p>
+      <ol>
+        <li><a href="#install">Установка</a></li>
+        <li><a href="#use">Как пользоваться</a></li>
+        <li><a href="#test">Что проверить</a></li>
+        <li><a href="#limits">Известные ограничения</a></li>
+        <li><a href="#report">Как сообщить о проблеме</a></li>
+        <li><a href="#update">Обновление и удаление</a></li>
+        <li><a href="#support">Поддержать проект</a></li>
+        <li><a href="#privacy">Приватность</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="install" aria-labelledby="install-title">
+        <h2 id="install-title">Установка</h2>
+        <p class="muted">
+          Бета-версии нет в Chrome Web Store, поэтому расширение ставится из папки. Вам понадобится архив
+          <code>poe2perfect-0.1.0-chrome.zip</code>, который вам прислали.
+        </p>
+        <ol class="steps">
+          <li>
+            <div>
+              <h3>Распакуйте архив в постоянную папку</h3>
+              <p>
+                Например, в <code>Документы\poe2perfect</code>. Не удаляйте и не перемещайте эту папку после установки —
+                браузер загружает расширение прямо из неё.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Откройте страницу расширений</h3>
+              <p>Введите в адресной строке <code>chrome://extensions</code> (в Edge — <code>edge://extensions</code>).</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Включите режим разработчика</h3>
+              <p>
+                Переключатель <span class="ui">«Режим разработчика»</span> (<span class="ui">Developer mode</span>) — в правом
+                верхнем углу. В Edge он в левой панели.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Загрузите папку</h3>
+              <p>
+                Нажмите <span class="ui">«Загрузить распакованное расширение»</span> (<span class="ui">Load unpacked</span>) и
+                выберите папку, в которой лежит файл <code>manifest.json</code>. Если выбрать папку уровнем выше, браузер
+                напишет, что манифест не найден.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Откройте любой билд</h3>
+              <p>
+                На странице расширений появится карточка <span class="ui">poe2perfect 0.1.0 beta</span>. Откройте билд, например
+                <a href="https://mobalytics.gg/poe-2/builds/chaos-dot-lich-starter-deadrabbit" target="_blank" rel="noopener noreferrer">ED Contagion Lich</a>,
+                — гайд откроется поверх страницы сайта.
+              </p>
+            </div>
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Это нормально:</strong> Chrome иногда показывает предупреждение о расширениях в режиме разработчика.
+          Так бывает со всеми расширениями не из Web Store — просто закройте его.
+        </p>
+      </section>
+
+      <section id="use" aria-labelledby="use-title">
+        <h2 id="use-title">Как пользоваться</h2>
+        <p>
+          Гайд открывается сам на любой странице билда. Сверху — шапка билда, под ней вкладки. Подписи в расширении на
+          английском, ниже — что где лежит.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Вкладка</th><th scope="col">Что внутри</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="tab">Overview</span></td><td>Описание билда от автора, сильные и слабые стороны, главный скилл, ключевые уникальные предметы, асценданс, ссылка на видео.</td></tr>
+              <tr><td><span class="tab">Skills</span></td><td>Активные скиллы с саппортами, порядок получения гемов, подробности выбранного скилла.</td></tr>
+              <tr><td><span class="tab">Gear</span></td><td>Экипировка по слотам с камнями, рунами и навыками, которые дают предметы (например, Chaos Bolt на жезле), приоритет предметов, заметки автора.</td></tr>
+              <tr><td><span class="tab">Passives</span></td><td>Дерево пассивок с сайта (зум, перетаскивание). Справа сначала заметки автора к дереву, рядом — ключевые ноды.</td></tr>
+              <tr><td><span class="tab">Atlas Tree</span></td><td>Дерево атласа, заметки автора и ключевые ноды. Вкладка есть, только если автор заполнил атлас.</td></tr>
+              <tr><td><span class="tab">Progression</span></td><td>Стадии билда: что меняется от варианта к варианту — скиллы, предметы, пассивки. Справа — награды за квесты.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="controls">
+          <li>Варианты билда (<span class="ui">ACT 1</span>, <span class="ui">Endgame</span>…) — кнопки над содержимым вкладки.</li>
+          <li>Клавиши <kbd>1</kbd>–<kbd>6</kbd> переключают вкладки.</li>
+          <li>Наведите курсор на предмет, гем, пассивку или камень в предмете — появится подсказка.</li>
+          <li>
+            Справа в строке вкладок две кнопки: свернуть шапку (больше места для билда) и
+            <span class="ui">Show original page</span> — вернуться к обычной странице сайта. Обратно — кнопка
+            <span class="ui">Open guide</span> в правом нижнем углу.
+          </li>
+          <li>Расширение запоминает: гайд или оригинал, свёрнутую шапку и последнюю открытую вкладку.</li>
+        </ul>
+      </section>
+
+      <section id="test" aria-labelledby="test-title">
+        <h2 id="test-title">Что проверить</h2>
+        <p class="muted">Отмечайте по ходу — галочки сохраняются в вашем браузере.</p>
+        <ul class="checklist">
+          <li><label for="check-builds"><input type="checkbox" id="check-builds"><span>Открыть 3–5 разных билдов, лучше разных классов: всё ли показывается без ошибок.</span></label></li>
+          <li><label for="check-tabs"><input type="checkbox" id="check-tabs"><span>Пройти все вкладки на каждом билде и попереключать варианты.</span></label></li>
+          <li><label for="check-tooltips"><input type="checkbox" id="check-tooltips"><span>Подсказки: предметы, камни и руны в них, навыки на оружии, гемы, пассивки, упоминания в текстах.</span></label></li>
+          <li><label for="check-trees"><input type="checkbox" id="check-trees"><span>Деревья пассивок и атласа: загружаются ли, работают ли зум, перетаскивание и подсказки сайта.</span></label></li>
+          <li><label for="check-navigation"><input type="checkbox" id="check-navigation"><span>Переход на другой билд по ссылкам внутри сайта, без перезагрузки страницы.</span></label></li>
+          <li><label for="check-original"><input type="checkbox" id="check-original"><span><span class="ui">Show original page</span> и обратно <span class="ui">Open guide</span>.</span></label></li>
+          <li><label for="check-sizes"><input type="checkbox" id="check-sizes"><span>Разные размеры окна: небольшой ноутбук, большой монитор, свёрнутая шапка.</span></label></li>
+          <li><label for="check-clarity"><input type="checkbox" id="check-clarity"><span>Всё ли понятно без объяснений: какие подписи или места сбивают с толку.</span></label></li>
+        </ul>
+        <p class="progress" id="check-progress" aria-live="polite"></p>
+      </section>
+
+      <section id="limits" aria-labelledby="limits-title">
+        <h2 id="limits-title">Известные ограничения</h2>
+        <ul class="limits">
+          <li>
+            <h3>Деревья грузятся несколько секунд</h3>
+            <p>
+              Деревья пассивок и атласа встраиваются с самого сайта. Если надпись
+              <span class="ui">Loading the passive tree…</span> не пропадает, переключите вкладку туда и обратно или обновите
+              страницу — и напишите, на каком билде это случилось.
+            </p>
+          </li>
+          <li>
+            <h3>Подсказки могут отсутствовать при первом визите</h3>
+            <p>
+              Названия и подсказки берутся из данных игры, которые сайт хранит в браузере. Если их ещё нет, в строке
+              вкладок появится жёлтый треугольник. Обновите страницу.
+            </p>
+          </li>
+          <li>
+            <h3>Порядок стадий — как у автора</h3>
+            <p>
+              Progression сравнивает варианты в том порядке, в каком их расставил автор гайда. Если первым идёт Endgame,
+              сравнение стадий будет условным.
+            </p>
+          </li>
+          <li>
+            <h3>Только билды PoE 2 на mobalytics.gg</h3>
+            <p>
+              На других страницах расширение ничего не делает. Если сайт изменит устройство страниц, появится
+              <span class="ui">Couldn't show this build</span> — нажмите <span class="ui">Open original page</span> и сообщите нам.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section id="report" aria-labelledby="report-title">
+        <h2 id="report-title">Как сообщить о проблеме</h2>
+        <p>
+          Напишите тому, кто прислал вам расширение. Ссылка из адресной строки уже содержит вкладку и вариант (часть
+          после <code>#</code>) — её достаточно, чтобы открыть то же самое.
+        </p>
+        <div class="template">
+          <div class="template__bar">
+            <span>Шаблон отчёта</span>
+            <button type="button" class="copy" id="copy-template">Скопировать</button>
+          </div>
+<pre id="report-template"><span class="key">Ссылка на билд:</span> https://mobalytics.gg/poe-2/builds/…#gear_act-1
+<span class="key">Что делал(а):</span>
+<span class="key">Что ожидал(а):</span>
+<span class="key">Что произошло:</span>
+<span class="key">Браузер и экран:</span> Chrome, ноутбук 1366×768
+<span class="key">Скриншот:</span> приложите, если можно</pre>
+        </div>
+        <p class="muted" style="margin-top: 12px">
+          Если умеете: нажмите <kbd>F12</kbd>, откройте вкладку <span class="ui">Console</span> и скопируйте красные ошибки.
+        </p>
+      </section>
+
+      <section id="update" aria-labelledby="update-title">
+        <h2 id="update-title">Обновление и удаление</h2>
+        <div class="split">
+          <div>
+            <h3>Новая версия</h3>
+            <p>
+              Замените содержимое папки файлами из нового архива, на <code>chrome://extensions</code> нажмите круглую
+              стрелку на карточке poe2perfect и обновите вкладку с сайтом.
+            </p>
+          </div>
+          <div>
+            <h3>Удаление</h3>
+            <p>Нажмите <span class="ui">«Удалить»</span> на карточке расширения. После этого папку можно стереть.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="support" aria-labelledby="support-title">
+        <h2 id="support-title">Поддержать проект</h2>
+        <p>
+          poe2perfect — бесплатное расширение с открытым кодом под лицензией GPL-3.0. Платить за него не нужно.
+          Если оно оказалось полезным и вы хотите поддержать дальнейшую разработку, это можно сделать добровольно
+          на Boosty: <a href="https://boosty.to/resenpai" target="_blank" rel="noopener noreferrer">boosty.to/resenpai</a>.
+        </p>
+        <p class="muted">
+          Поддержка добровольная и не даёт дополнительных функций, доступа к расширению или каких-либо иных преимуществ.
+        </p>
+      </section>
+
+      <section id="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Приватность</h2>
+        <p>
+          Расширение работает только на mobalytics.gg и никуда ничего не отправляет. Оно читает данные билда со страницы
+          и хранит в браузере три настройки: гайд или оригинал, свёрнутую шапку и последнюю вкладку. Единственное
+          разрешение — <code>storage</code>.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    poe2perfect 0.1.0 beta · неофициальное расширение, не связано с Mobalytics и Grinding Gear Games.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var KEY = 'poe2perfect-beta-checklist';
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('.checklist input'));
+    var progress = document.getElementById('check-progress');
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+
+    function update() {
+      var done = boxes.filter(function (box) { return box.checked; }).length;
+      progress.textContent = 'Проверено: ' + done + ' из ' + boxes.length;
+    }
+
+    boxes.forEach(function (box) {
+      box.checked = !!saved[box.id];
+      box.addEventListener('change', function () {
+        saved[box.id] = box.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+        update();
+      });
+    });
+    update();
+
+    var button = document.getElementById('copy-template');
+    var template = document.getElementById('report-template');
+    button.addEventListener('click', function () {
+      var text = template.textContent;
+      function done(label) {
+        button.textContent = label;
+        setTimeout(function () { button.textContent = 'Скопировать'; }, 1800);
+      }
+      function selectText() {
+        var range = document.createRange();
+        range.selectNodeContents(template);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        done('Выделено — нажмите Ctrl+C');
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { done('Скопировано'); }, selectText);
+        } else {
+          selectText();
+        }
+      } catch (e) {
+        selectText();
+      }
+    });
+  })();
+</script>

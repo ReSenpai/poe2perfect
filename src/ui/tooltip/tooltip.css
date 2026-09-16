@@ -1,0 +1,180 @@
+.tooltip-trigger {
+  border-radius: 4px;
+  cursor: help;
+}
+
+.tooltip-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font: 13px/18px var(--font);
+  pointer-events: none;
+}
+
+.tooltip p,
+.tooltip ul,
+.tooltip dl {
+  margin: 0;
+}
+
+.tooltip > * + * {
+  margin-top: 8px;
+}
+
+.tooltip__header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tooltip__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  object-fit: contain;
+}
+
+.tooltip__title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.tooltip__subtitle {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tooltip--unique .tooltip__title {
+  color: var(--rarity-unique);
+}
+
+.tooltip--rare .tooltip__title {
+  color: var(--rarity-rare);
+}
+
+.tooltip--magic .tooltip__title {
+  color: var(--rarity-magic);
+}
+
+.tooltip--gem-str .tooltip__title {
+  color: var(--gem-str);
+}
+
+.tooltip--gem-dex .tooltip__title {
+  color: var(--gem-dex);
+}
+
+.tooltip--gem-int .tooltip__title {
+  color: var(--gem-int);
+}
+
+.tooltip--keystone .tooltip__title,
+.tooltip--ascendancy .tooltip__title,
+.tooltip--notable .tooltip__title {
+  color: var(--accent);
+}
+
+.tooltip--socketable .tooltip__title {
+  color: var(--rarity-rare);
+}
+
+.tooltip__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.tooltip__tags li {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.tooltip__stats div {
+  display: flex;
+  gap: 6px;
+}
+
+.tooltip__stats dt {
+  color: var(--text-muted);
+}
+
+.tooltip__stats dt::after {
+  content: ':';
+}
+
+.tooltip__stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip__requirements,
+.tooltip__description {
+  color: var(--text-muted);
+}
+
+.tooltip__section {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tooltip__section ul {
+  padding: 0;
+  list-style: none;
+}
+
+.tooltip__section-title {
+  margin-bottom: 4px !important;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tooltip__section--mod li,
+.tooltip__section--effect li {
+  color: var(--rarity-magic);
+}
+
+.tooltip__section--muted li {
+  color: var(--text-muted);
+}
+
+.tooltip__flavour {
+  color: var(--rarity-unique);
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.tooltip__corrupted {
+  color: var(--gem-str);
+  font-weight: 600;
+}
+
+.tooltip__note {
+  color: var(--text-disabled);
+  font-size: 11px;
+}
