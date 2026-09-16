@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-preact';
+import { ArrowLeftRight } from 'lucide-preact';
 import { useMemo } from 'preact/hooks';
 import type { EntityInfo, EquipmentSlot, ItemRef, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, socketableTooltip } from '@/lib/tooltip/tooltip-model';
@@ -69,7 +69,22 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
   return (
     <WithTooltip model={itemTooltip(item, socketables)}>
       <div class={`item-slot item-slot--${size}`}>
-        <div class="item-slot__art">{item.iconUrl && <img class="item-slot__icon" src={item.iconUrl} alt="" />}</div>
+        <div class="item-slot__art">
+          {item.iconUrl && <img class="item-slot__icon" src={item.iconUrl} alt="" />}
+          {item.tradeUrl && (
+            <a
+              class="item-slot__trade"
+              href={item.tradeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Find ${item.name} on the trade site`}
+              title="Find on the official trade site"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <ArrowLeftRight size={11} aria-hidden="true" />
+            </a>
+          )}
+        </div>
         <div class="item-slot__body">
           <span class="item-slot__label">{label}</span>
           <span class={`item-name item-name--${item.rarity}`}>{item.name}</span>
@@ -83,20 +98,6 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
           ))}
           {size === 'large' && item.modifiers.length > 0 && <span class="item-slot__mods">{item.modifiers.slice(0, 2).join(' · ')}</span>}
         </div>
-        {item.tradeUrl && (
-          <a
-            class="item-slot__trade"
-            href={item.tradeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Find ${item.name} on the trade site`}
-            title="Find on the official trade site"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <ExternalLink size={11} aria-hidden="true" />
-            Trade
-          </a>
-        )}
         {socketables.length > 0 && (
           <span class="item-slot__sockets">
             {socketables.map((socketable, i) => (

@@ -139,6 +139,7 @@
 }
 
 .item-slot__art {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -245,34 +246,32 @@
   -webkit-line-clamp: 2;
 }
 
-/* Quiet link to the official trade search, in the corner of the card. */
+/* Link to the trade search, in the corner of the item's art, where the site puts its own. */
 .item-slot__trade {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  display: inline-flex;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   color: var(--text-muted);
-  font-size: 10px;
-  text-decoration: none;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 120ms, color 120ms, border-color 120ms;
+  transition: background-color 120ms, color 120ms;
 }
 
-.item-slot:hover .item-slot__trade,
+.item-slot--compact .item-slot__trade {
+  bottom: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+}
+
+.item-slot__trade:hover,
 .item-slot__trade:focus-visible {
-  opacity: 1;
-}
-
-.item-slot__trade:hover {
-  border-color: var(--accent);
+  background: var(--surface-hover);
   color: var(--accent);
 }
 

@@ -106,6 +106,9 @@ describe('GearPanel', () => {
     expect(trade.getAttribute('target')).toBe('_blank');
     expect(trade.getAttribute('rel')).toBe('noopener noreferrer');
 
+    // An icon in the corner of the item's art, the way the site marks its own items.
+    expect(trade.closest('.item-slot__art')).not.toBeNull();
+    expect(trade.textContent).toBe('');
   });
 
   it('has nothing to trade on a slot the author left empty', () => {
