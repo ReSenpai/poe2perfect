@@ -10,12 +10,16 @@ export interface TreeFocus {
 
 const POINTER = { bubbles: true, cancelable: true, pointerType: 'mouse', pointerId: 1, isPrimary: true, button: 0 } as const;
 
+// Hovering the site's entry also opens the site's tooltip for it; the guide shows its own next to the row.
+const HIDE_SITE_TOOLTIPS = '[data-tippy-root] { display: none !important; }';
+
 /**
  * Drives the tree the site draws through its own "Notable Priority" entries, which carry the node slug in
  * `data-priority-slug`. Looking them up inside the tree's own section keeps the passive and atlas trees apart.
  */
 export function createTreeFocus(doc: Document, kind: TreeKind): TreeFocus {
   let highlighted: HTMLElement | null = null;
+  let hideTooltips: HTMLStyleElement | null = null;
 
   const entry = (nodeSlug: string): HTMLElement | null => {
     const section = findTreeSection(doc, kind)?.section;
@@ -33,6 +37,8 @@ export function createTreeFocus(doc: Document, kind: TreeKind): TreeFocus {
   const clear = () => {
     if (highlighted) send(highlighted, ['pointerout', 'pointerleave', 'mouseout', 'mouseleave']);
     highlighted = null;
+    hideTooltips?.remove();
+    hideTooltips = null;
   };
 
   return {
@@ -41,6 +47,9 @@ export function createTreeFocus(doc: Document, kind: TreeKind): TreeFocus {
       if (!element || element === highlighted) return;
       clear();
       highlighted = element;
+      hideTooltips = doc.createElement('style');
+      hideTooltips.textContent = HIDE_SITE_TOOLTIPS;
+      doc.head.append(hideTooltips);
       send(element, ['pointerover', 'pointerenter', 'mouseover', 'mouseenter', 'pointermove', 'mousemove']);
     },
     clear,

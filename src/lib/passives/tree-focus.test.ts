@@ -14,6 +14,7 @@ let focus: ReturnType<typeof createTreeFocus>;
 
 describe('createTreeFocus', () => {
   beforeEach(() => {
+    document.head.innerHTML = '';
     document.body.innerHTML = `
       <main>
         ${treeWidgetHtml({ priorityNodes: ['node-1', 'node-2'] })}
@@ -51,6 +52,16 @@ describe('createTreeFocus', () => {
     focus.select('node-1');
 
     expect(seen.filter((type) => ['pointerdown', 'pointerup', 'click'].includes(type))).toEqual(['pointerdown', 'pointerup', 'click']);
+  });
+
+  it("keeps the site's own tooltip away while the guide drives the highlight, since the guide shows its own", () => {
+    const hidden = () => [...document.head.querySelectorAll('style')].some((style) => (style.textContent ?? '').includes('data-tippy-root'));
+
+    focus.highlight('node-1');
+    expect(hidden()).toBe(true);
+
+    focus.clear();
+    expect(hidden()).toBe(false);
   });
 
   it('stays inside its own tree, so the atlas and the passive tree never mix up nodes', () => {
