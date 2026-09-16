@@ -117,6 +117,11 @@
   background: var(--surface-hover);
 }
 
+/* Rows that point the site's tree at their node react to the pointer. */
+.passive-row--on-tree .passive-row__body {
+  cursor: pointer;
+}
+
 .passive-row__number {
   flex: none;
   width: 18px;

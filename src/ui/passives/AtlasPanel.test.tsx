@@ -12,7 +12,11 @@ const BUILD: Build = parseBuild(fixture.build, fixture.staticData);
 const LOW_LIFE_INDEX = BUILD.variants.findIndex((v) => v.title === 'ENDGAME (LOW LIFE)');
 const LOW_LIFE = BUILD.variants[LOW_LIFE_INDEX]!;
 
+const treeFocus = { highlight: vi.fn(), clear: vi.fn(), select: vi.fn() };
+
 function renderPanel(variant: Variant = LOW_LIFE, variantIndex = LOW_LIFE_INDEX) {
+  treeFocus.highlight.mockClear();
+  treeFocus.select.mockClear();
   const calls: Parameters<EmbedTree>[0][] = [];
   const embedTree: EmbedTree = (options) => {
     calls.push(options);
@@ -20,7 +24,7 @@ function renderPanel(variant: Variant = LOW_LIFE, variantIndex = LOW_LIFE_INDEX)
   };
   render(
     <TooltipProvider>
-      <AtlasPanel variant={variant} variantIndex={variantIndex} embedTree={embedTree} />
+      <AtlasPanel variant={variant} variantIndex={variantIndex} embedTree={embedTree} treeFocus={treeFocus} />
     </TooltipProvider>,
   );
   return calls;
@@ -73,6 +77,18 @@ describe('AtlasPanel', () => {
 
     expect(screen.queryByRole('tablist', { name: 'Atlas side panel' })).toBeNull();
     expect(screen.getByRole('heading', { level: 2, name: 'Key Atlas Passives' })).toBeTruthy();
+  });
+
+  it("points the site's atlas tree at the node of the row under the pointer", () => {
+    renderPanel();
+    const row = within(screen.getByRole('list', { name: 'Expedition passives' })).getByText('Buried Ambition').closest('li')!;
+    const slug = LOW_LIFE.atlas!.groups[0]!.passives.find((p) => p.name === 'Buried Ambition')!.nodeSlug;
+
+    fireEvent.pointerEnter(row);
+    fireEvent.click(row);
+
+    expect(treeFocus.highlight).toHaveBeenCalledWith(slug);
+    expect(treeFocus.select).toHaveBeenCalledWith(slug);
   });
 
   it('explains an atlas tree without notables or keystones', () => {

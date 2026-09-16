@@ -23,13 +23,17 @@ function fakeEmbed() {
   return { embedTree, calls, handle, status: (status: TreeEmbedStatus) => act(() => calls[0]!.onStatus(status)) };
 }
 
+const fakeFocus = () => ({ highlight: vi.fn(), clear: vi.fn(), select: vi.fn() });
+let treeFocus = fakeFocus();
+
 function renderPanel(variant: Variant = LOW_LIFE, variantIndex = LOW_LIFE_INDEX, embed = fakeEmbed()) {
+  treeFocus = fakeFocus();
   const view = render(
     <TooltipProvider>
-      <PassivesPanel variant={variant} variantIndex={variantIndex} entities={BUILD.entities} embedTree={embed.embedTree} />
+      <PassivesPanel variant={variant} variantIndex={variantIndex} entities={BUILD.entities} embedTree={embed.embedTree} treeFocus={treeFocus} />
     </TooltipProvider>,
   );
-  return { ...view, embed };
+  return { ...view, embed, treeFocus };
 }
 
 const keyList = () => screen.getByRole('list', { name: 'Passive priority' });
@@ -68,6 +72,35 @@ describe('PassivesPanel', () => {
     // The ascendancy is a priority order too, so its rows are numbered like the tree's.
     expect([...ascendancy.querySelectorAll('.passive-row__number')].map((el) => el.textContent)).toEqual(['1', '2', '3']);
     expect(screen.getByText('96 points · 8 ascendancy')).toBeTruthy();
+  });
+
+  it('points the tree at a passive the pointer or the keyboard is on', () => {
+    renderPanel();
+    showKeyPassives();
+    const row = within(keyList()).getByText('Pure Energy').closest('li')!;
+    const slug = LOW_LIFE.passives.keyPassives.find((p) => p.name === 'Pure Energy')!.nodeSlug;
+
+    fireEvent.pointerEnter(row);
+    expect(treeFocus.highlight).toHaveBeenCalledWith(slug);
+
+    fireEvent.pointerLeave(row);
+    expect(treeFocus.clear).toHaveBeenCalled();
+
+    fireEvent.focusIn(row.querySelector('.tooltip-trigger')!);
+    expect(treeFocus.highlight).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes a click on a passive to the site's tree", () => {
+    renderPanel();
+    showKeyPassives();
+    const row = within(keyList()).getByText('Pure Energy').closest('li')!;
+    const slug = LOW_LIFE.passives.keyPassives.find((p) => p.name === 'Pure Energy')!.nodeSlug;
+
+    fireEvent.click(row);
+    fireEvent.keyDown(row.querySelector('.tooltip-trigger')!, { key: 'Enter' });
+
+    expect(treeFocus.select).toHaveBeenCalledTimes(2);
+    expect(treeFocus.select).toHaveBeenLastCalledWith(slug);
   });
 
   it('opens a tooltip for a key passive', () => {
