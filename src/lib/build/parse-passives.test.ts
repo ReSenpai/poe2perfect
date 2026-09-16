@@ -26,6 +26,7 @@ const STATIC: RawStaticData = {
       passive('passive-ci', 'Chaos Inoculation', { keystone: true }),
       passive('passive-socket', 'Jewel Socket', { jewelSocket: true }),
       passive('passive-asc-small', 'Lich small', { ascendancy: 3 }),
+      passive('passive-ascendancywitch3start-', 'Necromancer', { ascendancy: 3 }),
       passive('passive-eternal-life', 'Eternal Life', { ascendancy: 3, notable: true }),
     ],
   },
@@ -40,6 +41,7 @@ const STATIC: RawStaticData = {
               { slug: 'node-2', passiveSlug: 'passive-remorseless' },
               { slug: 'node-3', passiveSlug: 'passive-ci' },
               { slug: 'node-4', passiveSlug: 'passive-socket' },
+              { slug: 'node-9', passiveSlug: 'passive-ascendancywitch3start-' },
               { slug: 'node-10', passiveSlug: 'passive-asc-small' },
               { slug: 'node-11', passiveSlug: 'passive-eternal-life' },
             ],
@@ -60,6 +62,16 @@ describe('parsePassives', () => {
 
     expect(passives.nodeCount).toBe(3);
     expect(passives.ascendancyNodeCount).toBe(2);
+  });
+
+  it('does not count the free node an ascendancy starts from', () => {
+    const passives = parsePassives(
+      { mainTree: { selectedSlugs: ['node-1'] }, ascendancyTree: { selectedSlugs: ['node-9', 'node-10', 'node-11'] } },
+      index,
+    );
+
+    expect(passives.ascendancyNodeCount).toBe(2);
+    expect(passives.nodeCount).toBe(1);
   });
 
   it('lists key passives in the order of the priority list, resolved through the tree', () => {

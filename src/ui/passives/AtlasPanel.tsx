@@ -21,7 +21,7 @@ export function AtlasPanel({
 }) {
   const { atlas, atlasNotes } = variant;
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
-  const [side, setSide] = useState<SideView>('notes');
+  const [side, setSide] = useState<SideView>('keys');
   const showNotes = side === 'notes' && atlasNotes !== null;
 
   return (

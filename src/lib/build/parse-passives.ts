@@ -2,6 +2,9 @@ import { type Obj, num, obj, objs, str, strings } from '@/lib/data/coerce';
 import type { Passive, PassiveKind, Passives } from './model';
 import type { StaticEntry, StaticIndex } from './static-index';
 
+/** The node a tree starts from (an ascendancy's class node, the atlas' centre): allocated for free. */
+export const isFreeStartNode = (passiveSlug: string | null): boolean => passiveSlug !== null && /start-?$/.test(passiveSlug);
+
 const KIND_BY_PRIORITY_TYPE: Record<string, PassiveKind> = {
   KEY_STONE: 'keystone',
   NOTABLE: 'notable',
@@ -16,9 +19,11 @@ export function parsePassives(raw: unknown, index: StaticIndex): Passives {
   const mainSelected = strings(main?.selectedSlugs);
   const ascendancySelected = strings(ascendancy?.selectedSlugs);
 
+  const pointsSpent = (selected: string[]) => selected.filter((nodeSlug) => !isFreeStartNode(index.passiveSlugOfNode(nodeSlug))).length;
+
   return {
-    nodeCount: mainSelected.length,
-    ascendancyNodeCount: ascendancySelected.length,
+    nodeCount: pointsSpent(mainSelected),
+    ascendancyNodeCount: pointsSpent(ascendancySelected),
     keyPassives: keyPassives(main, mainSelected, index, (p) => p.kind === 'keystone' || p.kind === 'notable'),
     ascendancy: keyPassives(ascendancy, ascendancySelected, index, (p) => p.kind === 'ascendancy' && isNotable(p, index)),
   };

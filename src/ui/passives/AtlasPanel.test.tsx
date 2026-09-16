@@ -33,7 +33,7 @@ describe('AtlasPanel', () => {
     const expedition = screen.getByRole('list', { name: 'Expedition passives' });
     expect([...expedition.querySelectorAll('.passive-row__name')].map((el) => el.textContent)).toEqual(['Double or Nothing', 'Calculated Investment', 'Buried Ambition', 'Steady Development']);
     expect(screen.getByText('Expedition', { selector: '.passives__label' })).toBeTruthy();
-    expect(screen.getByText('21 points')).toBeTruthy();
+    expect(screen.getByText('19 points')).toBeTruthy();
   });
 
   it('opens a tooltip for an atlas passive', () => {
@@ -53,19 +53,19 @@ describe('AtlasPanel', () => {
     expect(calls[0]!.placeholder).toBe(screen.getByRole('region', { name: 'Atlas tree' }).querySelector('.passives__stage'));
   });
 
-  it("opens the author's notes on the atlas first when there are any", () => {
+  it("shows the atlas passives first, with the author's notes a click away", () => {
     const notes = { root: { type: 'root', children: [{ type: 'paragraph', children: [{ type: 'text', text: 'Rush Strongboxes first', format: 0 }] }] } };
     renderPanel({ ...LOW_LIFE, atlasNotes: notes });
 
     const tabs = screen.getByRole('tablist', { name: 'Atlas side panel' });
     expect(within(tabs).getAllByRole('tab').map((tab) => [tab.textContent, tab.getAttribute('aria-selected')])).toEqual([
-      ['Notes', 'true'],
-      ['Atlas', 'false'],
+      ['Atlas', 'true'],
+      ['Notes', 'false'],
     ]);
-    expect(screen.getByRole('tabpanel', { name: "Author's notes" }).textContent).toContain('Rush Strongboxes first');
-
-    fireEvent.click(within(tabs).getByRole('tab', { name: 'Key atlas passives' }));
     expect(screen.getByRole('list', { name: 'Expedition passives' })).toBeTruthy();
+
+    fireEvent.click(within(tabs).getByRole('tab', { name: "Author's notes" }));
+    expect(screen.getByRole('tabpanel', { name: "Author's notes" }).textContent).toContain('Rush Strongboxes first');
   });
 
   it('shows just the key atlas passives when the author wrote no notes on the atlas', () => {

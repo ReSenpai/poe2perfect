@@ -6,9 +6,6 @@ coverage/
 *.log
 .env*
 
-# Payment QR exports with personal details — never commit these
-photo_*.jpg
-
 __pycache__/
 
 # Generated graphics: rebuild with scripts/make-store-assets.py and scripts/make-boosty-assets.py

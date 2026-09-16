@@ -99,7 +99,7 @@ describe('ProgressionPanel', () => {
     renderPanel();
 
     const passives = group('Passives');
-    expect(passives.querySelector('.stage-points')?.textContent).toBe('112 points (+31) · 9 ascendancy (+4)');
+    expect(passives.querySelector('.stage-points')?.textContent).toBe('112 points (+31) · 8 ascendancy (+4)');
     expect(rowNames(passives, '.change--added .change__name')).toEqual(['Eldritch Empowerment', 'Dampening Shield', 'Melding', 'Insightfulness', 'Zone of Control', 'Efficient Casting', 'Roil', 'Ingenuity', 'Convalescence', 'Dependable Ward']);
   });
 
