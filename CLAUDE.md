@@ -1,8 +1,8 @@
 # poe2perfect
 
 Chrome extension (MV3): replaces a PoE 2 build page on mobalytics.gg with a clean tabbed UI.
-Repo folder is still `mobalyticsgg-sugar`; internal ids (shadow host `poe2-build-guide`, `data-poe2-build-guide-*`
-attributes, dev events) keep the old name on purpose — renaming them would break stored state and dev hooks.
+Internal ids (shadow host `poe2-build-guide`, `data-poe2-build-guide-*` attributes, dev events) keep their original
+names on purpose — renaming them would break stored state and dev hooks.
 
 - Plan and data findings: `docs/PLAN.md` — read before starting a step, tick steps off when done.
 - Design: `reference/DESIGN.md`, screen layouts: `reference/interface.md`, concept art in `reference/`.
@@ -44,19 +44,15 @@ attributes, dev events) keep the old name on purpose — renaming them would bre
 - UI state checks: shadow host `poe2-build-guide` (`.overlay`, `.launcher`, `[role=status]`, `[role=alert]`).
 - claude-in-chrome can't open `chrome-extension://` pages; unpacked extension id is derived from the path.
 
-## Public snapshot
+## This repository
 
-The public repository (github.com/ReSenpai/poe2perfect, GPL-3.0) gets a single-commit snapshot, without the store
-and Boosty material, which stays here:
+Development happens here, in the public repository (github.com/ReSenpai/poe2perfect, GPL-3.0). Everything committed
+is public: no guide wording, no other people's comments, no personal data.
 
-```sh
-git branch -D public-main; git checkout --orphan public-main
-git add -A                       # stage everything first
-git rm -r --cached -q store scripts/brand.py scripts/make-store-assets.py scripts/make-boosty-assets.py
-git commit -m "poe2perfect <version>"
-git push --force https://github.com/ReSenpai/poe2perfect.git public-main:main
-git switch main
-```
+Material for the Chrome Web Store listing and the Boosty page (`store/`, `scripts/brand.py`,
+`scripts/make-store-assets.py`, `scripts/make-boosty-assets.py`) lives in this folder but stays out of git — it is
+listed in `.git/info/exclude`. The earlier private repository `mobalyticsgg-sugar` keeps the development history up
+to 1.0.0 and a copy of that material.
 
 ## Site data notes
 
