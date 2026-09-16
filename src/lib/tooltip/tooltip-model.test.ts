@@ -13,6 +13,7 @@ const ITEM: Item = {
   modifiers: ['+(60-100) to maximum Mana', 'You can apply an additional Curse\nDouble Activation Delay'],
   modifiersSource: 'static',
   grantedSkills: [],
+  tradeUrl: null,
   properties: [{ name: 'Energy Shield', value: '62' }],
   requirements: [
     { name: 'Level', value: '40' },

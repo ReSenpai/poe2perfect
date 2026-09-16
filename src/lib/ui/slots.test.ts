@@ -41,16 +41,19 @@ describe('sheetSlots', () => {
   it('always lists the standard slots, marking the empty ones', () => {
     const { armour, other } = sheetSlots([slot('boots'), slot('mainHand', 1), slot('leftRing')]);
 
-    expect(armour.map(key)).toEqual(['helmet (empty)', 'body (empty)', 'gloves (empty)', 'boots']);
+    // The belt stands with the armour; charms are part of the sheet even when the author left them empty.
+    expect(armour.map(key)).toEqual(['helmet (empty)', 'body (empty)', 'gloves (empty)', 'boots', 'belt (empty)']);
     expect(other.map(key)).toEqual([
       'mainHand1',
       'offHand1 (empty)',
       'amulet (empty)',
       'leftRing',
       'rightRing (empty)',
-      'belt (empty)',
       'flask1 (empty)',
       'flask2 (empty)',
+      'charm1 (empty)',
+      'charm2 (empty)',
+      'charm3 (empty)',
     ]);
   });
 
@@ -66,10 +69,10 @@ describe('sheetSlots', () => {
       'leftRing (empty)',
       'rightRing (empty)',
       'extraRing',
-      'belt (empty)',
       'flask1 (empty)',
       'flask2 (empty)',
       'charm1',
+      'charm2 (empty)',
       'charm3',
     ]);
   });

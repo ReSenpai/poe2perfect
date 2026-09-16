@@ -35,11 +35,13 @@ export function slotLabel(slot: string | null, weaponSet: 1 | 2 | null = null): 
 
 type SlotPosition = [SlotId, 1 | 2 | null];
 
+/** The left column of the sheet: the four armour pieces and the belt. */
 const ARMOUR: SlotPosition[] = [
   ['helmet', null],
   ['body', null],
   ['gloves', null],
   ['boots', null],
+  ['belt', null],
 ];
 
 /** Everything but armour, in sheet order; an optional group appears only when something is equipped in it. */
@@ -48,15 +50,13 @@ const OTHER: { positions: SlotPosition[]; optional: boolean }[] = [
   { positions: [['mainHand', 2], ['offHand', 2]], optional: true },
   { positions: [['amulet', null], ['leftRing', null], ['rightRing', null]], optional: false },
   { positions: [['extraRing', null]], optional: true },
-  { positions: [['belt', null], ['flask1', null], ['flask2', null]], optional: false },
-  { positions: [['charm1', null]], optional: true },
-  { positions: [['charm2', null]], optional: true },
-  { positions: [['charm3', null]], optional: true },
+  { positions: [['flask1', null], ['flask2', null]], optional: false },
+  { positions: [['charm1', null], ['charm2', null], ['charm3', null]], optional: false },
 ];
 
 /**
  * The character sheet: standard slots always (empty ones with `equipped: null`, so the layout stays stable across
- * variants); optional slots — second weapon set, third ring, charms — only when used.
+ * variants); optional slots — second weapon set, third ring — only when used.
  */
 export function sheetSlots(equipment: EquipmentSlot[]): { armour: SheetSlot[]; other: SheetSlot[] } {
   const find = ([slot, weaponSet]: SlotPosition): SheetSlot => ({

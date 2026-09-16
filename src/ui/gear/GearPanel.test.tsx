@@ -27,10 +27,18 @@ describe('GearPanel', () => {
     const { container } = renderPanel();
 
     const labels = (selector: string) => [...container.querySelectorAll(`${selector} .item-slot__label`)].map((el) => el.textContent);
-    expect(labels('.item-slot--large')).toEqual(['Helmet', 'Body Armour', 'Gloves', 'Boots']);
-    expect(labels('.item-slot--compact')).toEqual(['Weapon', 'Offhand', 'Weapon · Set 2', 'Offhand · Set 2', 'Amulet', 'Ring 1', 'Ring 2', 'Belt', 'Life Flask', 'Mana Flask', 'Charm 1', 'Charm 2', 'Charm 3']);
+    expect(labels('.item-slot--large')).toEqual(['Helmet', 'Body Armour', 'Gloves', 'Boots', 'Belt']);
+    expect(labels('.item-slot--compact')).toEqual(['Weapon', 'Offhand', 'Weapon · Set 2', 'Offhand · Set 2', 'Amulet', 'Ring 1', 'Ring 2', 'Life Flask', 'Mana Flask', 'Charm 1', 'Charm 2', 'Charm 3']);
     expect(container.querySelector('.item-slot--compact .item-slot__mods')).toBeNull();
     expect(screen.queryAllByRole('heading', { level: 3 })).toEqual([]);
+  });
+
+  it('keeps the belt with the armour and always shows the charms', () => {
+    const { container } = renderPanel(BUILD.variants[0]!);
+
+    const labels = (selector: string) => [...container.querySelectorAll(`${selector} .item-slot__label`)].map((el) => el.textContent);
+    expect(labels('.gear__armour')).toEqual(['Helmet', 'Body Armour', 'Gloves', 'Boots', 'Belt']);
+    expect(labels('.gear__other')).toContain('Charm 3');
   });
 
   it('shows standard slots the author left empty as placeholders', () => {
@@ -41,14 +49,17 @@ describe('GearPanel', () => {
       'Helmet',
       'Body Armour',
       'Gloves',
+      'Belt',
       'Weapon',
       'Offhand',
       'Amulet',
       'Ring 1',
       'Ring 2',
-      'Belt',
       'Life Flask',
       'Mana Flask',
+      'Charm 1',
+      'Charm 2',
+      'Charm 3',
     ]);
     expect(empty[0]?.textContent).toContain('Empty');
     expect(empty[0]?.closest('.tooltip-trigger')).toBeNull();
@@ -85,6 +96,22 @@ describe('GearPanel', () => {
     const tooltip = screen.getByRole('tooltip');
     expect(tooltip.querySelector('.tooltip__title')?.textContent).toBe('Chaos Bolt');
     expect(tooltip.querySelector('.tooltip__subtitle')?.textContent).toBe('Skill Gem');
+  });
+
+  it('offers the trade search of the site for an equipped item', () => {
+    renderPanel();
+
+    const trade = within(slotCard('Helmet')).getByRole('link', { name: "Find Atziri's Disdain on the trade site" });
+    expect(trade.getAttribute('href')).toContain('https://www.pathofexile.com/trade2/search/');
+    expect(trade.getAttribute('target')).toBe('_blank');
+    expect(trade.getAttribute('rel')).toBe('noopener noreferrer');
+
+  });
+
+  it('has nothing to trade on a slot the author left empty', () => {
+    const { container } = renderPanel({ ...ENDGAME, equipment: [] });
+
+    expect(container.querySelector('.item-slot__trade')).toBeNull();
   });
 
   it('opens a tooltip for a rune socketed in an item', () => {

@@ -131,6 +131,7 @@ describe('parseEquipment', () => {
       modifiers: ['+83 to maximum Energy Shield', '+103 to maximum Life'],
       modifiersSource: 'item',
       grantedSkills: [],
+      tradeUrl: 'https://www.pathofexile.com/trade2/search/?q=%7B%7D',
       properties: [{ name: 'Item Level', value: '82' }],
       requirements: [{ name: 'Level', value: '64' }],
       flavourText: null,
@@ -209,6 +210,29 @@ describe('parseEquipment', () => {
     const { slots } = parseEquipment({ mainHand: { set1: { commonItem: commonItem({ slug: 'weapon-mystery', name: 'Mystery Staff' }) } } }, index);
 
     expect(slots[0]?.item.grantedSkills).toEqual([{ name: 'Forgotten Spell', level: null, gem: null }]);
+  });
+
+  it('builds the trade search link the site offers for the item', () => {
+    const { slots } = parseEquipment(
+      {
+        body: {
+          commonItem: commonItem({
+            poe2TradeRequest: { query: '{"query":{"status":{"option":"securable"}}}', currentLeague: 'Forbidden Rites' },
+          }),
+        },
+      },
+      index,
+    );
+
+    expect(slots[0]?.item.tradeUrl).toBe(
+      'https://www.pathofexile.com/trade2/search/Forbidden%20Rites?q=%7B%22query%22%3A%7B%22status%22%3A%7B%22option%22%3A%22securable%22%7D%7D%7D',
+    );
+  });
+
+  it('has no trade link when the site gives no search for the item', () => {
+    const { slots } = parseEquipment({ body: { commonItem: commonItem({ poe2TradeRequest: null }) } }, index);
+
+    expect(slots[0]?.item.tradeUrl).toBeNull();
   });
 
   it('treats a base item without modifiers as normal', () => {
