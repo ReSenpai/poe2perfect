@@ -45,11 +45,21 @@ export function OverviewPanel({
         )}
       </div>
       {collapsed ? (
+        // Collapsed, the whole rail expands the card again; there is nothing else to click there.
         <section class="card glance glance--collapsed" aria-label="At a glance">
-          <GlanceToggle collapsed onToggle={() => setCollapsed(false)} />
-          <span class="glance__rail-title" aria-hidden="true">
-            At a Glance
-          </span>
+          <button
+            type="button"
+            class="glance__rail"
+            aria-label="Expand At a Glance"
+            title="Expand At a Glance"
+            aria-expanded="false"
+            onClick={() => setCollapsed(false)}
+          >
+            <PanelRightOpen size={16} aria-hidden="true" />
+            <span class="glance__rail-title" aria-hidden="true">
+              At a Glance
+            </span>
+          </button>
         </section>
       ) : (
         <AtAGlance build={build} renderEntity={renderEntity} onCollapse={() => setCollapsed(true)} />
@@ -58,11 +68,10 @@ export function OverviewPanel({
   );
 }
 
-function GlanceToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const label = collapsed ? 'Expand At a Glance' : 'Collapse At a Glance';
+function GlanceToggle({ onToggle }: { onToggle: () => void }) {
   return (
-    <button type="button" class="icon-button glance__toggle" aria-label={label} title={label} aria-expanded={!collapsed} onClick={onToggle}>
-      {collapsed ? <PanelRightOpen size={16} aria-hidden="true" /> : <PanelRightClose size={16} aria-hidden="true" />}
+    <button type="button" class="icon-button glance__toggle" aria-label="Collapse At a Glance" title="Collapse At a Glance" aria-expanded onClick={onToggle}>
+      <PanelRightClose size={16} aria-hidden="true" />
     </button>
   );
 }
@@ -79,7 +88,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
     <section class="card glance" aria-label="At a glance">
       <div class="glance__header">
         <h2 class="card__title">At a Glance</h2>
-        <GlanceToggle collapsed={false} onToggle={onCollapse} />
+        <GlanceToggle onToggle={onCollapse} />
       </div>
       {variant && build.variants.length > 1 && <p class="glance__based">Based on {variant.title}</p>}
 

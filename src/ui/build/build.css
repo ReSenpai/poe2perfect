@@ -299,15 +299,35 @@
   margin: -4px -4px -4px 0;
 }
 
-/* Collapsed: a slim rail with the toggle on top and the title running down. */
+/* Collapsed: a slim rail with the toggle on top and the title running down; the whole rail expands the card. */
 .glance--collapsed {
-  align-items: center;
   width: 44px;
-  padding: 8px 4px !important;
+  padding: 0 !important;
 }
 
-.glance--collapsed .glance__toggle {
-  margin: 0;
+.glance__rail {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 4px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.glance__rail:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.glance__rail:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .glance__rail-title {
@@ -326,10 +346,13 @@
   }
 
   .glance--collapsed {
+    width: auto;
+  }
+
+  .glance__rail {
     flex-direction: row-reverse;
     justify-content: space-between;
-    width: auto;
-    padding: 8px 12px !important;
+    padding: 8px 12px;
   }
 
   .glance__rail-title {
