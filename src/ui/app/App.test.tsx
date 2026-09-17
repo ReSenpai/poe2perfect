@@ -36,6 +36,12 @@ describe('App', () => {
     expect(onModeChange).toHaveBeenCalledWith('extension');
   });
 
+  it('says the site is being slow rather than looking stuck', () => {
+    renderApp({ ...base, mode: 'extension', status: 'loading', progress: { attempt: 2, attempts: 4 } });
+
+    expect(screen.getByRole('status').textContent).toContain('Attempt 2 of 4');
+  });
+
   it('covers the page with a loading overlay', () => {
     const { onModeChange } = renderApp({ ...base, mode: 'extension', status: 'loading' });
 

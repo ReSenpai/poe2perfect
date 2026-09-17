@@ -21,6 +21,11 @@
 ### Overview
 - A collapsed **At a Glance** panel now expands when you click anywhere on it.
 
+### Loading
+- A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
+  has not seen before. The guide now waits and asks again a few times, spends its last attempt on the visitor's
+  own session, and says on screen that it is still trying instead of showing an error straight away.
+
 ## 1.0.0
 
 First public release: a clean tabbed view of PoE 2 build guides on mobalytics.gg — Overview, Skills, Gear, Passives,

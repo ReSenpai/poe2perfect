@@ -35,6 +35,19 @@ function setup(overrides: Partial<Parameters<typeof createBuildLoader>[0]> = {})
 }
 
 describe('createBuildLoader', () => {
+  it('passes on how the fetch is going, so the guide can show progress', async () => {
+    const fetchHtml = vi.fn(async (_url: string, onProgress?: (progress: { attempt: number; attempts: number }) => void) => {
+      onProgress?.({ attempt: 2, attempts: 4 });
+      return pageHtml('[0.5] Build B');
+    });
+    const { load } = setup({ fetchHtml });
+    const progress = vi.fn();
+
+    await load(BUILD_B, progress);
+
+    expect(progress).toHaveBeenCalledWith({ attempt: 2, attempts: 4 });
+  });
+
   it('reads the build the page was opened with from the current document', async () => {
     const { deps, load } = setup();
 
@@ -52,7 +65,7 @@ describe('createBuildLoader', () => {
 
     const result = await load(`${BUILD_A}#gear`);
 
-    expect(fetchHtml).toHaveBeenCalledWith(`${BUILD_A}#gear`);
+    expect(fetchHtml.mock.calls[0]?.[0]).toBe(`${BUILD_A}#gear`);
     expect(result).toMatchObject({ ok: true, build: { title: 'Build A' } });
   });
 
@@ -61,7 +74,7 @@ describe('createBuildLoader', () => {
 
     const result = await load(BUILD_B);
 
-    expect(deps.fetchHtml).toHaveBeenCalledWith(BUILD_B);
+    expect(vi.mocked(deps.fetchHtml).mock.calls[0]?.[0]).toBe(BUILD_B);
     expect(result).toMatchObject({ ok: true, build: { title: 'Build B' } });
   });
 

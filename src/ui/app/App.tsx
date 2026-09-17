@@ -71,6 +71,7 @@ export function App({
           <p class="overlay__status" role="status">
             <span class="spinner" aria-hidden="true" />
             Loading build…
+            {state.progress && <span class="overlay__progress">The site is slow to answer. Attempt {state.progress.attempt} of {state.progress.attempts}…</span>}
           </p>
         ) : (
           <div class="notice" role="alert">
