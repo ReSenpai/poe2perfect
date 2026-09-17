@@ -76,7 +76,7 @@
 
 .gear__armour {
   display: grid;
-  grid-template-rows: repeat(4, minmax(min-content, 1fr));
+  grid-template-rows: repeat(5, minmax(min-content, 1fr));
   gap: 8px;
 }
 
@@ -94,6 +94,7 @@
 }
 
 .item-slot {
+  position: relative;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -138,6 +139,7 @@
 }
 
 .item-slot__art {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -242,6 +244,35 @@
   line-height: 15px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+/* Link to the trade search, in the corner of the item's art, where the site puts its own. */
+.item-slot__trade {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+  color: var(--text-muted);
+  transition: background-color 120ms, color 120ms;
+}
+
+.item-slot--compact .item-slot__trade {
+  bottom: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+}
+
+.item-slot__trade:hover,
+.item-slot__trade:focus-visible {
+  background: var(--surface-hover);
+  color: var(--accent);
 }
 
 .item-slot__sockets {

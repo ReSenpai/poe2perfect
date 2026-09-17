@@ -53,7 +53,7 @@ describe('stageChanges', () => {
   it('sums up the passive points and the key passives taken', () => {
     const changes = stageChanges(variant('ACT 4 - Endgame'), variant('ENDGAME (FULL LIFE)'));
 
-    expect(changes.points).toEqual({ total: 112, delta: 31, ascendancyTotal: 9, ascendancyDelta: 4 });
+    expect(changes.points).toEqual({ total: 112, delta: 31, ascendancyTotal: 8, ascendancyDelta: 4 });
     expect(names(changes.addedKeyPassives)).toEqual([
       'Dampening Shield',
       'Melding',

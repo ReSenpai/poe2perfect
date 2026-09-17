@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { EntityInfo, Passive, Variant } from '@/lib/build/model';
 import type { TreeKind } from '@/lib/passives/site-tree';
+import { createTreeFocus, type TreeFocus } from '@/lib/passives/tree-focus';
 import { embedSiteTree, type TreeEmbed, type TreeEmbedStatus } from '@/lib/passives/tree-embed';
 import { passiveTooltip } from '@/lib/tooltip/tooltip-model';
 import { RichText } from '@/ui/rich-text/RichText';
@@ -27,16 +28,19 @@ export function PassivesPanel({
   variantIndex,
   entities,
   embedTree = embedIntoPage,
+  treeFocus,
 }: {
   variant: Variant;
   variantIndex: number;
   entities: Record<string, EntityInfo>;
   embedTree?: EmbedTree;
+  treeFocus?: TreeFocus;
 }) {
   const { passives, passiveNotes } = variant;
+  const focus = useTreeFocus('passive-tree', treeFocus);
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
-  // The author's notes on the tree usually matter most, so they open first.
-  const [side, setSide] = useState<SideView>('notes');
+  // The priority — in which order to take the passives — is what the tab is for, so it opens first.
+  const [side, setSide] = useState<SideView>('keys');
   const showNotes = side === 'notes' && passiveNotes !== null;
   const points = [`${passives.nodeCount} points`, passives.ascendancyNodeCount > 0 ? `${passives.ascendancyNodeCount} ascendancy` : null].filter(Boolean).join(' · ');
 
@@ -46,9 +50,9 @@ export function PassivesPanel({
       <aside class="card passives__side">
         <div class="passives__heading">
           {passiveNotes ? (
-            <SideTabs label="Passives side panel" idPrefix="passives-side" keysText="Passives" keysLabel="Key passives" view={side} onSelect={setSide} />
+            <SideTabs label="Passives side panel" idPrefix="passives-side" keysText="Priority" keysLabel="Passive priority" view={side} onSelect={setSide} />
           ) : (
-            <h2 class="card__title">Key Passives</h2>
+            <h2 class="card__title">Priority</h2>
           )}
           {!showNotes && <span class="passives__points">{points}</span>}
         </div>
@@ -60,15 +64,15 @@ export function PassivesPanel({
               {passives.ascendancy.length > 0 && (
                 <div class="passives__group">
                   <p class="passives__label">Ascendancy</p>
-                  <PassiveRows passives={passives.ascendancy} label="Ascendancy passives" />
+                  <PassiveRows passives={passives.ascendancy} label="Ascendancy priority" numbered focus={focus} />
                 </div>
               )}
               <div class="passives__group">
                 {passives.ascendancy.length > 0 && <p class="passives__label">Passive Tree</p>}
                 {passives.keyPassives.length > 0 ? (
-                  <PassiveRows passives={passives.keyPassives} label="Key passives" numbered />
+                  <PassiveRows passives={passives.keyPassives} label="Passive priority" numbered focus={focus} />
                 ) : (
-                  <p class="passives__empty">The author hasn't picked key passives for this variant.</p>
+                  <p class="passives__empty">The author hasn't set an order for the passives of this variant.</p>
                 )}
               </div>
             </>
@@ -81,7 +85,7 @@ export function PassivesPanel({
 
 export type SideView = 'notes' | 'keys';
 
-/** Switches a side panel between the author's notes and the key nodes; notes come first. */
+/** Switches a side panel between the nodes to take and the author's notes. */
 export function SideTabs({
   label,
   idPrefix,
@@ -99,11 +103,11 @@ export function SideTabs({
 }) {
   return (
     <div class="side-tabs" role="tablist" aria-label={label}>
-      <SideTab id={`${idPrefix}-notes`} label="Author's notes" selected={view === 'notes'} onSelect={() => onSelect('notes')}>
-        Notes
-      </SideTab>
       <SideTab id={`${idPrefix}-keys`} label={keysLabel} selected={view === 'keys'} onSelect={() => onSelect('keys')}>
         {keysText}
+      </SideTab>
+      <SideTab id={`${idPrefix}-notes`} label="Author's notes" selected={view === 'notes'} onSelect={() => onSelect('notes')}>
+        Notes
       </SideTab>
     </div>
   );
@@ -160,11 +164,39 @@ export function SiteTree({ kind, variantIndex, embedTree }: { kind: TreeKind; va
   );
 }
 
-export function PassiveRows({ passives, label, numbered = false }: { passives: Passive[]; label: string; numbered?: boolean }) {
+/** The tree the panel drives; the panel keeps one for its own kind of tree. */
+export function useTreeFocus(kind: TreeKind, given?: TreeFocus): TreeFocus {
+  const own = useMemo(() => createTreeFocus(document, kind), [kind]);
+  return given ?? own;
+}
+
+export function PassiveRows({
+  passives,
+  label,
+  numbered = false,
+  focus,
+}: {
+  passives: Passive[];
+  label: string;
+  numbered?: boolean;
+  /** Points the site's tree at the node of the row under the pointer, and clicks it through. */
+  focus?: TreeFocus;
+}) {
   return (
     <ol class="passive-rows" aria-label={label}>
       {passives.map((passive, i) => (
-        <li key={passive.nodeSlug ?? `${passive.name}-${i}`} class={`passive-row passive-row--${passive.kind}`}>
+        <li
+          key={passive.nodeSlug ?? `${passive.name}-${i}`}
+          class={`passive-row passive-row--${passive.kind}${focus && passive.nodeSlug ? ' passive-row--on-tree' : ''}`}
+          onPointerEnter={() => passive.nodeSlug && focus?.highlight(passive.nodeSlug)}
+          onPointerLeave={() => focus?.clear()}
+          onFocusIn={() => passive.nodeSlug && focus?.highlight(passive.nodeSlug)}
+          onFocusOut={() => focus?.clear()}
+          onClick={() => passive.nodeSlug && focus?.select(passive.nodeSlug)}
+          onKeyDown={(event) => {
+            if ((event.key === 'Enter' || event.key === ' ') && passive.nodeSlug) focus?.select(passive.nodeSlug);
+          }}
+        >
           <WithTooltip model={passiveTooltip(passive)}>
             <span class="passive-row__body">
               {numbered && <span class="passive-row__number">{i + 1}</span>}

@@ -3,7 +3,8 @@ import type { EntityInfo, Variant } from '@/lib/build/model';
 import { embedSiteTree } from '@/lib/passives/tree-embed';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
-import { type EmbedTree, PassiveRows, SideTabs, type SideView, SiteTree } from './PassivesPanel';
+import type { TreeFocus } from '@/lib/passives/tree-focus';
+import { type EmbedTree, PassiveRows, SideTabs, type SideView, SiteTree, useTreeFocus } from './PassivesPanel';
 
 const embedIntoPage: EmbedTree = (options) => embedSiteTree({ doc: document, win: window, ...options });
 
@@ -13,15 +14,18 @@ export function AtlasPanel({
   variantIndex,
   entities = {},
   embedTree = embedIntoPage,
+  treeFocus,
 }: {
   variant: Variant;
   variantIndex: number;
   entities?: Record<string, EntityInfo>;
   embedTree?: EmbedTree;
+  treeFocus?: TreeFocus;
 }) {
   const { atlas, atlasNotes } = variant;
+  const focus = useTreeFocus('atlas-tree', treeFocus);
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
-  const [side, setSide] = useState<SideView>('notes');
+  const [side, setSide] = useState<SideView>('keys');
   const showNotes = side === 'notes' && atlasNotes !== null;
 
   return (
@@ -61,7 +65,7 @@ export function AtlasPanel({
             atlas.groups.map((group) => (
               <div key={group.id} class="passives__group">
                 <p class="passives__label">{group.label}</p>
-                <PassiveRows passives={group.passives} label={`${group.label} passives`} />
+                <PassiveRows passives={group.passives} label={`${group.label} passives`} focus={focus} />
               </div>
             ))
           )}

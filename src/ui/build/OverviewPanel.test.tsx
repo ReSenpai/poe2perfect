@@ -127,6 +127,23 @@ describe('OverviewPanel', () => {
     expect(onGlanceCollapsedChange).toHaveBeenCalledWith(false);
   });
 
+  it('expands from anywhere on the collapsed rail, not just the icon', () => {
+    const { onGlanceCollapsedChange } = renderPanel(BUILD, true);
+
+    fireEvent.click(glance().querySelector('.glance__rail-title')!);
+
+    expect(onGlanceCollapsedChange).toHaveBeenCalledWith(false);
+  });
+
+  it('keeps the expanded card clickable only on its icon', () => {
+    const { onGlanceCollapsedChange } = renderPanel(BUILD, false);
+
+    fireEvent.click(glance().querySelector('.card__title')!);
+    fireEvent.click(glance());
+
+    expect(onGlanceCollapsedChange).not.toHaveBeenCalled();
+  });
+
   it('toggles At a Glance by itself when nobody keeps the state', () => {
     render(
       <TooltipProvider>

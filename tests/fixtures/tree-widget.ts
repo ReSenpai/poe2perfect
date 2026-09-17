@@ -4,7 +4,15 @@ export function treeWidgetHtml({
   titles = ['ACT 1', 'ACT 2', 'ENDGAME'],
   withCanvas = true,
   kind = 'passive-tree',
-}: { variantIndex?: number; titles?: string[]; withCanvas?: boolean; kind?: 'passive-tree' | 'atlas-tree' } = {}) {
+  priorityNodes = [],
+}: {
+  variantIndex?: number;
+  titles?: string[];
+  withCanvas?: boolean;
+  kind?: 'passive-tree' | 'atlas-tree';
+  /** The site's own priority row: one icon per node, marked with its node slug. */
+  priorityNodes?: string[];
+} = {}) {
   const tabs = titles
     .map((title, i) => `<div role="tab" data-key="${i + 1}" aria-selected="${i === variantIndex}"><div><span>${title}</span></div></div>`)
     .join('');
@@ -20,7 +28,10 @@ export function treeWidgetHtml({
         <div class="tree-body">
           <div class="counters"><div>main:</div><div>103</div><div>123</div></div>
           <div class="tree-slot">${tree}</div>
-          <div class="notables"><div>Notable Priority</div></div>
+          <div class="notables">
+            <div>Notable Priority</div>
+            ${priorityNodes.map((node) => `<div data-priority-slug="${node}" data-tippy-trigger-hover=""><img alt=""></div>`).join('')}
+          </div>
         </div>
       </div>
       <div class="notes"><p>Take the left side first.</p></div>

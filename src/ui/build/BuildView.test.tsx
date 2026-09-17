@@ -181,9 +181,8 @@ describe('BuildView tabs', () => {
 
   it('shows the key passives of the variant on the Passives tab, filling the panel', () => {
     const { container } = renderView('#passives_endgame-low-life');
-    fireEvent.click(screen.getByRole('tab', { name: 'Key passives' }));
 
-    const names = [...screen.getByRole('list', { name: 'Key passives' }).querySelectorAll('.passive-row__name')].map((el) => el.textContent);
+    const names = [...screen.getByRole('list', { name: 'Passive priority' }).querySelectorAll('.passive-row__name')].map((el) => el.textContent);
     expect(names[0]).toBe(BUILD.variants.find((v) => v.title === 'ENDGAME (LOW LIFE)')!.passives.keyPassives[0]!.name);
     expect(screen.getByRole('region', { name: 'Passive tree' })).toBeTruthy();
     expect(container.querySelector('.build-view__panel')?.classList.contains('build-view__panel--fill')).toBe(true);

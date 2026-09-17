@@ -1,6 +1,6 @@
 import { obj, strings } from '@/lib/data/coerce';
 import type { AtlasGroup, AtlasTree } from './model';
-import { passiveFromNode } from './parse-passives';
+import { isFreeStartNode, passiveFromNode } from './parse-passives';
 import type { StaticIndex } from './static-index';
 
 const LABELS: Record<string, string> = {
@@ -28,7 +28,7 @@ export function parseAtlas(raw: unknown, index: StaticIndex): AtlasTree | null {
     const name = TREE_KEY.exec(id)?.[1];
     if (!name) continue;
     const selected = strings(obj(value)?.selectedSlugs);
-    pointCount += selected.length;
+    pointCount += selected.filter((nodeSlug) => !isFreeStartNode(index.passiveSlugOfNode(nodeSlug))).length;
     const passives = selected.flatMap((nodeSlug) => {
       const passive = passiveFromNode(nodeSlug, index);
       return passive && (passive.kind === 'keystone' || passive.kind === 'notable') ? [passive] : [];

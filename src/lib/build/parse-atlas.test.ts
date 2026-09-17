@@ -15,9 +15,10 @@ describe('parseAtlas', () => {
     expect(variant('ACT 4 - Endgame').atlas).toBeNull();
   });
 
-  it('counts every node the author took, across the subtrees', () => {
-    expect(variant('ENDGAME (FULL LIFE)').atlas?.pointCount).toBe(20);
-    expect(variant('ENDGAME (LOW LIFE)').atlas?.pointCount).toBe(21);
+  it('counts every node the author took, across the subtrees, minus the free starting node', () => {
+    // Both take the free starting nodes (the atlas centre, the expedition subtree); they cost nothing.
+    expect(variant('ENDGAME (FULL LIFE)').atlas?.pointCount).toBe(19);
+    expect(variant('ENDGAME (LOW LIFE)').atlas?.pointCount).toBe(19);
   });
 
   it('groups the notables and keystones by subtree, in the order they were taken', () => {

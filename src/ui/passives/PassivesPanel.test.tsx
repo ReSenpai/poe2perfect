@@ -23,25 +23,29 @@ function fakeEmbed() {
   return { embedTree, calls, handle, status: (status: TreeEmbedStatus) => act(() => calls[0]!.onStatus(status)) };
 }
 
+const fakeFocus = () => ({ highlight: vi.fn(), clear: vi.fn(), select: vi.fn() });
+let treeFocus = fakeFocus();
+
 function renderPanel(variant: Variant = LOW_LIFE, variantIndex = LOW_LIFE_INDEX, embed = fakeEmbed()) {
+  treeFocus = fakeFocus();
   const view = render(
     <TooltipProvider>
-      <PassivesPanel variant={variant} variantIndex={variantIndex} entities={BUILD.entities} embedTree={embed.embedTree} />
+      <PassivesPanel variant={variant} variantIndex={variantIndex} entities={BUILD.entities} embedTree={embed.embedTree} treeFocus={treeFocus} />
     </TooltipProvider>,
   );
-  return { ...view, embed };
+  return { ...view, embed, treeFocus };
 }
 
-const keyList = () => screen.getByRole('list', { name: 'Key passives' });
-/** Notes open first when the author wrote any; these tests look at the key passives. */
+const keyList = () => screen.getByRole('list', { name: 'Passive priority' });
+/** The priority list opens first; these tests look at it. */
 const showKeyPassives = () => {
-  const tab = screen.queryByRole('tab', { name: 'Key passives' });
+  const tab = screen.queryByRole('tab', { name: 'Passive priority' });
   if (tab) fireEvent.click(tab);
 };
 const tree = () => screen.getByRole('region', { name: 'Passive tree' });
 
 describe('PassivesPanel', () => {
-  it('lists the key passives in the order the author takes them', () => {
+  it('lists the passives in the order the author takes them', () => {
     renderPanel();
     showKeyPassives();
 
@@ -63,9 +67,40 @@ describe('PassivesPanel', () => {
     renderPanel();
     showKeyPassives();
 
-    const ascendancy = screen.getByRole('list', { name: 'Ascendancy passives' });
+    const ascendancy = screen.getByRole('list', { name: 'Ascendancy priority' });
     expect([...ascendancy.querySelectorAll('.passive-row__name')].map((el) => el.textContent)).toEqual(['Soulless Form', 'Eternal Life', 'Eldritch Empowerment']);
-    expect(screen.getByText('96 points · 9 ascendancy')).toBeTruthy();
+    // The ascendancy is a priority order too, so its rows are numbered like the tree's.
+    expect([...ascendancy.querySelectorAll('.passive-row__number')].map((el) => el.textContent)).toEqual(['1', '2', '3']);
+    expect(screen.getByText('96 points · 8 ascendancy')).toBeTruthy();
+  });
+
+  it('points the tree at a passive the pointer or the keyboard is on', () => {
+    renderPanel();
+    showKeyPassives();
+    const row = within(keyList()).getByText('Pure Energy').closest('li')!;
+    const slug = LOW_LIFE.passives.keyPassives.find((p) => p.name === 'Pure Energy')!.nodeSlug;
+
+    fireEvent.pointerEnter(row);
+    expect(treeFocus.highlight).toHaveBeenCalledWith(slug);
+
+    fireEvent.pointerLeave(row);
+    expect(treeFocus.clear).toHaveBeenCalled();
+
+    fireEvent.focusIn(row.querySelector('.tooltip-trigger')!);
+    expect(treeFocus.highlight).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes a click on a passive to the site's tree", () => {
+    renderPanel();
+    showKeyPassives();
+    const row = within(keyList()).getByText('Pure Energy').closest('li')!;
+    const slug = LOW_LIFE.passives.keyPassives.find((p) => p.name === 'Pure Energy')!.nodeSlug;
+
+    fireEvent.click(row);
+    fireEvent.keyDown(row.querySelector('.tooltip-trigger')!, { key: 'Enter' });
+
+    expect(treeFocus.select).toHaveBeenCalledTimes(2);
+    expect(treeFocus.select).toHaveBeenLastCalledWith(slug);
   });
 
   it('opens a tooltip for a key passive', () => {
@@ -81,29 +116,30 @@ describe('PassivesPanel', () => {
     renderPanel(BUILD.variants[0], 0);
     showKeyPassives();
 
-    expect(screen.queryByRole('list', { name: 'Ascendancy passives' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Ascendancy priority' })).toBeNull();
     expect(screen.getByText('20 points')).toBeTruthy();
   });
 
-  it("opens the author's notes on the tree first, with the key passives a click away", () => {
+  it("opens the priority list first, with the author's notes a click away", () => {
     renderPanel(BUILD.variants[0], 0);
 
     const tabs = screen.getByRole('tablist', { name: 'Passives side panel' });
     // Short labels on screen; names that don't clash with the main "Passives" tab for assistive tech.
     expect(within(tabs).getAllByRole('tab').map((tab) => [tab.textContent, tab.getAttribute('aria-label'), tab.getAttribute('aria-selected')])).toEqual([
-      ['Notes', "Author's notes", 'true'],
-      ['Passives', 'Key passives', 'false'],
+      ['Priority', 'Passive priority', 'true'],
+      ['Notes', "Author's notes", 'false'],
     ]);
+    expect(screen.getByRole('list', { name: 'Passive priority' })).toBeTruthy();
+
+    fireEvent.click(within(tabs).getByRole('tab', { name: "Author's notes" }));
+
     expect(screen.getByRole('tabpanel', { name: "Author's notes" }).textContent).toContain(textNodes(BUILD.variants[0]!.passiveNotes)[0]);
-    expect(screen.queryByRole('list', { name: 'Key passives' })).toBeNull();
-
-    fireEvent.click(within(tabs).getByRole('tab', { name: 'Key passives' }));
-
-    expect(screen.getByRole('list', { name: 'Key passives' })).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'Passive priority' })).toBeNull();
   });
 
   it('opens tooltips for passives mentioned in the notes', () => {
     renderPanel(BUILD.variants[0], 0);
+    fireEvent.click(screen.getByRole('tab', { name: "Author's notes" }));
 
     const chip = within(screen.getByRole('tabpanel', { name: "Author's notes" })).getAllByText('Potent Incantation')[0]!.closest('.tooltip-trigger')!;
     fireEvent.focus(chip);
@@ -111,18 +147,18 @@ describe('PassivesPanel', () => {
     expect(screen.getByRole('tooltip').querySelector('.tooltip__title')?.textContent).toBe('Potent Incantation');
   });
 
-  it('shows just the key passives when the author wrote no notes on the tree', () => {
+  it('shows just the priority list when the author wrote no notes on the tree', () => {
     renderPanel(variant('ACT 3'), BUILD.variants.indexOf(variant('ACT 3')));
 
     expect(screen.queryByRole('tablist', { name: 'Passives side panel' })).toBeNull();
-    expect(screen.getByRole('heading', { level: 2, name: 'Key Passives' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Priority' })).toBeTruthy();
   });
 
-  it('explains a variant without key passives', () => {
+  it('explains a variant without a passive priority', () => {
     renderPanel({ ...LOW_LIFE, passives: { ...LOW_LIFE.passives, keyPassives: [] } });
     showKeyPassives();
 
-    expect(screen.getByText("The author hasn't picked key passives for this variant.")).toBeTruthy();
+    expect(screen.getByText("The author hasn't set an order for the passives of this variant.")).toBeTruthy();
   });
 
   it("embeds the site's tree for the variant into the tree area", () => {

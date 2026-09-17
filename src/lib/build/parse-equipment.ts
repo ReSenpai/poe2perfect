@@ -72,10 +72,20 @@ function parseItem(raw: Obj | null, index: StaticIndex): Item | null {
     modifiers,
     modifiersSource,
     grantedSkills,
+    tradeUrl: tradeUrl(raw),
     properties: fallback(nameValues(raw.stats), () => staticStats(staticItem?.stats)),
     requirements: fallback(nameValues(raw.requirements), () => staticStats(obj(staticItem?.baseItemType)?.itemRequiredStats)),
     flavourText: str(staticItem?.flavourText),
   };
+}
+
+/** `poe2TradeRequest` holds the search the site sends to the official trade site. */
+function tradeUrl(raw: Obj | null): string | null {
+  const request = obj(raw?.poe2TradeRequest);
+  const query = str(request?.query);
+  if (!query) return null;
+  const league = str(request?.currentLeague) ?? '';
+  return `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}?q=${encodeURIComponent(query)}`;
 }
 
 function parseGrantedSkills(lines: string[], index: StaticIndex): GrantedSkill[] {
