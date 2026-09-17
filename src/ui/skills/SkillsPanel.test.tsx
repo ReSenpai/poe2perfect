@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/preact';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Build, Variant } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import { TooltipProvider } from '@/ui/tooltip/Tooltip';
@@ -10,12 +10,13 @@ const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');
 const BUILD: Build = parseBuild(fixture.build, fixture.staticData);
 const ENDGAME = BUILD.variants.find((v) => v.title === 'ENDGAME (FULL LIFE)')!;
 
-function renderPanel(variant: Variant = ENDGAME) {
-  return render(
+function renderPanel(variant: Variant = ENDGAME, copy = vi.fn(async () => true)) {
+  const view = render(
     <TooltipProvider>
-      <SkillsPanel variant={variant} entities={BUILD.entities} />
+      <SkillsPanel variant={variant} entities={BUILD.entities} copy={copy} />
     </TooltipProvider>,
   );
+  return { ...view, copy };
 }
 
 const skillList = () => screen.getByRole('list', { name: 'Active skills' });
@@ -23,10 +24,57 @@ const skillButton = (name: string) => within(skillList()).getByRole('button', { 
 const details = () => screen.getByRole('region', { name: 'Skill details' });
 
 describe('SkillsPanel', () => {
+  // The gem name is what you paste into the game's own search.
+  it('copies the name of an active skill, and says it did', async () => {
+    const { copy } = renderPanel();
+
+    fireEvent.click(skillButton('Contagion'));
+
+    expect(copy).toHaveBeenCalledWith('Contagion');
+    expect(await screen.findByRole('status')).toHaveProperty('textContent', 'Copied “Contagion”');
+  });
+
+  it('copies the name of a support gem from its socket', () => {
+    const { copy } = renderPanel();
+
+    const row = skillButton('Essence Drain').closest('li')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Copy “Chain II”' }));
+
+    expect(copy).toHaveBeenCalledWith('Chain II');
+  });
+
+  it('copies the name of a gem from the priority list', () => {
+    const { copy } = renderPanel();
+
+    const first = within(screen.getByRole('list', { name: 'Gem priority' })).getAllByRole('listitem')[0]!;
+    const name = first.querySelector('.gem-priority__name')!.textContent;
+    fireEvent.click(within(first).getByRole('button', { name: `Copy “${name}”` }));
+
+    expect(copy).toHaveBeenCalledWith(name);
+  });
+
+  it('copies the name of the gem shown in the details, and of its supports', () => {
+    const { copy } = renderPanel();
+
+    fireEvent.click(within(details()).getByRole('button', { name: 'Copy “Essence Drain”' }));
+    expect(copy).toHaveBeenCalledWith('Essence Drain');
+
+    fireEvent.click(within(details()).getByRole('button', { name: 'Copy “Chain II”' }));
+    expect(copy).toHaveBeenLastCalledWith('Chain II');
+  });
+
+  it('says when the browser would not let it copy', async () => {
+    renderPanel(ENDGAME, vi.fn(async () => false));
+
+    fireEvent.click(skillButton('Contagion'));
+
+    expect((await screen.findByRole('status')).textContent).toBe("Couldn't copy the name");
+  });
+
   it('lists the active skills with their tags, the first one selected', () => {
     renderPanel();
 
-    const buttons = within(skillList()).getAllByRole('button');
+    const buttons = [...skillList().querySelectorAll('.skill-row__main')];
     expect(buttons.map((b) => b.querySelector('.skill-row__name')?.textContent)).toEqual(ENDGAME.skills.map((s) => s.gem.name));
     expect(buttons[0]?.getAttribute('aria-pressed')).toBe('true');
     expect(buttons[1]?.getAttribute('aria-pressed')).toBe('false');
