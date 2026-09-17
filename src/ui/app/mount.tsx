@@ -2,7 +2,7 @@ import { render } from 'preact';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import type { PageController } from '@/lib/page/controller';
-import type { TabId } from '@/lib/ui/route';
+import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BASE_CSS } from '@/ui/styles';
 import { registerFonts } from '@/ui/theme/fonts';
 import { INTER_SOURCES } from '@/ui/theme/inter-sources';
@@ -20,6 +20,8 @@ export async function mountApp(
     onLastTabChange: (tab: TabId) => void;
     glanceCollapsed: boolean;
     onGlanceCollapsedChange: (collapsed: boolean) => void;
+    lastVariants: Record<string, RememberedVariant>;
+    onVariantChange: (buildSlug: string, variant: RememberedVariant) => void;
   },
 ): Promise<HTMLElement> {
   registerFonts({ fontSet: document.fonts, FontFace, sources: INTER_SOURCES });
@@ -40,6 +42,8 @@ export async function mountApp(
           onLastTabChange={preferences.onLastTabChange}
           initialGlanceCollapsed={preferences.glanceCollapsed}
           onGlanceCollapsedChange={preferences.onGlanceCollapsedChange}
+          initialLastVariants={preferences.lastVariants}
+          onVariantChange={preferences.onVariantChange}
         />,
         container,
       );

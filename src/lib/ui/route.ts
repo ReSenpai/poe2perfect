@@ -7,6 +7,23 @@ export interface Route {
   variantId: string | null;
 }
 
+/** The variant a build was last read at. The title is kept as well: ids change when the author rebuilds a variant. */
+export interface RememberedVariant {
+  id: string;
+  title: string;
+}
+
+/**
+ * The variant to open when the address names none. The author keeps working on the build, so a remembered variant
+ * may be gone: it is looked up by id, then by title, and otherwise gives way to the build's own default.
+ */
+export function rememberedVariantId(build: Build, remembered: RememberedVariant | null | undefined): string | null {
+  if (!remembered) return build.defaultVariantId;
+  const same = (title: string) => title.trim().toLowerCase() === remembered.title.trim().toLowerCase();
+  const variant = build.variants.find((v) => v.id === remembered.id) ?? build.variants.find((v) => same(v.title));
+  return variant?.id ?? build.defaultVariantId;
+}
+
 export const TABS: readonly { id: TabId; label: string; hasVariant: boolean }[] = [
   { id: 'overview', label: 'Overview', hasVariant: false },
   { id: 'skills', label: 'Skills', hasVariant: true },
@@ -50,7 +67,7 @@ const SEPARATOR = '_';
  * Route from a location hash like "#gear_act-1". A hash without a known tab opens `fallbackTab` (e.g. the tab used
  * last) when the build has it, otherwise the overview.
  */
-export function parseRoute(hash: string, build: Build, fallbackTab: TabId = 'overview'): Route {
+export function parseRoute(hash: string, build: Build, fallbackTab: TabId = 'overview', remembered?: RememberedVariant | null): Route {
   let decoded = hash.replace(/^#/, '');
   try {
     decoded = decodeURIComponent(decoded);
@@ -60,9 +77,10 @@ export function parseRoute(hash: string, build: Build, fallbackTab: TabId = 'ove
   const [tabPart, variantPart] = decoded.split(SEPARATOR);
   const tabs = availableTabs(build);
   const tab = tabs.find((t) => t.id === tabPart)?.id;
-  if (!tab) return { tab: tabs.some((t) => t.id === fallbackTab) ? fallbackTab : 'overview', variantId: build.defaultVariantId };
+  const fallbackVariantId = rememberedVariantId(build, remembered);
+  if (!tab) return { tab: tabs.some((t) => t.id === fallbackTab) ? fallbackTab : 'overview', variantId: fallbackVariantId };
   const variantId = variantPart ? variantSlugs(build).bySlug.get(variantPart) : undefined;
-  return { tab, variantId: variantId ?? build.defaultVariantId };
+  return { tab, variantId: variantId ?? fallbackVariantId };
 }
 
 export function formatRoute(route: Route, build: Build): string {

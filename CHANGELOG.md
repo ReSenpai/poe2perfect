@@ -21,6 +21,15 @@
 ### Overview
 - A collapsed **At a Glance** panel now expands when you click anywhere on it.
 
+### Skills
+- Clicking a gem — in Active Skills, in Gem Priority or in the skill details — copies its name, ready to paste
+  into the game's own search. The panel says which name it took.
+
+### Variants
+- A build opens again at the act or stage you last read it at. Variants are remembered per build; when the author
+  renames or rebuilds them, the guide finds the stage again by its name and otherwise opens the author's default.
+  A link that names a variant still wins, so shared links open what they point at.
+
 ### Loading
 - A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
   has not seen before. The guide now waits and asks again a few times, spends its last attempt on the visitor's
