@@ -113,6 +113,8 @@ export interface Item {
   modifiersSource: 'item' | 'affixes' | 'static' | 'none';
   /** Skills the item gives its wearer ("Grants Skill: Chaos Bolt"), e.g. on wands and staves. */
   grantedSkills: GrantedSkill[];
+  /** What the base item gives on its own: the resistance of a ring, the spirit of an amulet. */
+  implicits: string[];
   /** Search for this item on the official trade site, as the build page offers it. */
   tradeUrl: string | null;
   properties: NameValue[];

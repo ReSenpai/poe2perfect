@@ -117,6 +117,16 @@ describe('GearPanel', () => {
     expect(container.querySelector('.item-slot__trade')).toBeNull();
   });
 
+  // Real build data: a ring is picked for its implicit as much as for its rolled modifiers.
+  it("shows the base item's own modifier in the tooltip, above the rolled ones", () => {
+    renderPanel(BUILD.variants[0]!);
+
+    fireEvent.focus(slotCard('Ring 2').closest('.tooltip-trigger')!);
+
+    const implicit = screen.getByRole('tooltip').querySelector('.tooltip__section--implicit');
+    expect(implicit?.textContent).toBe('+(7-13)% to Chaos Resistance');
+  });
+
   it('opens a tooltip for a rune socketed in an item', () => {
     renderPanel();
 

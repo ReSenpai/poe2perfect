@@ -13,6 +13,7 @@ const ITEM: Item = {
   modifiers: ['+(60-100) to maximum Mana', 'You can apply an additional Curse\nDouble Activation Delay'],
   modifiersSource: 'static',
   grantedSkills: [],
+  implicits: ['+(7-13)% to Chaos Resistance'],
   tradeUrl: null,
   properties: [{ name: 'Energy Shield', value: '62' }],
   requirements: [
@@ -75,6 +76,7 @@ describe('itemTooltip', () => {
       requirements: 'Level 40, Intelligence 58',
       description: null,
       sections: [
+        { title: null, lines: ['+(7-13)% to Chaos Resistance'], tone: 'implicit' },
         { title: null, lines: ['+(60-100) to maximum Mana', 'You can apply an additional Curse', 'Double Activation Delay'], tone: 'mod' },
         { title: 'Sockets', lines: ['Soul Core of Tacati'], tone: 'muted' },
       ],
@@ -85,7 +87,7 @@ describe('itemTooltip', () => {
   });
 
   it('keeps it short for a plain base item', () => {
-    const plain: Item = { ...ITEM, name: 'Beaded Circlet', rarity: 'normal', corrupted: false, itemClassName: null, modifiers: [], modifiersSource: 'none', properties: [], requirements: [], flavourText: null };
+    const plain: Item = { ...ITEM, name: 'Beaded Circlet', rarity: 'normal', corrupted: false, itemClassName: null, modifiers: [], modifiersSource: 'none', implicits: [], properties: [], requirements: [], flavourText: null };
 
     expect(itemTooltip(plain)).toMatchObject({ accent: 'normal', subtitle: null, requirements: null, sections: [], note: null, flavour: null });
   });

@@ -7,6 +7,28 @@ const ARMOUR_SLOTS: SlotId[] = ['helmet', 'body', 'gloves', 'boots'];
 const WEAPON_SLOTS: SlotId[] = ['mainHand', 'offHand'];
 const GRANTS_SKILL = /^Grants Skill:\s*(?:Level\s+(\S+)\s+)?(.+)$/;
 
+/**
+ * The site keeps the equipment classes an implicit is written for in front of the text itself
+ * ("Armour: Wand or Staff: Martial Weapon: All: +(10-15) to Intelligence") and shows the whole line.
+ * The guide shows the implicit alone; the labels are a closed set, checked against the site's own data.
+ */
+const SCOPE_LABELS = new Set([
+  'All',
+  'Armour',
+  'Body Armour',
+  'Boots',
+  'Bow',
+  'Gloves',
+  'Helmet',
+  'Martial Weapon',
+  'One Hand Mace',
+  'Quarterstaff',
+  'Sceptre',
+  'Shield',
+  'Spear',
+  'Wand or Staff',
+]);
+
 const OTHER_SLOTS: SlotId[] = ['amulet', 'leftRing', 'rightRing', 'extraRing', 'belt', 'flask1', 'flask2', 'charm1', 'charm2', 'charm3'];
 
 export function parseEquipment(raw: unknown, index: StaticIndex): { slots: EquipmentSlot[]; itemPriority: ItemRef[] } {
@@ -56,8 +78,9 @@ function parseItem(raw: Obj | null, index: StaticIndex): Item | null {
   } else {
     [modifiers, modifiersSource] = [[], 'none'];
   }
+  const baseLines = strings(obj(staticItem?.baseItemType)?.bakedDescriptions);
   // Granted skills come from the base type and, for uniques, from their modifiers too; keep them out of the modifiers.
-  const grantedSkills = parseGrantedSkills([...strings(obj(staticItem?.baseItemType)?.bakedDescriptions), ...modifiers], index);
+  const grantedSkills = parseGrantedSkills([...baseLines, ...modifiers], index);
   modifiers = modifiers.filter((line) => !GRANTS_SKILL.test(line));
   if (modifiers.length === 0) modifiersSource = 'none';
 
@@ -72,11 +95,20 @@ function parseItem(raw: Obj | null, index: StaticIndex): Item | null {
     modifiers,
     modifiersSource,
     grantedSkills,
+    implicits: baseLines.filter((line) => !GRANTS_SKILL.test(line)).map(withoutScopeLabels).filter((line) => line.length > 0),
     tradeUrl: tradeUrl(raw),
     properties: fallback(nameValues(raw.stats), () => staticStats(staticItem?.stats)),
     requirements: fallback(nameValues(raw.requirements), () => staticStats(obj(staticItem?.baseItemType)?.itemRequiredStats)),
     flavourText: str(staticItem?.flavourText),
   };
+}
+
+function withoutScopeLabels(line: string): string {
+  let text = line.trim();
+  for (let colon = text.indexOf(': '); colon > 0 && SCOPE_LABELS.has(text.slice(0, colon)); colon = text.indexOf(': ')) {
+    text = text.slice(colon + 2).trim();
+  }
+  return text;
 }
 
 /** `poe2TradeRequest` holds the search the site sends to the official trade site. */

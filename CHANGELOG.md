@@ -31,6 +31,10 @@
 - When the author renames or rebuilds a variant, the guide finds the stage again by its name and otherwise opens
   the author's default. A link that names a tab or variant still wins, so shared links open what they point at.
 
+### Gear
+- Item tooltips now show what the base item gives on its own — the resistance of a ring, the spirit of an amulet,
+  the condition of a charm — above the rolled modifiers, as the game does. It was missing on every item that has one.
+
 ### Loading
 - A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
   has not seen before. The guide now waits and asks again a few times, spends its last attempt on the visitor's

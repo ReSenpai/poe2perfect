@@ -109,6 +109,7 @@
   margin-bottom: 1px;
   padding: 1px 4px;
   border-radius: 4px;
+  overflow: hidden;
   break-inside: avoid;
 }
 
@@ -134,6 +135,7 @@
 }
 
 .gem-priority__row > .tooltip-trigger {
+  flex: 1;
   min-width: 0;
 }
 
@@ -141,6 +143,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  width: 100%;
   min-width: 0;
 }
 
@@ -153,15 +156,17 @@
 /* Name and owning skill on one line keeps a long priority list short. */
 .gem-priority__text {
   display: flex;
+  flex: 1;
   gap: 6px;
   align-items: baseline;
   min-width: 0;
   line-height: 20px;
 }
 
+/* The gem is what the row is about, so the skill it belongs to gives way first, down to an ellipsis. */
 .gem-priority__name {
   flex: none;
-  max-width: 100%;
+  max-width: 60%;
   overflow: hidden;
   font-size: 12px;
   font-weight: 500;

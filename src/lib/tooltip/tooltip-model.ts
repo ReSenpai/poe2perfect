@@ -18,7 +18,7 @@ export type TooltipAccent =
 export interface TooltipSection {
   title: string | null;
   lines: string[];
-  tone: 'mod' | 'effect' | 'muted';
+  tone: 'mod' | 'effect' | 'muted' | 'implicit';
 }
 
 /** Everything a tooltip shows, independent of the kind of entity it describes. */
@@ -63,6 +63,7 @@ export function itemTooltip(item: Item, socketables: Socketable[] = []): Tooltip
     requirements: joinRequirements(item.requirements),
     sections: [
       section('Grants Skill', item.grantedSkills.map((skill) => (skill.level ? `Level ${skill.level} ${skill.name}` : skill.name)), 'effect'),
+      section(null, item.implicits, 'implicit'),
       section(null, item.modifiers, 'mod'),
       section('Sockets', socketLines, 'muted'),
     ].filter(isPresent),

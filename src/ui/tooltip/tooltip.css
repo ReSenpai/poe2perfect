@@ -163,6 +163,17 @@
   color: var(--text-muted);
 }
 
+/* What the base item gives, above the rolled modifiers and set apart from them, as in the game. */
+.tooltip__section--implicit li {
+  color: var(--rarity-magic);
+  opacity: 0.75;
+}
+
+.tooltip__section--implicit {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
 .tooltip__flavour {
   color: var(--rarity-unique);
   font-style: italic;
