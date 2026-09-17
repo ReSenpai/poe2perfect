@@ -1,5 +1,4 @@
 .skills {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -24,16 +23,19 @@
   border-radius: 4px;
 }
 
-/* Says the name is on the clipboard, then gets out of the way. */
+/* Says the name is on the clipboard, then gets out of the way. The panel is taller than the window, so the
+   note is placed against the window rather than the panel, where it would sit below the fold. */
 .skills__copied {
-  position: absolute;
-  right: 0;
-  bottom: -4px;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1;
   margin: 0;
   padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
   color: var(--text-muted);
   font-size: 12px;
   pointer-events: none;
