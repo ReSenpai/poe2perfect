@@ -16,8 +16,8 @@ export async function mountApp(
   preferences: {
     headerCollapsed: boolean;
     onHeaderCollapsedChange: (collapsed: boolean) => void;
-    lastTab: TabId;
-    onLastTabChange: (tab: TabId) => void;
+    lastTabs: Record<string, TabId>;
+    onLastTabChange: (buildSlug: string, tab: TabId) => void;
     glanceCollapsed: boolean;
     onGlanceCollapsedChange: (collapsed: boolean) => void;
     lastVariants: Record<string, RememberedVariant>;
@@ -38,7 +38,7 @@ export async function mountApp(
           controller={controller}
           initialHeaderCollapsed={preferences.headerCollapsed}
           onHeaderCollapsedChange={preferences.onHeaderCollapsedChange}
-          initialLastTab={preferences.lastTab}
+          initialLastTabs={preferences.lastTabs}
           onLastTabChange={preferences.onLastTabChange}
           initialGlanceCollapsed={preferences.glanceCollapsed}
           onGlanceCollapsedChange={preferences.onGlanceCollapsedChange}

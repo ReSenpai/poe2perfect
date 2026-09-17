@@ -25,10 +25,11 @@
 - Clicking a gem — in Active Skills, in Gem Priority or in the skill details — copies its name, ready to paste
   into the game's own search. The panel says which name it took.
 
-### Variants
-- A build opens again at the act or stage you last read it at. Variants are remembered per build; when the author
-  renames or rebuilds them, the guide finds the stage again by its name and otherwise opens the author's default.
-  A link that names a variant still wins, so shared links open what they point at.
+### Where a build opens
+- A build opens again on the tab and at the act or stage you last read it at, remembered for each build on its own.
+  A build you open for the first time starts on Overview, whatever you were reading elsewhere.
+- When the author renames or rebuilds a variant, the guide finds the stage again by its name and otherwise opens
+  the author's default. A link that names a tab or variant still wins, so shared links open what they point at.
 
 ### Loading
 - A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
