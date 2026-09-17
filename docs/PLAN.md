@@ -313,7 +313,8 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   «Grants Skill»): All, Armour, Body Armour, Boots, Bow, Gloves, Helmet, Martial Weapon, One Hand Mace,
   Quarterstaff, Sceptre, Shield, Spear, Wand or Staff. Строки «Grants Skill» в имплициты не идут — они
   показываются отдельным блоком.
-- В тултипе имплицит стоит над роллами и отделён линией, как в игре.
+- В тултипе имплицит стоит над роллами. Своей линии ему не нужно: у каждого блока тултипа уже есть верхняя,
+  и вторая давала двойной разделитель.
 - В Gem Priority длинное название скилла раньше вылезало в соседнюю колонку: строка теперь обрезается
   (`overflow: hidden` у строки, `flex: 1; min-width: 0` по цепочке), первым сокращается название скилла,
   а имя гема занимает не больше 60% ширины.
