@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.0
+
+### Skills
+- Clicking a gem — in Active Skills, in Gem Priority or in the skill details — copies its name, ready to paste
+  into the game's own search. The panel says which name it took.
+- A long skill name in Gem Priority ends in an ellipsis instead of reaching into the next column.
+
+### Gear
+- Item tooltips now show what the base item gives on its own — the resistance of a ring, the spirit of an amulet,
+  the condition of a charm — above the rolled modifiers, as the game does. It was missing on every item that has one.
+
+### Where a build opens
+- A build opens again on the tab and at the act or stage you last read it at, remembered for each build on its own.
+  A build you open for the first time starts on Overview, whatever you were reading elsewhere.
+- When the author renames or rebuilds a variant, the guide finds the stage again by its name and otherwise opens
+  the author's default. A link that names a tab or variant still wins, so shared links open what they point at.
+
+### Loading
+- A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
+  has not seen before. The guide now waits and asks again a few times, spends its last attempt on the visitor's
+  own session, and says on screen that it is still trying instead of showing an error straight away.
+
 ## 1.1.0
 
 ### Passives and Atlas Tree
@@ -20,25 +42,6 @@
 
 ### Overview
 - A collapsed **At a Glance** panel now expands when you click anywhere on it.
-
-### Skills
-- Clicking a gem — in Active Skills, in Gem Priority or in the skill details — copies its name, ready to paste
-  into the game's own search. The panel says which name it took.
-
-### Where a build opens
-- A build opens again on the tab and at the act or stage you last read it at, remembered for each build on its own.
-  A build you open for the first time starts on Overview, whatever you were reading elsewhere.
-- When the author renames or rebuilds a variant, the guide finds the stage again by its name and otherwise opens
-  the author's default. A link that names a tab or variant still wins, so shared links open what they point at.
-
-### Gear
-- Item tooltips now show what the base item gives on its own — the resistance of a ring, the spirit of an amulet,
-  the condition of a charm — above the rolled modifiers, as the game does. It was missing on every item that has one.
-
-### Loading
-- A first visit to mobalytics.gg could fail with an HTTP 403: the site's bot protection turns away a browser it
-  has not seen before. The guide now waits and asks again a few times, spends its last attempt on the visitor's
-  own session, and says on screen that it is still trying instead of showing an error straight away.
 
 ## 1.0.0
 
