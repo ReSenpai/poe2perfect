@@ -36,6 +36,12 @@ describe('App', () => {
     expect(onModeChange).toHaveBeenCalledWith('extension');
   });
 
+  it('says the site is being slow rather than looking stuck', () => {
+    renderApp({ ...base, mode: 'extension', status: 'loading', progress: { attempt: 2, attempts: 4 } });
+
+    expect(screen.getByRole('status').textContent).toContain('Attempt 2 of 4');
+  });
+
   it('covers the page with a loading overlay', () => {
     const { onModeChange } = renderApp({ ...base, mode: 'extension', status: 'loading' });
 
@@ -122,7 +128,7 @@ describe('ConnectedApp', () => {
     expect(screen.getByRole('button', { name: 'Expand header' })).toBeTruthy();
   });
 
-  it('opens the tab used last when the address names no tab, and reports tab changes', async () => {
+  it('opens a build on the tab it was last read at, and reports the tab under its build', async () => {
     window.location.hash = '';
     const controller = createPageController({ load: async () => ({ ok: true, build: BUILD }), initialMode: 'extension' });
     const onLastTabChange = vi.fn();
@@ -131,7 +137,7 @@ describe('ConnectedApp', () => {
         controller={controller}
         initialHeaderCollapsed={false}
         onHeaderCollapsedChange={vi.fn()}
-        initialLastTab="gear"
+        initialLastTabs={{ 'build-a': 'gear' }}
         onLastTabChange={onLastTabChange}
       />,
     );
@@ -140,7 +146,33 @@ describe('ConnectedApp', () => {
 
     expect((await screen.findByRole('tab', { name: 'Gear' })).getAttribute('aria-selected')).toBe('true');
     fireEvent.click(screen.getByRole('tab', { name: 'Skills' }));
-    expect(onLastTabChange).toHaveBeenLastCalledWith('skills');
+    expect(onLastTabChange).toHaveBeenLastCalledWith('build-a', 'skills');
+  });
+
+  // A build opened for the first time should start where a reader starts: at the overview.
+  it('opens a build nobody has read yet on the overview, whatever was read elsewhere', async () => {
+    window.location.hash = '';
+    const OTHER = { ...BUILD, id: 'other-build', title: 'Other Build' };
+    const controller = createPageController({
+      load: async (url) => ({ ok: true, build: url.endsWith('build-b') ? OTHER : BUILD }),
+      initialMode: 'extension',
+    });
+    render(
+      <ConnectedApp
+        controller={controller}
+        initialHeaderCollapsed={false}
+        onHeaderCollapsedChange={vi.fn()}
+        initialLastTabs={{ 'build-a': 'gear' }}
+        onLastTabChange={vi.fn()}
+      />,
+    );
+
+    act(() => controller.handleUrl(URL_A));
+    expect((await screen.findByRole('tab', { name: 'Gear' })).getAttribute('aria-selected')).toBe('true');
+
+    act(() => controller.handleUrl('https://mobalytics.gg/poe-2/builds/build-b'));
+
+    expect((await screen.findByRole('tab', { name: 'Overview' })).getAttribute('aria-selected')).toBe('true');
   });
 
   it('retries a failed build through the controller', async () => {

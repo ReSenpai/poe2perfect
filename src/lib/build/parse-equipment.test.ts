@@ -46,6 +46,31 @@ const STATIC: RawStaticData = {
       },
     ],
   },
+  poe2Rings: {
+    data: [
+      {
+        slug: 'ring-fourring6',
+        name: 'Amethyst Ring',
+        isUnique: false,
+        bakedDescriptions: [''],
+        baseItemType: { itemClass: { name: 'Rings', slug: 'ring' }, bakedDescriptions: ['Armour: +(7-13)% to Chaos Resistance'] },
+      },
+    ],
+  },
+  poe2Amulets: {
+    data: [
+      {
+        slug: 'amulet-fouramulet5',
+        name: 'Lapis Amulet',
+        isUnique: false,
+        bakedDescriptions: [''],
+        baseItemType: {
+          itemClass: { name: 'Amulets', slug: 'amulet' },
+          bakedDescriptions: ['Armour: Wand or Staff: Martial Weapon: All: +(10-15) to Intelligence'],
+        },
+      },
+    ],
+  },
   poe2Weapons: {
     data: [
       { slug: 'weapon-fourwand1', name: 'Withered Wand', isUnique: false, bakedDescriptions: [''], baseItemType: { bakedDescriptions: ['Grants Skill: Chaos Bolt'] } },
@@ -131,6 +156,7 @@ describe('parseEquipment', () => {
       modifiers: ['+83 to maximum Energy Shield', '+103 to maximum Life'],
       modifiersSource: 'item',
       grantedSkills: [],
+      implicits: [],
       tradeUrl: 'https://www.pathofexile.com/trade2/search/?q=%7B%7D',
       properties: [{ name: 'Item Level', value: '82' }],
       requirements: [{ name: 'Level', value: '64' }],
@@ -210,6 +236,26 @@ describe('parseEquipment', () => {
     const { slots } = parseEquipment({ mainHand: { set1: { commonItem: commonItem({ slug: 'weapon-mystery', name: 'Mystery Staff' }) } } }, index);
 
     expect(slots[0]?.item.grantedSkills).toEqual([{ name: 'Forgotten Spell', level: null, gem: null }]);
+  });
+
+  // What the base item gives on its own: the resistance on a ring, the spirit on an amulet.
+  it('keeps the implicit of the base item, which is half the reason the slot is picked', () => {
+    const { slots } = parseEquipment({ leftRing: { commonItem: commonItem({ slug: 'ring-fourring6', name: 'Amethyst Ring', itemClassSlug: 'ring' }) } }, index);
+
+    expect(slots[0]?.item.implicits).toEqual(['+(7-13)% to Chaos Resistance']);
+  });
+
+  it('drops the labels the site leaves in front of an implicit', () => {
+    const { slots } = parseEquipment({ amulet: { commonItem: commonItem({ slug: 'amulet-fouramulet5', name: 'Lapis Amulet', itemClassSlug: 'amulet' }) } }, index);
+
+    expect(slots[0]?.item.implicits).toEqual(['+(10-15) to Intelligence']);
+  });
+
+  it('leaves a granted skill out of the implicits, since it is shown on its own', () => {
+    const { slots } = parseEquipment({ mainHand: { set1: { commonItem: commonItem({ slug: 'weapon-fourwand1', name: 'Withered Wand', itemClassSlug: 'wand' }) } } }, index);
+
+    expect(slots[0]?.item.implicits).toEqual([]);
+    expect(slots[0]?.item.grantedSkills.map((skill) => skill.name)).toEqual(['Chaos Bolt']);
   });
 
   it('builds the trade search link the site offers for the item', () => {

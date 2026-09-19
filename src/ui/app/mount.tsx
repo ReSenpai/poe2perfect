@@ -2,7 +2,7 @@ import { render } from 'preact';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import type { PageController } from '@/lib/page/controller';
-import type { TabId } from '@/lib/ui/route';
+import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BASE_CSS } from '@/ui/styles';
 import { registerFonts } from '@/ui/theme/fonts';
 import { INTER_SOURCES } from '@/ui/theme/inter-sources';
@@ -16,10 +16,12 @@ export async function mountApp(
   preferences: {
     headerCollapsed: boolean;
     onHeaderCollapsedChange: (collapsed: boolean) => void;
-    lastTab: TabId;
-    onLastTabChange: (tab: TabId) => void;
+    lastTabs: Record<string, TabId>;
+    onLastTabChange: (buildSlug: string, tab: TabId) => void;
     glanceCollapsed: boolean;
     onGlanceCollapsedChange: (collapsed: boolean) => void;
+    lastVariants: Record<string, RememberedVariant>;
+    onVariantChange: (buildSlug: string, variant: RememberedVariant) => void;
   },
 ): Promise<HTMLElement> {
   registerFonts({ fontSet: document.fonts, FontFace, sources: INTER_SOURCES });
@@ -36,10 +38,12 @@ export async function mountApp(
           controller={controller}
           initialHeaderCollapsed={preferences.headerCollapsed}
           onHeaderCollapsedChange={preferences.onHeaderCollapsedChange}
-          initialLastTab={preferences.lastTab}
+          initialLastTabs={preferences.lastTabs}
           onLastTabChange={preferences.onLastTabChange}
           initialGlanceCollapsed={preferences.glanceCollapsed}
           onGlanceCollapsedChange={preferences.onGlanceCollapsedChange}
+          initialLastVariants={preferences.lastVariants}
+          onVariantChange={preferences.onVariantChange}
         />,
         container,
       );

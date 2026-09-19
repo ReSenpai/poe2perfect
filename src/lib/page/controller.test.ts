@@ -34,6 +34,22 @@ function setup(initialMode: 'extension' | 'original' = 'extension') {
 }
 
 describe('createPageController', () => {
+  it('shows how a slow load is going while it waits', async () => {
+    const { controller } = setup();
+    let report!: (progress: { attempt: number; attempts: number }) => void;
+    const load = vi.fn((_url: string, onProgress: (progress: { attempt: number; attempts: number }) => void) => {
+      report = onProgress;
+      return new Promise<LoadResult>(() => {});
+    });
+    const slow = createPageController({ load, initialMode: 'extension' });
+    void controller;
+
+    slow.handleUrl(A);
+    report({ attempt: 2, attempts: 4 });
+
+    expect(slow.getState()).toMatchObject({ status: 'loading', progress: { attempt: 2, attempts: 4 } });
+  });
+
   it('starts inactive', () => {
     expect(setup().controller.getState()).toEqual({ active: false, mode: 'extension' });
   });

@@ -1,7 +1,7 @@
 import { ChevronsDown, ChevronsUp, LogOut, TriangleAlert } from 'lucide-preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Build } from '@/lib/build/model';
-import { availableTabs, formatRoute, parseRoute, type Route, type TabId } from '@/lib/ui/route';
+import { availableTabs, formatRoute, parseRoute, type RememberedVariant, type Route, type TabId } from '@/lib/ui/route';
 import { TooltipProvider } from '@/ui/tooltip/Tooltip';
 import { BuildHeader } from './BuildHeader';
 import { GearPanel } from '@/ui/gear/GearPanel';
@@ -29,6 +29,10 @@ export interface BuildViewProps {
   defaultTab?: TabId;
   /** The user picked another tab (not called for variant changes). */
   onTabChange?: (tab: TabId) => void;
+  /** Variant to open when the address names none, e.g. the one this build was last read at. */
+  defaultVariant?: RememberedVariant | null;
+  /** The user picked another variant. */
+  onVariantChange?: (variant: RememberedVariant) => void;
   glanceCollapsed?: boolean;
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
 }
@@ -46,16 +50,22 @@ export function BuildView({
   onHeaderCollapsedChange,
   defaultTab,
   onTabChange,
+  defaultVariant,
+  onVariantChange,
   glanceCollapsed,
   onGlanceCollapsedChange,
 }: BuildViewProps) {
   const tabs = availableTabs(build);
-  const [route, setRoute] = useState<Route>(() => parseRoute(initialHash, build, defaultTab));
+  const [route, setRoute] = useState<Route>(() => parseRoute(initialHash, build, defaultTab, defaultVariant));
 
   useEffect(() => subscribeToHash?.((hash) => setRoute(parseRoute(hash, build))), [subscribeToHash, build]);
 
   const navigate = (next: Route) => {
     if (next.tab !== route.tab) onTabChange?.(next.tab);
+    if (next.variantId !== route.variantId) {
+      const picked = build.variants.find((v) => v.id === next.variantId);
+      if (picked) onVariantChange?.({ id: picked.id, title: picked.title });
+    }
     setRoute(next);
     onRouteChange(formatRoute(next, build));
   };

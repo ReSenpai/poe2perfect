@@ -4,13 +4,14 @@ import { parseBuild } from '@/lib/build/parse-build';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
 import type { RawStaticData } from '@/lib/data/types';
+import type { FetchProgress, HtmlFetcher } from './fetch-html';
 
 export type LoadResult = { ok: true; build: Build } | { ok: false; message: string };
 
 export interface BuildLoaderDeps {
   initialUrl: string;
   initialDocument: Document;
-  fetchHtml: (url: string) => Promise<string>;
+  fetchHtml: HtmlFetcher;
   readStaticData: () => Promise<StaticDataResult>;
 }
 
@@ -18,7 +19,12 @@ export interface BuildLoaderDeps {
  * Loads and parses the build for a URL. The page's own document only holds the state of the build
  * it was opened with (and only for signed-out visitors); other builds are fetched as fresh HTML.
  */
-export function createBuildLoader({ initialUrl, initialDocument, fetchHtml, readStaticData }: BuildLoaderDeps): (url: string) => Promise<LoadResult> {
+export function createBuildLoader({
+  initialUrl,
+  initialDocument,
+  fetchHtml,
+  readStaticData,
+}: BuildLoaderDeps): (url: string, onProgress?: (progress: FetchProgress) => void) => Promise<LoadResult> {
   const initialSlug = getBuildSlug(initialUrl);
   let staticData: Promise<RawStaticData | null> | null = null;
 
@@ -31,7 +37,7 @@ export function createBuildLoader({ initialUrl, initialDocument, fetchHtml, read
     return staticData;
   };
 
-  return async (url) => {
+  return async (url, onProgress) => {
     const slug = getBuildSlug(url);
     if (!slug) return { ok: false, message: 'Not a build page' };
 
@@ -39,9 +45,13 @@ export function createBuildLoader({ initialUrl, initialDocument, fetchHtml, read
     let extracted = slug === initialSlug ? extractBuildDocument(initialDocument) : null;
     if (!extracted?.ok) {
       try {
-        extracted = extractBuildDocument(await fetchHtml(url));
+        extracted = extractBuildDocument(await fetchHtml(url, onProgress));
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
+        // The site's bot protection turns away a browser it has not seen before; browsing the site clears that.
+        if (reason.includes('403')) {
+          return { ok: false, message: `The site wouldn't answer the guide yet (${reason}). Open the original page, then try again.` };
+        }
         return { ok: false, message: `Couldn't load the build page (${reason}). Check your connection and try again.` };
       }
     }

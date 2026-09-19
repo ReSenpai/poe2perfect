@@ -7,6 +7,7 @@ export default defineConfig({
     name: 'poe2perfect',
     description: 'A clean, tabbed view of Path of Exile 2 build guides on mobalytics.gg',
     permissions: ['storage'],
+    homepage_url: 'https://github.com/ReSenpai/poe2perfect',
   },
   // Dev build is loaded manually into the everyday Chrome (mobalytics sits behind Cloudflare).
   webExt: { disabled: true },

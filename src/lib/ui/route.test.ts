@@ -38,6 +38,34 @@ describe('variantSlugs', () => {
   });
 });
 
+describe('remembered variants', () => {
+  it('opens the variant the visitor last looked at when the address names none', () => {
+    const remembered = { id: BUILD.variants[1]!.id, title: BUILD.variants[1]!.title };
+
+    expect(parseRoute('#gear', BUILD, 'overview', remembered).variantId).toBe(BUILD.variants[1]!.id);
+  });
+
+  // The author keeps working on the build: variants get rebuilt, renamed or dropped.
+  it('finds the variant again by its name when the author rebuilt it under a new id', () => {
+    const remembered = { id: 'gone-with-the-old-edit', title: BUILD.variants[1]!.title };
+
+    expect(parseRoute('#gear', BUILD, 'overview', remembered).variantId).toBe(BUILD.variants[1]!.id);
+  });
+
+  it("falls back to the build's own first variant when the remembered one is gone", () => {
+    const remembered = { id: 'gone', title: 'A stage the author removed' };
+
+    expect(parseRoute('#gear', BUILD, 'overview', remembered).variantId).toBe(BUILD.defaultVariantId);
+  });
+
+  it('lets the address win, so a shared link opens the variant it names', () => {
+    const remembered = { id: BUILD.variants[1]!.id, title: BUILD.variants[1]!.title };
+    const slug = variantSlugs(BUILD).byId.get(BUILD.variants[0]!.id)!;
+
+    expect(parseRoute(`#gear_${slug}`, BUILD, 'overview', remembered).variantId).toBe(BUILD.variants[0]!.id);
+  });
+});
+
 describe('parseRoute', () => {
   it('reads tab and variant from the hash', () => {
     expect(parseRoute('#gear_endgame-full-life', BUILD)).toEqual({ tab: 'gear', variantId: 'id-2' });

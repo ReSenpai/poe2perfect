@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Attributes, EntityInfo, Gem, GemPriorityEntry, Skill, Variant } from '@/lib/build/model';
 import { gemAttribute, gemTooltip } from '@/lib/tooltip/tooltip-model';
+import { copyText } from '@/lib/ui/clipboard';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -8,8 +9,18 @@ import { WithTooltip } from '@/ui/tooltip/Tooltip';
 const EMPTY = "The author hasn't listed skills for this variant.";
 
 /** Active skills of a variant with their supports, and details of the selected skill. */
-export function SkillsPanel({ variant, entities }: { variant: Variant; entities: Record<string, EntityInfo> }) {
+export function SkillsPanel({
+  variant,
+  entities,
+  copy = copyText,
+}: {
+  variant: Variant;
+  entities: Record<string, EntityInfo>;
+  /** Injected in tests; a gem name goes to the clipboard, ready for the game's own search. */
+  copy?: (text: string) => Promise<boolean>;
+}) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
+  const { notice, copyName } = useCopyName(copy);
   const [selected, setSelected] = useState(0);
   // Which gem the gem priority points at, so Active Skills can mark it.
   const [pointedAt, setPointedAt] = useState<GemPointer | null>(null);
@@ -36,19 +47,25 @@ export function SkillsPanel({ variant, entities }: { variant: Variant; entities:
                     skill={entry}
                     selected={entry === skill}
                     onSelect={() => setSelected(i)}
+                    onCopy={copyName}
                     pointedAt={pointedAt}
                   />
                 ))}
               </ul>
             </section>
             {variant.gemPriority.length > 0 && (
-              <GemPriorityCard entries={variant.gemPriority} currentSkillSlug={skill.gem.slug} onPointAt={setPointedAt} />
+              <GemPriorityCard entries={variant.gemPriority} currentSkillSlug={skill.gem.slug} onPointAt={setPointedAt} onCopy={copyName} />
             )}
           </div>
-          <SkillDetails skill={skill} />
+          <SkillDetails skill={skill} onCopy={copyName} />
         </div>
       ) : (
         <p class="panel-empty">{EMPTY}</p>
+      )}
+      {notice && (
+        <p class="skills__copied" role="status">
+          {notice}
+        </p>
       )}
       {variant.skillNotes && (
         <section class="card skills__notes">
@@ -60,6 +77,25 @@ export function SkillsPanel({ variant, entities }: { variant: Variant; entities:
   );
 }
 
+/** Copies a gem name and says so for a moment, so the click has a visible answer. */
+function useCopyName(copy: (text: string) => Promise<boolean>) {
+  const [notice, setNotice] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const copyName = async (name: string) => {
+    const copied = await copy(name);
+    setNotice(copied ? `Copied \u201c${name}\u201d` : "Couldn't copy the name");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setNotice(null), 2000);
+  };
+
+  return { notice, copyName };
+}
+
+const copyLabel = (name: string) => `Copy \u201c${name}\u201d`;
+
 /** A gem the gem priority points at: a support inside its skill, or an active skill on its own. */
 export interface GemPointer {
   gemSlug: string;
@@ -70,11 +106,13 @@ function SkillRow({
   skill,
   selected,
   onSelect,
+  onCopy,
   pointedAt,
 }: {
   skill: Skill;
   selected: boolean;
   onSelect: () => void;
+  onCopy: (name: string) => void;
   pointedAt: GemPointer | null;
 }) {
   const { gem, supports } = skill;
@@ -82,7 +120,16 @@ function SkillRow({
   const matchesSupport = (support: Gem) => pointedAt !== null && pointedAt.parentSlug === gem.slug && pointedAt.gemSlug === support.slug;
   return (
     <li class={`skill-row${selected ? ' skill-row--selected' : ''}${matchesSkill ? ' skill-row--match' : ''}`}>
-      <button type="button" class="skill-row__main" aria-pressed={selected} onClick={onSelect}>
+      <button
+        type="button"
+        class="skill-row__main"
+        aria-pressed={selected}
+        title="Show details and copy the gem name"
+        onClick={() => {
+          onSelect();
+          void onCopy(gem.name);
+        }}
+      >
         <GemIcon gem={gem} class="skill-row__icon" />
         <span class="skill-row__text">
           <span class="skill-row__name">{gem.name}</span>
@@ -93,10 +140,12 @@ function SkillRow({
         <span class="skill-row__supports">
           {supports.map((support, i) => (
             <WithTooltip key={`${support.slug}-${i}`} model={gemTooltip(support)}>
-              <GemIcon
-                gem={support}
-                class={`skill-row__support gem-socket gem-socket--${gemAttribute(support) ?? 'none'}${matchesSupport(support) ? ' skill-row__support--match' : ''}`}
-              />
+              <button type="button" class="gem-copy" aria-label={copyLabel(support.name)} onClick={() => onCopy(support.name)}>
+                <GemIcon
+                  gem={support}
+                  class={`skill-row__support gem-socket gem-socket--${gemAttribute(support) ?? 'none'}${matchesSupport(support) ? ' skill-row__support--match' : ''}`}
+                />
+              </button>
             </WithTooltip>
           ))}
         </span>
@@ -109,10 +158,12 @@ function GemPriorityCard({
   entries,
   currentSkillSlug,
   onPointAt,
+  onCopy,
 }: {
   entries: GemPriorityEntry[];
   currentSkillSlug: string;
   onPointAt: (pointer: GemPointer | null) => void;
+  onCopy: (name: string) => void;
 }) {
   return (
     <section class="card gem-priority">
@@ -129,7 +180,7 @@ function GemPriorityCard({
           >
             <span class="gem-priority__number">{i + 1}</span>
             <WithTooltip model={gemTooltip(entry.gem)}>
-              <span class="gem-priority__gem">
+              <button type="button" class="gem-priority__gem gem-copy" aria-label={copyLabel(entry.gem.name)} onClick={() => onCopy(entry.gem.name)}>
                 <GemIcon gem={entry.gem} class={`gem-priority__icon gem-socket gem-socket--${gemAttribute(entry.gem) ?? 'none'}`} />
                 <span class="gem-priority__text">
                   <span class="gem-priority__name">{entry.gem.name}</span>
@@ -139,7 +190,7 @@ function GemPriorityCard({
                     </span>
                   )}
                 </span>
-              </span>
+              </button>
             </WithTooltip>
           </li>
         ))}
@@ -148,13 +199,15 @@ function GemPriorityCard({
   );
 }
 
-function SkillDetails({ skill }: { skill: Skill }) {
+function SkillDetails({ skill, onCopy }: { skill: Skill; onCopy: (name: string) => void }) {
   const { gem, supports } = skill;
   const details = gem.details;
   return (
     <section class="card skill-details" aria-label="Skill details">
       <div class="skill-details__header">
-        <GemIcon gem={gem} class="skill-details__icon" />
+        <button type="button" class="gem-copy" aria-label={copyLabel(gem.name)} onClick={() => onCopy(gem.name)}>
+          <GemIcon gem={gem} class="skill-details__icon" />
+        </button>
         <div>
           <h2 class="skill-details__name">{gem.name}</h2>
           {details && details.tags.length > 0 && (
@@ -204,11 +257,11 @@ function SkillDetails({ skill }: { skill: Skill }) {
           <ul>
             {supports.map((support, i) => (
               <li key={`${support.slug}-${i}`}>
-                <WithTooltip model={gemTooltip(support)}>
-                  <span class="skill-details__support">
+                <WithTooltip key={`${support.slug}-${i}`} model={gemTooltip(support)}>
+                  <button type="button" class="skill-details__support gem-copy" aria-label={copyLabel(support.name)} onClick={() => onCopy(support.name)}>
                     <GemIcon gem={support} class={`skill-details__support-icon gem-socket gem-socket--${gemAttribute(support) ?? 'none'}`} />
                     <span class="skill-details__support-name">{support.name}</span>
-                  </span>
+                  </button>
                 </WithTooltip>
               </li>
             ))}

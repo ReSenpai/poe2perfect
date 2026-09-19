@@ -1,6 +1,7 @@
 import { getBuildSlug } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import type { LoadResult } from './build-loader';
+import type { FetchProgress } from './fetch-html';
 
 export type PageMode = 'extension' | 'original';
 
@@ -13,7 +14,7 @@ interface ActiveBase {
 
 export type PageState =
   | { active: false; mode: PageMode }
-  | (ActiveBase & { status: 'loading' })
+  | (ActiveBase & { status: 'loading'; progress?: FetchProgress })
   | (ActiveBase & { status: 'ready'; build: Build })
   | (ActiveBase & { status: 'error'; message: string });
 
@@ -35,7 +36,7 @@ export function createPageController({
   initialMode,
   onModeChange,
 }: {
-  load: (url: string) => Promise<LoadResult>;
+  load: (url: string, onProgress: (progress: FetchProgress) => void) => Promise<LoadResult>;
   initialMode: PageMode;
   onModeChange?: (mode: PageMode) => void;
 }): PageController {
@@ -51,7 +52,11 @@ export function createPageController({
   const start = (url: string, slug: string) => {
     const id = ++loadId;
     set({ active: true, mode: state.mode, url, slug, status: 'loading' });
-    void load(url)
+    const report = (progress: FetchProgress) => {
+      if (id !== loadId || !state.active || state.status !== 'loading') return;
+      set({ ...state, progress });
+    };
+    void load(url, report)
       .catch((error: unknown): LoadResult => ({ ok: false, message: error instanceof Error ? error.message : String(error) }))
       .then((result) => {
         if (id !== loadId || !state.active) return;

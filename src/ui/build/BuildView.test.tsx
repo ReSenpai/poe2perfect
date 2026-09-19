@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it, vi } from 'vitest';
+import type { ComponentProps } from 'preact';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import { loadFixture, textNodes } from '../../../tests/fixtures/load';
@@ -9,7 +10,13 @@ import { BuildView } from './BuildView';
 const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');
 const BUILD: Build = parseBuild(fixture.build, fixture.staticData);
 
-function renderView(initialHash = '', build = BUILD, headerCollapsed = false, defaultTab?: TabId) {
+function renderView(
+  initialHash = '',
+  build = BUILD,
+  headerCollapsed = false,
+  defaultTab?: TabId,
+  overrides: Partial<ComponentProps<typeof BuildView>> = {},
+) {
   const onRouteChange = vi.fn();
   const onOriginal = vi.fn();
   const onHeaderCollapsedChange = vi.fn();
@@ -24,6 +31,7 @@ function renderView(initialHash = '', build = BUILD, headerCollapsed = false, de
       onHeaderCollapsedChange={onHeaderCollapsedChange}
       defaultTab={defaultTab}
       onTabChange={onTabChange}
+      {...overrides}
     />,
   );
   return { ...view, onRouteChange, onOriginal, onHeaderCollapsedChange, onTabChange };
@@ -87,6 +95,20 @@ describe('BuildView header', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toBeTruthy();
     expect(document.querySelector('header img')).toBeNull();
+  });
+});
+
+describe('BuildView variants', () => {
+  it('opens the variant the visitor last read, and reports every pick so it can be remembered', () => {
+    const onVariantChange = vi.fn();
+    const second = BUILD.variants[1]!;
+    renderView('#gear', BUILD, false, undefined, { defaultVariant: { id: second.id, title: second.title }, onVariantChange });
+
+    expect(screen.getByRole('button', { name: second.title, pressed: true })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: BUILD.variants[2]!.title }));
+
+    expect(onVariantChange).toHaveBeenCalledWith({ id: BUILD.variants[2]!.id, title: BUILD.variants[2]!.title });
   });
 });
 

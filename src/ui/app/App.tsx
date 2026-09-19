@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { PageController, PageMode, PageState } from '@/lib/page/controller';
-import type { TabId } from '@/lib/ui/route';
+import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BuildView } from '@/ui/build/BuildView';
 
 export interface AppProps {
@@ -10,10 +10,14 @@ export interface AppProps {
   onRetry: () => void;
   headerCollapsed: boolean;
   onHeaderCollapsedChange: (collapsed: boolean) => void;
+  /** Tab to open for this build when the address names none; the overview for a build not read yet. */
   lastTab?: TabId;
   onTabChange?: (tab: TabId) => void;
   glanceCollapsed?: boolean;
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
+  /** The variant this build was last read at, and where to report the reader's pick. */
+  lastVariant?: RememberedVariant | null;
+  onVariantChange?: (variant: RememberedVariant) => void;
 }
 
 export function App({
@@ -26,6 +30,8 @@ export function App({
   onTabChange,
   glanceCollapsed,
   onGlanceCollapsedChange,
+  lastVariant,
+  onVariantChange,
 }: AppProps) {
   if (!state.active) return null;
 
@@ -51,6 +57,8 @@ export function App({
           onHeaderCollapsedChange={onHeaderCollapsedChange}
           defaultTab={lastTab}
           onTabChange={onTabChange}
+          defaultVariant={lastVariant}
+          onVariantChange={onVariantChange}
           glanceCollapsed={glanceCollapsed}
           onGlanceCollapsedChange={onGlanceCollapsedChange}
         />
@@ -71,6 +79,7 @@ export function App({
           <p class="overlay__status" role="status">
             <span class="spinner" aria-hidden="true" />
             Loading build…
+            {state.progress && <span class="overlay__progress">The site is slow to answer. Attempt {state.progress.attempt} of {state.progress.attempts}…</span>}
           </p>
         ) : (
           <div class="notice" role="alert">
@@ -107,27 +116,36 @@ export interface ConnectedAppProps {
   initialHeaderCollapsed: boolean;
   /** Persists the preference; the UI state itself lives here so it survives switching builds. */
   onHeaderCollapsedChange: (collapsed: boolean) => void;
-  initialLastTab?: TabId;
-  /** Persists the tab used last, opened for builds whose address names no tab. */
-  onLastTabChange?: (tab: TabId) => void;
+  /** The tab each build was last read at, by build slug. */
+  initialLastTabs?: Record<string, TabId>;
+  /** Persists the tab this build is now read at. */
+  onLastTabChange?: (buildSlug: string, tab: TabId) => void;
   initialGlanceCollapsed?: boolean;
   /** Persists whether At a Glance on the Overview tab is collapsed. */
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
+  /** The variant each build was last read at, by build slug. */
+  initialLastVariants?: Record<string, RememberedVariant>;
+  /** Persists the variant this build is now read at. */
+  onVariantChange?: (buildSlug: string, variant: RememberedVariant) => void;
 }
 
 export function ConnectedApp({
   controller,
   initialHeaderCollapsed,
   onHeaderCollapsedChange,
-  initialLastTab,
+  initialLastTabs = {},
   onLastTabChange,
   initialGlanceCollapsed = false,
   onGlanceCollapsedChange,
+  initialLastVariants = {},
+  onVariantChange,
 }: ConnectedAppProps) {
   const [state, setState] = useState(controller.getState());
   const [headerCollapsed, setHeaderCollapsed] = useState(initialHeaderCollapsed);
-  const [lastTab, setLastTab] = useState(initialLastTab);
+  const [lastTabs, setLastTabs] = useState(initialLastTabs);
   const [glanceCollapsed, setGlanceCollapsed] = useState(initialGlanceCollapsed);
+  const [lastVariants, setLastVariants] = useState(initialLastVariants);
+  const buildSlug = state.active ? state.slug : null;
 
   useEffect(() => {
     setState(controller.getState());
@@ -145,8 +163,15 @@ export function ConnectedApp({
   };
 
   const changeTab = (tab: TabId) => {
-    setLastTab(tab);
-    onLastTabChange?.(tab);
+    if (!buildSlug) return;
+    setLastTabs((remembered) => ({ ...remembered, [buildSlug]: tab }));
+    onLastTabChange?.(buildSlug, tab);
+  };
+
+  const changeVariant = (variant: RememberedVariant) => {
+    if (!buildSlug) return;
+    setLastVariants((remembered) => ({ ...remembered, [buildSlug]: variant }));
+    onVariantChange?.(buildSlug, variant);
   };
 
   return (
@@ -156,10 +181,12 @@ export function ConnectedApp({
       onRetry={controller.retry}
       headerCollapsed={headerCollapsed}
       onHeaderCollapsedChange={changeHeaderCollapsed}
-      lastTab={lastTab}
+      lastTab={buildSlug ? lastTabs[buildSlug] : undefined}
       onTabChange={changeTab}
       glanceCollapsed={glanceCollapsed}
       onGlanceCollapsedChange={changeGlanceCollapsed}
+      lastVariant={buildSlug ? lastVariants[buildSlug] : null}
+      onVariantChange={changeVariant}
     />
   );
 }

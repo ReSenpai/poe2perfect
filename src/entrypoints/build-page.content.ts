@@ -8,7 +8,7 @@ import { listenForPageReport } from '@/lib/dev/page-report';
 import { createBuildLoader } from '@/lib/page/build-loader';
 import { createHtmlFetcher } from '@/lib/page/fetch-html';
 import { createPageController, isOverlayVisible } from '@/lib/page/controller';
-import { glanceCollapsedItem, headerCollapsedItem, lastTabItem, pageModeItem } from '@/lib/page/preferences';
+import { glanceCollapsedItem, headerCollapsedItem, lastTabsItem, lastVariantsItem, pageModeItem, rememberPerBuild } from '@/lib/page/preferences';
 import { guardFocus } from '@/lib/page/focus-guard';
 import { setPageLocked } from '@/lib/page/page-lock';
 import { mountApp } from '@/ui/app/mount';
@@ -47,14 +47,23 @@ export default defineContentScript({
     let mounting: Promise<void> | null = null;
     const handleUrl = async (url: string) => {
       if (isBuildPageUrl(url)) {
-        mounting ??= Promise.all([headerCollapsedItem.getValue(), lastTabItem.getValue(), glanceCollapsedItem.getValue()]).then(([headerCollapsed, lastTab, glanceCollapsed]) =>
+        mounting ??= Promise.all([
+          headerCollapsedItem.getValue(),
+          lastTabsItem.getValue(),
+          glanceCollapsedItem.getValue(),
+          lastVariantsItem.getValue(),
+        ]).then(([headerCollapsed, lastTabs, glanceCollapsed, lastVariants]) =>
           mountApp(ctx, controller, {
             headerCollapsed,
             onHeaderCollapsedChange: (collapsed) => void headerCollapsedItem.setValue(collapsed),
-            lastTab,
-            onLastTabChange: (tab) => void lastTabItem.setValue(tab),
+            lastTabs,
+            onLastTabChange: (buildSlug, tab) =>
+              void lastTabsItem.getValue().then((remembered) => lastTabsItem.setValue(rememberPerBuild(remembered, buildSlug, tab))),
             glanceCollapsed,
             onGlanceCollapsedChange: (collapsed) => void glanceCollapsedItem.setValue(collapsed),
+            lastVariants,
+            onVariantChange: (buildSlug, variant) =>
+              void lastVariantsItem.getValue().then((remembered) => lastVariantsItem.setValue(rememberPerBuild(remembered, buildSlug, variant))),
           }).then((host) => {
             ctx.onInvalidated(guardFocus({ doc: document, host, isActive: () => isOverlayVisible(controller.getState()) }));
           }),

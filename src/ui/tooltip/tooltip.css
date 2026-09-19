@@ -163,6 +163,12 @@
   color: var(--text-muted);
 }
 
+/* What the base item gives, above the rolled modifiers; the next section's own line sets it apart. */
+.tooltip__section--implicit li {
+  color: var(--rarity-magic);
+  opacity: 0.75;
+}
+
 .tooltip__flavour {
   color: var(--rarity-unique);
   font-style: italic;

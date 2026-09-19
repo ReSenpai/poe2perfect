@@ -4,6 +4,43 @@
   gap: 12px;
 }
 
+/* Every gem is a button that copies its name, ready to paste into the game's search. */
+.gem-copy {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gem-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Says the name is on the clipboard, then gets out of the way. The panel is taller than the window, so the
+   note is placed against the window rather than the panel, where it would sit below the fold. */
+.skills__copied {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
+  color: var(--text-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
 .skills__columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
@@ -72,6 +109,7 @@
   margin-bottom: 1px;
   padding: 1px 4px;
   border-radius: 4px;
+  overflow: hidden;
   break-inside: avoid;
 }
 
@@ -97,6 +135,7 @@
 }
 
 .gem-priority__row > .tooltip-trigger {
+  flex: 1;
   min-width: 0;
 }
 
@@ -104,6 +143,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  width: 100%;
   min-width: 0;
 }
 
@@ -116,15 +156,17 @@
 /* Name and owning skill on one line keeps a long priority list short. */
 .gem-priority__text {
   display: flex;
+  flex: 1;
   gap: 6px;
   align-items: baseline;
   min-width: 0;
   line-height: 20px;
 }
 
+/* The gem is what the row is about, so the skill it belongs to gives way first, down to an ellipsis. */
 .gem-priority__name {
   flex: none;
-  max-width: 100%;
+  max-width: 60%;
   overflow: hidden;
   font-size: 12px;
   font-weight: 500;
