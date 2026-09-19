@@ -163,10 +163,11 @@
   line-height: 20px;
 }
 
-/* The gem is what the row is about, so the skill it belongs to gives way first, down to an ellipsis. */
+/* The gem is what the row is about: the skill it belongs to gives way first (it shrinks a thousand times faster),
+   and the gem name is cut only when the skill is down to a few letters. */
 .gem-priority__name {
-  flex: none;
-  max-width: 60%;
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   font-size: 12px;
   font-weight: 500;
@@ -175,7 +176,8 @@
 }
 
 .gem-priority__parent {
-  min-width: 0;
+  flex: 0 1000 auto;
+  min-width: 3em;
   overflow: hidden;
   color: var(--text-muted);
   font-size: 11px;
