@@ -22,13 +22,15 @@ To update, replace the folder contents with the new build and press the reload a
 
 ## Privacy
 
-The extension runs only on mobalytics.gg, sends nothing anywhere and keeps four display preferences in your browser.
+The extension runs only on mobalytics.gg, sends nothing anywhere else and keeps its display preferences in your
+browser.
 See [PRIVACY.md](PRIVACY.md).
 
 ## What it needs
 
-- Permission: `storage` only (three local preferences: guide or original page, collapsed header, last tab).
-- Runs on `https://mobalytics.gg/*` and sends nothing anywhere. Build data comes from the page itself;
+- Permission: `storage` only (local display preferences: guide or original page, collapsed panels, and the tab and
+  variant last read in each of the last 30 builds).
+- Runs on `https://mobalytics.gg/*` and sends nothing anywhere else. Build data comes from the page itself;
   game data for tooltips comes from the site's own IndexedDB cache.
 
 ## ☕ Support the project
