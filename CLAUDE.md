@@ -41,6 +41,10 @@ names on purpose — renaming them would break stored state and dev hooks.
   ask the user to press reload on the extension card in `chrome://extensions`.
 - Stopping the dev task may leave the WXT node process alive on :3000 (a restart then lands on :3001 and the loaded
   extension stops reloading). Check with `Get-NetTCPConnection -LocalPort 3000` and stop the stale `wxt.mjs` process.
+  A background dev task reported as killed for low memory can leave its node process running too.
+- Never refresh `.output/chrome-mv3-dev` with `wxt build --mode development`: that build has no dev `background.js`,
+  while a dev server's manifest still names it, and Chrome refuses to load the extension ("Не удалось загрузить
+  фоновый скрипт"). Only the dev server writes that folder; run one at a time.
 - UI state checks: shadow host `poe2-build-guide` (`.overlay`, `.launcher`, `[role=status]`, `[role=alert]`).
 - claude-in-chrome can't open `chrome-extension://` pages; unpacked extension id is derived from the path.
 
