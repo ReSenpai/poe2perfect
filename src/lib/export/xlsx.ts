@@ -1,6 +1,11 @@
 import { zip } from './zip';
 
-export type CellValue = string | number | null | undefined;
+/** A cell the spreadsheet works out itself, e.g. `{ formula: 'SUM(A2:A9)' }` (written without the leading =). */
+export interface Formula {
+  formula: string;
+}
+
+export type CellValue = string | number | Formula | null | undefined;
 
 export interface Sheet {
   /** Shown on the tab; trimmed to what a spreadsheet accepts. */
@@ -72,7 +77,10 @@ function sheetXml(sheet: Sheet): string {
 /** Columns as wide as what stands in them, within reason, so nothing has to be resized by hand. */
 function columnsXml(sheet: Sheet, width: number): string {
   const cols = Array.from({ length: width }, (_, column) => {
-    const longest = sheet.rows.reduce((most, row) => Math.max(most, String(row[column] ?? '').length), 0);
+    const longest = sheet.rows.reduce((most, row) => {
+      const value = row[column];
+      return Math.max(most, typeof value === 'object' && value !== null ? 12 : String(value ?? '').length);
+    }, 0);
     const size = Math.min(60, Math.max(10, longest + 2));
     return `<col min="${column + 1}" max="${column + 1}" width="${size}" customWidth="1"/>`;
   }).join('');
@@ -89,6 +97,7 @@ function rowXml(row: CellValue[], rowNumber: number): string {
 
 function cellXml(value: CellValue, reference: string, heading: boolean): string {
   if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'object') return `<c r="${reference}"${heading ? ' s="1"' : ''}><f>${escapeXml(value.formula)}</f></c>`;
   if (typeof value === 'number' && Number.isFinite(value)) return `<c r="${reference}"${heading ? ' s="1"' : ''}><v>${value}</v></c>`;
 
   const text = String(value);

@@ -75,6 +75,13 @@ describe('workbook', () => {
     expect(xml).toContain('<c r="A2" s="2" t="inlineStr">');
   });
 
+  // The point of a spreadsheet: the reader can change a number and watch the totals follow.
+  it('writes a formula as a formula, not as its text', () => {
+    const xml = readZipPart(workbook([{ name: 'Totals', rows: [['Total'], [{ formula: 'SUMIFS(Stats!G:G,Stats!D:D,"Maximum Life")' }]] }]), 'xl/worksheets/sheet1.xml');
+
+    expect(xml).toContain('<c r="A2"><f>SUMIFS(Stats!G:G,Stats!D:D,&quot;Maximum Life&quot;)</f></c>');
+  });
+
   it('gives each column a width to suit what is in it', () => {
     const xml = readZipPart(workbook(SHEETS), 'xl/worksheets/sheet1.xml');
 

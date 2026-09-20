@@ -13,7 +13,58 @@ const column = (name: string, index: number) => sheet(name).rows.slice(1).map((r
 
 describe('buildSheets', () => {
   it('lays the build out as the sheets a reader would expect', () => {
-    expect(buildSheets(BUILD, URL).map((s) => s.name)).toEqual(['Overview', 'Gear', 'Skills', 'Gem Priority', 'Passives', 'Quest Rewards']);
+    expect(buildSheets(BUILD, URL).map((s) => s.name)).toEqual(['Overview', 'Totals', 'Stats', 'Gear', 'Skills', 'Gem Priority', 'Passives', 'Quest Rewards']);
+  });
+
+  // The numbers are what a player came for: one row per modifier, ready to be summed, sorted and pivoted.
+  it('turns every modifier into a number with its source beside it', () => {
+    const stats = sheet('Stats');
+
+    expect(stats.rows[0]).toEqual(['Variant', 'Source', 'From', 'Stat', 'Kind', '%', 'Value', 'Min', 'Max', 'Line']);
+
+    const mana = stats.rows.find(
+      (row) => row[0] === 'ENDGAME (FULL LIFE)' && row[2] === "Atziri's Disdain" && row[3] === 'Maximum Mana',
+    )!;
+    expect(mana[1]).toBe('Helmet');
+    expect(mana[4]).toBe('flat');
+    expect(mana[6]).toBe(80);
+    expect(mana[7]).toBe(60);
+    expect(mana[8]).toBe(100);
+    expect(mana[9]).toBe('+(60-100) to maximum Mana');
+  });
+
+  // Numbers without their meaning mislead: these are what the build adds, not what the character ends up with.
+  it('says plainly what the totals do and do not count', () => {
+    const notes = sheet('Overview').rows.filter((row) => row[0] === 'Note');
+
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.map((row) => String(row[1])).join(' ')).toMatch(/gear and passives/i);
+  });
+
+  it('marks where a number came from, so gear and passives can be told apart', () => {
+    const sources = new Set(sheet('Stats').rows.slice(1).map((row) => row[1]));
+
+    expect(sources).toContain('Helmet');
+    expect(sources).toContain('Passive tree');
+    expect(sources).toContain('Ascendancy');
+  });
+
+  it('adds the stats up with formulas, so changing a number changes the total', () => {
+    const totals = sheet('Totals');
+
+    expect(totals.rows[0]).toEqual(['Variant', 'Stat', 'Flat', 'Increased %', 'More %', 'Estimate']);
+    const life = totals.rows.find((row) => row[0] === 'ENDGAME (FULL LIFE)' && row[1] === 'Maximum Life')!;
+    expect(life[2]).toMatchObject({ formula: expect.stringContaining('SUMIFS(Stats!') });
+    expect(String((life[2] as { formula: string }).formula)).toContain('"flat"');
+    expect(life[5]).toMatchObject({ formula: expect.stringContaining('*(1+') });
+  });
+
+  it('lists each stat once per variant, the biggest sources first', () => {
+    const rows = sheet('Totals').rows.slice(1).filter((row) => row[0] === 'ACT 1');
+    const stats = rows.map((row) => row[1]);
+
+    expect(new Set(stats).size).toBe(stats.length);
+    expect(stats).toContain('Maximum Life');
   });
 
   it('opens with what the build is and where it came from', () => {

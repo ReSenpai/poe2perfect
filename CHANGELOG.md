@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-- **Save the build as a spreadsheet.** The button in the tab bar writes an .xlsx workbook — Overview, Gear, Skills,
-  Gem Priority, Passives and Quest Rewards — which Excel opens and Google Sheets imports. Every row carries its
+- **Save the build as a spreadsheet.** The button in the tab bar writes an .xlsx workbook which Excel opens and
+  Google Sheets imports. Beside the build itself — Gear, Skills, Gem Priority, Passives, Quest Rewards — it carries
+  the numbers: every modifier of every item, rune and passive read into a **Stats** sheet, and a **Totals** sheet
+  that sums them by formula. Change a roll, drop a row or add your own and the totals follow. Every row carries its
   build variant, so a stage is a filter rather than another sheet.
 
 - An item that grants many skills (one amulet grants seven) no longer stretches the whole gear grid: the card shows
