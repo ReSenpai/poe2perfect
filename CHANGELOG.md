@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- A picture the site does not give up — its CDN drops files now and then — leaves a quiet empty box instead of the
+  browser's broken-image mark. Names, modifiers and tooltips stay where they are.
+
 ## 1.2.0
 
 ### Skills

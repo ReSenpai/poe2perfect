@@ -31,3 +31,11 @@
   --radius-card: 8px;
   --radius-control: 6px;
 }
+
+/* Where a picture should be but isn't: the CDN drops files now and then, and some entities have no icon at all.
+   The box keeps its size and stays quiet, instead of the browser's broken-image mark. */
+.icon--missing {
+  display: inline-block;
+  box-sizing: border-box;
+  background: var(--surface);
+}

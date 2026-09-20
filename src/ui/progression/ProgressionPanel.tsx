@@ -4,6 +4,7 @@ import type { Build, Passive, QuestAct, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, passiveTooltip, type TooltipModel } from '@/lib/tooltip/tooltip-model';
 import { type StageChanges, stageChanges } from '@/lib/ui/progression';
 import type { TabId } from '@/lib/ui/route';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -201,7 +202,7 @@ function Entry({ entry, nameClass }: { entry: ChangeEntry; nameClass?: string })
   return (
     <WithTooltip model={entry.tooltip}>
       <span class="change__entry">
-        {entry.iconUrl && <img class={entry.round ? 'change__icon change__icon--round' : 'change__icon'} src={entry.iconUrl} alt="" />}
+        <Icon src={entry.iconUrl} class={entry.round ? 'change__icon change__icon--round' : 'change__icon'} />
         <span class={nameClass ? `change__name ${nameClass}` : 'change__name'}>{entry.name}</span>
       </span>
     </WithTooltip>

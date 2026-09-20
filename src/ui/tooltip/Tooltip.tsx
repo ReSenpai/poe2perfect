@@ -3,6 +3,7 @@ import { createContext, render } from 'preact';
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { type Placement, placeTooltip } from '@/lib/tooltip/placement';
 import type { TooltipModel } from '@/lib/tooltip/tooltip-model';
+import { Icon } from '@/ui/common/Icon';
 
 const TOOLTIP_ID = 'guide-tooltip';
 const HOVER_DELAY_MS = 150;
@@ -141,7 +142,7 @@ function TooltipCard({ model }: { model: TooltipModel }) {
   return (
     <>
       <div class="tooltip__header">
-        {model.iconUrl && <img class="tooltip__icon" src={model.iconUrl} alt="" />}
+        <Icon src={model.iconUrl} class="tooltip__icon" missing="none" />
         <div>
           <p class="tooltip__title">{model.title}</p>
           {model.subtitle && <p class="tooltip__subtitle">{model.subtitle}</p>}

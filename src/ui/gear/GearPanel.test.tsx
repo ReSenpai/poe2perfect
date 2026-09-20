@@ -76,6 +76,18 @@ describe('GearPanel', () => {
     expect(within(helmet).getByText(/maximum Mana/)).toBeTruthy();
   });
 
+  // The site's CDN drops files now and then; a broken-image mark would look like a fault in the guide.
+  it('keeps the slot whole when the site does not give up the item picture', () => {
+    renderPanel();
+    const helmet = slotCard('Helmet');
+
+    fireEvent.error(helmet.querySelector('.item-slot__icon')!);
+
+    expect(helmet.querySelector('img.item-slot__icon')).toBeNull();
+    expect(helmet.querySelector('.item-slot__icon.icon--missing')).not.toBeNull();
+    expect(within(helmet).getByText("Atziri's Disdain")).toBeTruthy();
+  });
+
   it('opens the item tooltip from its slot card', () => {
     renderPanel();
 

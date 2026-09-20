@@ -84,13 +84,12 @@ describe('RichText', () => {
     expect(entity?.textContent).toBe('Contagion');
   });
 
-  it('hides an entity icon that fails to load, keeping the label', () => {
+  it('drops an entity icon that fails to load, keeping the label', () => {
     const container = renderValue(doc(paragraph(chip)));
-    const img = container.querySelector('.rt-entity img') as HTMLImageElement;
 
-    fireEvent.error(img);
+    fireEvent.error(container.querySelector('.rt-entity img')!);
 
-    expect(img.hidden).toBe(true);
+    expect(container.querySelector('.rt-entity img')).toBeNull();
     expect(container.querySelector('.rt-entity')?.textContent).toBe('Contagion');
   });
 

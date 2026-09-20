@@ -3,6 +3,7 @@ import { useMemo } from 'preact/hooks';
 import type { EntityInfo, EquipmentSlot, ItemRef, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, socketableTooltip } from '@/lib/tooltip/tooltip-model';
 import { type SheetSlot, sheetSlots, slotLabel } from '@/lib/ui/slots';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -70,7 +71,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
     <WithTooltip model={itemTooltip(item, socketables)}>
       <div class={`item-slot item-slot--${size}`}>
         <div class="item-slot__art">
-          {item.iconUrl && <img class="item-slot__icon" src={item.iconUrl} alt="" />}
+          <Icon src={item.iconUrl} class="item-slot__icon" />
           {item.tradeUrl && (
             <a
               class="item-slot__trade"
@@ -91,7 +92,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
           {item.grantedSkills.map((skill) => (
             <WithTooltip key={skill.name} model={skill.gem ? gemTooltip(skill.gem) : null}>
               <span class="item-slot__grants">
-                {skill.gem?.iconUrl && <img class="item-slot__grants-icon" src={skill.gem.iconUrl} alt="" />}
+                <Icon src={skill.gem?.iconUrl} class="item-slot__grants-icon" />
                 {skill.name}
               </span>
             </WithTooltip>
@@ -102,11 +103,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
           <span class="item-slot__sockets">
             {socketables.map((socketable, i) => (
               <WithTooltip key={i} model={socketableTooltip(socketable)}>
-                {socketable.iconUrl ? (
-                  <img class="item-slot__socket" src={socketable.iconUrl} alt={socketable.name ?? ''} />
-                ) : (
-                  <span class="item-slot__socket item-slot__socket--empty" />
-                )}
+                <Icon src={socketable.iconUrl} class={`item-slot__socket${socketable.iconUrl ? '' : ' item-slot__socket--empty'}`} alt={socketable.name ?? ''} />
               </WithTooltip>
             ))}
           </span>
@@ -129,7 +126,7 @@ function PriorityCard({ items, equipment }: { items: ItemRef[]; equipment: Equip
               <span class="priority__number">{i + 1}</span>
               <WithTooltip model={equipped ? itemTooltip(equipped.item, equipped.socketables) : null}>
                 <span class="priority__item">
-                  {ref.iconUrl && <img class="priority__icon" src={ref.iconUrl} alt="" />}
+                  <Icon src={ref.iconUrl} class="priority__icon" />
                   <span class={`priority__name item-name item-name--${equipped?.item.rarity ?? 'normal'}`}>{ref.name}</span>
                 </span>
               </WithTooltip>

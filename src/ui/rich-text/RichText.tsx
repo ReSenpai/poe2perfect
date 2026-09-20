@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useMemo } from 'preact/hooks';
 import type { RichText as RichTextValue } from '@/lib/build/model';
 import { type RichBlock, type RichEntity, type RichInline, type RichList, type RichTextRun, toRichBlocks } from '@/lib/rich-text/convert';
+import { Icon } from '@/ui/common/Icon';
 
 export interface RichTextProps {
   value: RichTextValue | null;
@@ -22,14 +23,10 @@ export function RichText({ value, renderEntity = EntityChip, class: className }:
 export function EntityChip(entity: RichEntity) {
   return (
     <span class={`rt-entity rt-entity--${entity.group}`} data-slug={entity.slug}>
-      {entity.iconUrl && <img class="rt-entity__icon" src={entity.iconUrl} alt="" loading="lazy" onError={hideImage} />}
+      <Icon src={entity.iconUrl} class="rt-entity__icon" missing="none" />
       <span class="rt-entity__label">{entity.label}</span>
     </span>
   );
-}
-
-function hideImage(event: Event) {
-  (event.currentTarget as HTMLImageElement).hidden = true;
 }
 
 function renderBlock(block: RichBlock, key: number, renderEntity: EntityRenderer) {
