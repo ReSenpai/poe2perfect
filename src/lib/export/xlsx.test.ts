@@ -67,6 +67,14 @@ describe('workbook', () => {
     expect(name.startsWith('Gear Act 12 main')).toBe(true);
   });
 
+  // Without this Excel runs the lines together and the modifiers of an item read as one long line.
+  it('lets a cell of several lines show them', () => {
+    const modifiers = ['+60 to maximum Life', '+11% to Fire Resistance'].join('\n');
+    const xml = readZipPart(workbook([{ name: 'Gear', rows: [['Modifiers'], [modifiers]] }]), 'xl/worksheets/sheet1.xml');
+
+    expect(xml).toContain('<c r="A2" s="2" t="inlineStr">');
+  });
+
   it('gives each column a width to suit what is in it', () => {
     const xml = readZipPart(workbook(SHEETS), 'xl/worksheets/sheet1.xml');
 

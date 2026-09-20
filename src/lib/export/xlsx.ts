@@ -56,9 +56,9 @@ function workbookRels(sheetCount: number): string {
   return `${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${links.join('')}</Relationships>`;
 }
 
-/** Two formats: the plain one, and the bold one the heading row uses. */
+/** Three formats: plain, the bold one for the heading, and one that shows a cell of several lines. */
 function styles(): string {
-  return `${XML}<styleSheet xmlns="${MAIN}"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  return `${XML}<styleSheet xmlns="${MAIN}"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 }
 
 function sheetXml(sheet: Sheet): string {
@@ -88,10 +88,13 @@ function rowXml(row: CellValue[], rowNumber: number): string {
 }
 
 function cellXml(value: CellValue, reference: string, heading: boolean): string {
-  const style = heading ? ' s="1"' : '';
   if (value === null || value === undefined || value === '') return '';
-  if (typeof value === 'number' && Number.isFinite(value)) return `<c r="${reference}"${style}><v>${value}</v></c>`;
-  return `<c r="${reference}"${style} t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(value))}</t></is></c>`;
+  if (typeof value === 'number' && Number.isFinite(value)) return `<c r="${reference}"${heading ? ' s="1"' : ''}><v>${value}</v></c>`;
+
+  const text = String(value);
+  // A cell of several lines needs the wrapping format, or a spreadsheet runs its lines together.
+  const style = heading ? ' s="1"' : /\n/.test(text) ? ' s="2"' : '';
+  return `<c r="${reference}"${style} t="inlineStr"><is><t xml:space="preserve">${escapeXml(text)}</t></is></c>`;
 }
 
 function columnName(column: number): string {
