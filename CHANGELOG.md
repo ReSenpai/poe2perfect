@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- A picture the site does not give up — its CDN drops files now and then — leaves a quiet empty box instead of the
-  browser's broken-image mark. Names, modifiers and tooltips stay where they are.
+- A picture the site does not give up — its CDN drops files now and then — leaves a stand-in shape instead of the
+  browser's broken-image mark: armour, a weapon, a shield, jewellery, a flask, a charm, a gem, a passive or a rune,
+  whichever belongs in that place. Names, modifiers and tooltips stay where they are.
 
 ## 1.2.0
 

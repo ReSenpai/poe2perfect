@@ -112,7 +112,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
           <p class="glance__label">Main Skill</p>
           <WithTooltip model={gemTooltip(mainSkill)}>
             <span class="glance__entry">
-              <Icon src={mainSkill.iconUrl} class="glance__icon" />
+              <Icon src={mainSkill.iconUrl} class="glance__icon" kind="gem" />
               <span class="glance__name">{mainSkill.name}</span>
             </span>
           </WithTooltip>
@@ -127,7 +127,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
               <li key={item.slug}>
                 <WithTooltip model={itemTooltip(item, socketables)}>
                   <span class="glance__entry">
-                    <Icon src={item.iconUrl} class="glance__icon" />
+                    <Icon src={item.iconUrl} class="glance__icon" kind="item" />
                     <span class="glance__name item-name--unique">{item.name}</span>
                   </span>
                 </WithTooltip>
@@ -145,7 +145,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
               <li key={passive.nodeSlug ?? passive.name}>
                 <WithTooltip model={passiveTooltip(passive)}>
                   <span class="glance__entry">
-                    <Icon src={passive.iconUrl} class="glance__icon glance__icon--round" />
+                    <Icon src={passive.iconUrl} class="glance__icon glance__icon--round" kind="passive" />
                     <span class="glance__name">{passive.name}</span>
                   </span>
                 </WithTooltip>

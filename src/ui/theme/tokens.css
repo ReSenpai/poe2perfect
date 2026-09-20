@@ -33,9 +33,31 @@
 }
 
 /* Where a picture should be but isn't: the CDN drops files now and then, and some entities have no icon at all.
-   The box keeps its size and stays quiet, instead of the browser's broken-image mark. */
+   A stand-in shape keeps the box's size and says what belongs there, instead of the browser's broken-image mark. */
 .icon--missing {
-  display: inline-block;
+  display: inline-flex;
   box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: var(--surface);
+  color: var(--text-disabled);
+}
+
+.icon--missing svg {
+  width: 58%;
+  height: 58%;
+}
+
+.icon--gem {
+  color: var(--gem-int, var(--text-disabled));
+}
+
+.icon--passive {
+  color: var(--accent);
+  opacity: 0.55;
+}
+
+.icon--rune {
+  color: var(--text-muted);
 }

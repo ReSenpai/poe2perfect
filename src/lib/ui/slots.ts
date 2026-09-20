@@ -1,4 +1,5 @@
 import type { EquipmentSlot, SlotId } from '@/lib/build/model';
+import type { IconKind } from '@/ui/common/Icon';
 
 const LABELS: Record<SlotId, string> = {
   helmet: 'Helmet',
@@ -19,6 +20,30 @@ const LABELS: Record<SlotId, string> = {
   charm2: 'Charm 2',
   charm3: 'Charm 3',
 };
+
+const SLOT_KINDS: Record<SlotId, IconKind> = {
+  helmet: 'armour',
+  body: 'armour',
+  gloves: 'armour',
+  boots: 'armour',
+  mainHand: 'weapon',
+  offHand: 'offhand',
+  amulet: 'jewellery',
+  leftRing: 'jewellery',
+  rightRing: 'jewellery',
+  extraRing: 'jewellery',
+  belt: 'jewellery',
+  flask1: 'flask',
+  flask2: 'flask',
+  charm1: 'charm',
+  charm2: 'charm',
+  charm3: 'charm',
+};
+
+/** What a slot holds, so a picture that never arrives can still be stood in for. */
+export function slotIconKind(slot: string | null): IconKind {
+  return (slot && SLOT_KINDS[slot as SlotId]) || 'item';
+}
 
 export interface SheetSlot {
   slot: SlotId;

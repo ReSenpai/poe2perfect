@@ -201,7 +201,7 @@ export function PassiveRows({
           <WithTooltip model={passiveTooltip(passive)}>
             <span class="passive-row__body">
               {numbered && <span class="passive-row__number">{i + 1}</span>}
-              <Icon src={passive.iconUrl} class="passive-row__icon" />
+              <Icon src={passive.iconUrl} class="passive-row__icon" kind="passive" />
               <span class="passive-row__text">
                 <span class="passive-row__name">{passive.name}</span>
                 {passive.effects[0] && <span class="passive-row__effect">{passive.effects[0]}</span>}

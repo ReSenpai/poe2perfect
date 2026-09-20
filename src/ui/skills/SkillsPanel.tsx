@@ -274,7 +274,7 @@ function SkillDetails({ skill, onCopy }: { skill: Skill; onCopy: (name: string) 
 }
 
 function GemIcon({ gem, class: className }: { gem: Gem; class: string }) {
-  return <Icon src={gem.iconUrl} class={className} />;
+  return <Icon src={gem.iconUrl} class={className} kind="gem" />;
 }
 
 function formatAttributes({ str, dex, int }: Attributes): string {
