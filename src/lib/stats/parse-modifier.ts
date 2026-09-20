@@ -42,7 +42,8 @@ export function parseModifier(line: string): StatValue[] {
     const word = scaled[5]!.toLowerCase();
     const away = word === 'reduced' || word === 'less';
     const kind = word === 'more' || word === 'less' ? 'more' : 'increased';
-    return [stat(scaled[6]!, kind, away ? -high : low, away ? -low : high, scaled[4] === '%' || kind !== 'flat')];
+    // "increased" and "more" are always percentages, whether or not the sign is written.
+    return [stat(scaled[6]!, kind, away ? -high : low, away ? -low : high, true)];
   }
 
   const added = ADDED.exec(text);
