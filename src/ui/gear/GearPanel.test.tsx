@@ -88,6 +88,29 @@ describe('GearPanel', () => {
     expect(within(helmet).getByText("Atziri's Disdain")).toBeTruthy();
   });
 
+  // One build's amulet grants seven skills; a line each stretched the card and the whole grid with it.
+  it('keeps a card that grants many skills to a few lines, and counts the rest', () => {
+    const granting = ENDGAME.equipment.map((slot) =>
+      slot.slot === 'amulet'
+        ? {
+            ...slot,
+            item: {
+              ...slot.item,
+              grantedSkills: ['Wolf Pack', 'Blink', 'Elemental Invocation', 'Elemental Conflux', 'Sacrifice'].map((name) => ({ name, level: null, gem: null })),
+            },
+          }
+        : slot,
+    );
+    renderPanel({ ...ENDGAME, equipment: granting });
+
+    const amulet = slotCard('Amulet');
+    expect(amulet.querySelectorAll('.item-slot__grants:not(.item-slot__grants--rest)')).toHaveLength(2);
+    expect(within(amulet).getByText('+3 more')).toBeTruthy();
+
+    fireEvent.focus(amulet.closest('.tooltip-trigger')!);
+    expect(screen.getByRole('tooltip').textContent).toContain('Elemental Conflux');
+  });
+
   it('opens the item tooltip from its slot card', () => {
     renderPanel();
 

@@ -10,6 +10,9 @@ import { WithTooltip } from '@/ui/tooltip/Tooltip';
 
 const EMPTY = "The author hasn't listed gear for this variant.";
 
+/** An item can grant a handful of skills; the rest are counted, so one item cannot stretch the whole grid. */
+const GRANTS_SHOWN = 2;
+
 export function GearPanel({ variant, entities }: { variant: Variant; entities: Record<string, EntityInfo> }) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
   const hasEquipment = variant.equipment.length > 0;
@@ -89,7 +92,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
         <div class="item-slot__body">
           <span class="item-slot__label">{label}</span>
           <span class={`item-name item-name--${item.rarity}`}>{item.name}</span>
-          {item.grantedSkills.map((skill) => (
+          {item.grantedSkills.slice(0, GRANTS_SHOWN).map((skill) => (
             <WithTooltip key={skill.name} model={skill.gem ? gemTooltip(skill.gem) : null}>
               <span class="item-slot__grants">
                 <Icon src={skill.gem?.iconUrl} class="item-slot__grants-icon" kind="gem" />
@@ -97,6 +100,9 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
               </span>
             </WithTooltip>
           ))}
+          {item.grantedSkills.length > GRANTS_SHOWN && (
+            <span class="item-slot__grants item-slot__grants--rest">+{item.grantedSkills.length - GRANTS_SHOWN} more</span>
+          )}
           {size === 'large' && item.modifiers.length > 0 && <span class="item-slot__mods">{item.modifiers.slice(0, 2).join(' · ')}</span>}
         </div>
         {socketables.length > 0 && (

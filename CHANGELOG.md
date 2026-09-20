@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- An item that grants many skills (one amulet grants seven) no longer stretches the whole gear grid: the card shows
+  the first two and counts the rest, and the tooltip still lists them all.
+
 - A picture the site does not give up — its CDN drops files now and then — leaves a stand-in shape instead of the
   browser's broken-image mark: armour, a weapon, a shield, jewellery, a flask, a charm, a gem, a passive or a rune,
   whichever belongs in that place. Names, modifiers and tooltips stay where they are.
