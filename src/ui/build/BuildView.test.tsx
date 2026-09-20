@@ -98,6 +98,14 @@ describe('BuildView header', () => {
   });
 });
 
+describe('BuildView export', () => {
+  it('offers to save the build as a spreadsheet', () => {
+    renderView();
+
+    expect(screen.getByRole('button', { name: 'Save as a spreadsheet' })).toBeTruthy();
+  });
+});
+
 describe('BuildView variants', () => {
   it('opens the variant the visitor last read, and reports every pick so it can be remembered', () => {
     const onVariantChange = vi.fn();

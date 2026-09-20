@@ -4,6 +4,7 @@ import type { Build } from '@/lib/build/model';
 import { availableTabs, formatRoute, parseRoute, type RememberedVariant, type Route, type TabId } from '@/lib/ui/route';
 import { TooltipProvider } from '@/ui/tooltip/Tooltip';
 import { BuildHeader } from './BuildHeader';
+import { ExportButton } from './ExportButton';
 import { GearPanel } from '@/ui/gear/GearPanel';
 import { AtlasPanel } from '@/ui/passives/AtlasPanel';
 import { PassivesPanel } from '@/ui/passives/PassivesPanel';
@@ -96,6 +97,7 @@ export function BuildView({
                 {build.title}
               </span>
             )}
+            <ExportButton build={build} url={typeof window === 'undefined' ? '' : window.location.href} />
             <button
               type="button"
               class="icon-button"
