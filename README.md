@@ -8,9 +8,10 @@ tooltips for everything.
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iaalfjcbfnidaiogadcgcdcfgmekpnce?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/poe2perfect/iaalfjcbfnidaiogadcgcdcfgmekpnce)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-![A Mobalytics build page, then the same build in poe2perfect](docs/images/demo.gif)
+![A Mobalytics build page, then the same build in poe2perfect, tab by tab](docs/images/demo.gif)
 
-<sub>The original build page, then the same build in poe2perfect. Build shown: ED Contagion Lich by DEADRABB1T.</sub>
+<sub>The build page as the site shows it, then the same build in poe2perfect: Overview, Skills, Gear, Passives and
+Progression. Build shown: Navira's Fracturing Varashta by MisoxShiru.</sub>
 
 ## What does it do?
 
