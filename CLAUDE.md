@@ -19,9 +19,25 @@ names on purpose — renaming them would break stored state and dev hooks.
 - UI layouts: compact, ideally one screen; cards fill the available height; blocks side by side rather than a narrow
   column; minimal chrome (quiet icon buttons in existing bars, no bulky bordered buttons). Re-check the concept art.
 
+## Releases
+
+A tag does everything: `.github/workflows/release.yml` builds both packages, publishes a GitHub release with the
+version's section of `CHANGELOG.md` as its notes, and submits to the stores.
+
+- To release: write the `## <version>` section in `CHANGELOG.md`, set the same version in `package.json`, commit,
+  then `git tag v<version> && git push origin main --tags`. A mismatched tag fails the workflow on purpose.
+- `v1.3.0-beta.1` is a pre-release: GitHub marks it as one, nothing is submitted to the stores, and (with the AMO
+  secrets set) the Firefox package is signed unlisted so testers can install the `.xpi`.
+- Store submission waits on repository variables `PUBLISH_CHROME` / `PUBLISH_FIREFOX` being `true`, so the keys can
+  be added and tested (Actions → Check store access) before anything is sent for review. The first version in each
+  store goes up by hand.
+- Firefox version numbers are digits only on AMO: `firefoxVersion()` turns `1.3.0-beta.1` into `1.2.999.1`, while
+  the archives keep the package version in their names.
+
 ## Commands
 
 - `npm test` · `npm run typecheck` · `npm run build` — all must pass before a step is done.
+- `node scripts/release-notes.mjs <version>` — the release notes a tag would publish; worth a look before tagging.
 - `npm run dev` — dev server on :3000; the user loaded `.output/chrome-mv3-dev` unpacked in Chrome,
   it auto-reloads on save (verified). Keep the dev server running while verifying in the browser.
 - Content-script marker for quick checks: `document.documentElement.getAttribute('data-poe2-build-guide')`.
