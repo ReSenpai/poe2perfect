@@ -58,20 +58,6 @@ points and new nodes — with the campaign quest rewards beside it.
 
 ![Progression: what each stage changes, with the quest rewards beside it](docs/images/progression.jpg)
 
-### Save it as a spreadsheet
-
-The button in the tab bar writes an .xlsx workbook: the build itself (Gear, Skills, Gem Priority, Passives, Quest
-Rewards) and, beside it, the numbers. Every modifier of every item, rune and passive lands on a **Stats** sheet, and
-a **Totals** sheet adds them up by formula, per variant:
-
-| Stat | Flat | Increased % | Estimate |
-| --- | --- | --- | --- |
-| Maximum Life | 375 | — | 375 |
-| Maximum Energy Shield | 177 | 276 | 665 |
-| Fire Resistance | 93 | — | 93 |
-
-Change a roll, drop a row or add your own and the totals follow. Excel opens it; Google Sheets imports it.
-
 ### And also
 
 - **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–6 switch tabs.
@@ -81,7 +67,7 @@ Change a roll, drop a row or add your own and the totals follow. Excel opens it;
 
 ## Roadmap
 
-- The same totals inside the guide itself, not only in the spreadsheet.
+- The build's totals — life, resistances, damage — added up inside the guide itself.
 - More testing on builds of every class — builds that look wrong are the most useful bug reports.
 
 ## Feedback

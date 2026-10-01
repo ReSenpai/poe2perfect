@@ -107,12 +107,6 @@
   min-width: 0;
 }
 
-/* Only shown when saving failed; the browser says nothing in that case. */
-.tab-bar__error {
-  color: var(--danger, var(--rarity-unique));
-  font-size: 12px;
-}
-
 .tab-bar__title {
   max-width: 320px;
   margin-right: 8px;
