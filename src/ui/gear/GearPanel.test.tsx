@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/preact';
+import { fireEvent, render, screen, within } from '@testing-library/preact';
 import { describe, expect, it, vi } from 'vitest';
 import type { Build, Variant } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
@@ -77,28 +77,15 @@ describe('GearPanel', () => {
   });
 
   // The site's CDN drops files now and then; a broken-image mark would look like a fault in the guide.
-  it('keeps the slot whole when the site never gives up the item picture', async () => {
-    vi.useFakeTimers();
-    try {
-      renderPanel();
-      const helmet = slotCard('Helmet');
+  it('keeps the slot whole when the site does not give up the item picture', () => {
+    renderPanel();
+    const helmet = slotCard('Helmet');
 
-      // Every attempt is turned away, until the guide stops asking.
-      for (let attempt = 0; attempt < 4; attempt++) {
-        const img = helmet.querySelector('img.item-slot__icon');
-        if (!img) break;
-        fireEvent.error(img);
-        act(() => {
-          vi.advanceTimersByTime(5000);
-        });
-      }
+    fireEvent.error(helmet.querySelector('.item-slot__icon')!);
 
-      expect(helmet.querySelector('img.item-slot__icon')).toBeNull();
-      expect(helmet.querySelector('.item-slot__icon.icon--missing')).not.toBeNull();
-      expect(within(helmet).getByText("Atziri's Disdain")).toBeTruthy();
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(helmet.querySelector('img.item-slot__icon')).toBeNull();
+    expect(helmet.querySelector('.item-slot__icon.icon--missing')).not.toBeNull();
+    expect(within(helmet).getByText("Atziri's Disdain")).toBeTruthy();
   });
 
   // One build's amulet grants seven skills; a line each stretched the card and the whole grid with it.

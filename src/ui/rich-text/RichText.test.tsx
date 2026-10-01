@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/preact';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/preact';
+import { describe, expect, it } from 'vitest';
 import type { RichText as RichTextValue } from '@/lib/build/model';
 import { RichText } from './RichText';
 
@@ -84,25 +84,13 @@ describe('RichText', () => {
     expect(entity?.textContent).toBe('Contagion');
   });
 
-  it('drops an entity icon that never loads, keeping the label', () => {
-    vi.useFakeTimers();
-    try {
-      const container = renderValue(doc(paragraph(chip)));
+  it('drops an entity icon that fails to load, keeping the label', () => {
+    const container = renderValue(doc(paragraph(chip)));
 
-      for (let attempt = 0; attempt < 4; attempt++) {
-        const img = container.querySelector('.rt-entity img');
-        if (!img) break;
-        fireEvent.error(img);
-        act(() => {
-          vi.advanceTimersByTime(5000);
-        });
-      }
+    fireEvent.error(container.querySelector('.rt-entity img')!);
 
-      expect(container.querySelector('.rt-entity img')).toBeNull();
-      expect(container.querySelector('.rt-entity')?.textContent).toBe('Contagion');
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(container.querySelector('.rt-entity img')).toBeNull();
+    expect(container.querySelector('.rt-entity')?.textContent).toBe('Contagion');
   });
 
   it('lets the caller render entities, e.g. with a tooltip', () => {

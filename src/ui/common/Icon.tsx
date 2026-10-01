@@ -17,15 +17,8 @@ const STAND_IN = {
   rune: Diamond,
 };
 
-/**
- * The site's CDN turns a share of requests away in bursts — a page can open with dozens of pictures missing while
- * the same files answer a moment later — so a picture that fails is asked for again before it is given up on.
- * Each wait is spread by half, since fifty pictures failing together must not ask again together.
- */
-const RETRY_MS = [900, 2500];
-
-/** A picture the browser has already given up on, e.g. a refusal it kept in its cache. */
-const hasFailed = (image: HTMLImageElement) => image.complete && image.naturalWidth === 0;
+/** Settles once the browser has the picture, and refuses when it has given up on it — a cached refusal included. */
+const decoded = (image: HTMLImageElement) => image.decode();
 
 export interface IconProps {
   src: string | null | undefined;
@@ -34,34 +27,34 @@ export interface IconProps {
   kind?: IconKind;
   /** What to leave behind when there is no picture: a stand-in in its place, or nothing at all. */
   missing?: 'box' | 'none';
-  /** How long to wait before each further attempt; injected in tests. */
-  retryMs?: number[];
-  /** Whether a picture has already failed; injected in tests. */
-  broken?: (image: HTMLImageElement) => boolean;
+  /** How the picture is known to have arrived; injected in tests. */
+  check?: (image: HTMLImageElement) => Promise<unknown>;
 }
 
-export function Icon({ src, class: className, alt = '', kind, missing = 'box', retryMs = RETRY_MS, broken = hasFailed }: IconProps) {
-  const [attempt, setAttempt] = useState(0);
+/**
+ * A picture from the site's CDN. The CDN drops files now and then, and plenty of entities have no icon at all, so a
+ * picture that does not arrive leaves a stand-in of the same size — an item, gem, passive or rune shape — rather
+ * than the browser's broken-image mark.
+ */
+export function Icon({ src, class: className, alt = '', kind, missing = 'box', check = decoded }: IconProps) {
+  const [failed, setFailed] = useState(false);
   const image = useRef<HTMLImageElement | null>(null);
 
-  useEffect(() => setAttempt(0), [src]);
+  useEffect(() => setFailed(false), [src]);
 
-  const askAgain = () => {
-    const wait = retryMs[attempt];
-    if (wait === undefined) {
-      setAttempt(retryMs.length + 1);
-      return;
-    }
-    setTimeout(() => setAttempt((n) => n + 1), wait * (0.5 + Math.random()));
-  };
-
-  // A refusal the browser already holds arrives before the handler below is attached, so the picture is checked
-  // once it is on the page as well.
+  // A refusal the browser already holds arrives before the handler below is attached, so the picture is asked
+  // about once it is on the page as well.
   useEffect(() => {
-    if (image.current && broken(image.current)) askAgain();
-  });
+    const element = image.current;
+    if (!element || failed) return;
+    let watching = true;
+    check(element).catch(() => watching && setFailed(true));
+    return () => {
+      watching = false;
+    };
+  }, [src, failed, check]);
 
-  if (!src || attempt > retryMs.length) {
+  if (!src || failed) {
     if (missing === 'none') return null;
     const Shape = kind ? STAND_IN[kind] : ImageOff;
     return (
@@ -71,8 +64,5 @@ export function Icon({ src, class: className, alt = '', kind, missing = 'box', r
     );
   }
 
-  // Each further attempt carries a mark of its own, so the browser asks the CDN again instead of reusing its answer.
-  const source = attempt === 0 ? src : `${src}${src.includes('?') ? '&' : '?'}retry=${attempt}`;
-
-  return <img ref={image} class={className} src={source} alt={alt} loading="lazy" onError={askAgain} />;
+  return <img ref={image} class={className} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
 }

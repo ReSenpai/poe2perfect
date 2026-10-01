@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- A picture the site's CDN turns away is asked for again, twice, before the stand-in takes its place. The CDN
-  refuses a share of requests in bursts — a page could open with dozens of icons missing while the same files
-  answered a moment later.
-
 - **Save the build as a spreadsheet.** The button in the tab bar writes an .xlsx workbook which Excel opens and
   Google Sheets imports. Beside the build itself — Gear, Skills, Gem Priority, Passives, Quest Rewards — it carries
   the numbers: every modifier of every item, rune and passive read into a **Stats** sheet, and a **Totals** sheet

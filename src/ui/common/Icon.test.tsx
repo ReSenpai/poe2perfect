@@ -1,5 +1,5 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/preact';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, waitFor } from '@testing-library/preact';
+import { describe, expect, it } from 'vitest';
 import { Icon } from './Icon';
 
 const ICON = 'https://cdn.mobalytics.gg/assets/poe-2/images/game/Art/2DItems/Rings/AmethystRing.avif';
@@ -13,28 +13,21 @@ describe('Icon', () => {
     expect(img.classList.contains('item-slot__icon')).toBe(true);
   });
 
-  // The site's CDN turns a share of requests away in bursts; the same file answers a moment later.
-  it('asks again for a picture that did not arrive', async () => {
-    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} />);
+  // The site's CDN drops files now and then; the browser's broken-image mark looks like a bug in the guide.
+  it('puts a stand-in in place the moment a picture fails', () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" />);
 
     fireEvent.error(container.querySelector('img')!);
 
-    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).not.toBe(ICON));
-    expect(container.querySelector('img')?.getAttribute('src')).toContain(ICON);
-    expect(container.querySelector('.icon--missing')).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('.item-slot__icon.icon--missing')).not.toBeNull();
   });
 
-  // The site's CDN drops files now and then; the browser's broken-image mark looks like a bug in the guide.
-  it('leaves an empty box once the asking is done', async () => {
-    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} />);
+  // A refusal the browser already holds arrives before any handler is attached, and the picture would sit broken.
+  it('stands in for a picture the browser had already given up on', async () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" check={() => Promise.reject(new Error('cached refusal'))} />);
 
-    fireEvent.error(container.querySelector('img')!);
-    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).not.toBe(ICON));
-    fireEvent.error(container.querySelector('img')!);
-
-    await waitFor(() => expect(container.querySelector('img')).toBeNull());
-    const box = container.querySelector('.item-slot__icon')!;
-    expect(box.classList.contains('icon--missing')).toBe(true);
+    await waitFor(() => expect(container.querySelector('.item-slot__icon.icon--missing')).not.toBeNull());
   });
 
   it('leaves the same box for an entity that has no picture at all', () => {
@@ -53,38 +46,6 @@ describe('Icon', () => {
     expect(box.querySelector('svg')).not.toBeNull();
   });
 
-  // A refusal the browser already has in its cache arrives before any handler is attached: the picture would
-  // then sit broken for good, which is what left icons missing in Chrome.
-  it('notices a picture that had already failed before it was being watched', async () => {
-    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} broken={() => true} />);
-
-    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toContain('retry=1'));
-  });
-
-  // Fifty icons failing together would otherwise ask again together, and meet the same refusal.
-  it('spreads the asking out, rather than sending the whole page at once', () => {
-    vi.useFakeTimers();
-    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
-    try {
-      const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[1000]} broken={() => false} />);
-      fireEvent.error(container.querySelector('img')!);
-
-      act(() => {
-        vi.advanceTimersByTime(400);
-      });
-      expect(container.querySelector('img')?.getAttribute('src')).toBe(ICON);
-
-      act(() => {
-        vi.advanceTimersByTime(200);
-      });
-      expect(container.querySelector('img')?.getAttribute('src')).toContain('retry=1');
-      expect(random).toHaveBeenCalled();
-    } finally {
-      random.mockRestore();
-      vi.useRealTimers();
-    }
-  });
-
   it('tells a gem, a passive and a rune apart', () => {
     const kinds = [
       ['gem', 'icon--gem'],
@@ -98,11 +59,11 @@ describe('Icon', () => {
     }
   });
 
-  it('can step aside entirely, for pictures that are decoration rather than a slot', async () => {
-    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" retryMs={[]} broken={() => false} />);
+  it('can step aside entirely, for pictures that are decoration rather than a slot', () => {
+    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" />);
 
     fireEvent.error(container.querySelector('img')!);
 
-    await waitFor(() => expect(container.innerHTML).toBe(''));
+    expect(container.innerHTML).toBe('');
   });
 });
