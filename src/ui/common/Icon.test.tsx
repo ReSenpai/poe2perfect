@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/preact';
+import { act, fireEvent, render, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Icon } from './Icon';
 
@@ -51,6 +51,30 @@ describe('Icon', () => {
     const box = container.querySelector('.icon--missing')!;
     expect(box.classList.contains('icon--item')).toBe(true);
     expect(box.querySelector('svg')).not.toBeNull();
+  });
+
+  // Fifty icons failing together would otherwise ask again together, and meet the same refusal.
+  it('spreads the asking out, rather than sending the whole page at once', () => {
+    vi.useFakeTimers();
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[1000]} />);
+      fireEvent.error(container.querySelector('img')!);
+
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(container.querySelector('img')?.getAttribute('src')).toBe(ICON);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(container.querySelector('img')?.getAttribute('src')).toContain('retry=1');
+      expect(random).toHaveBeenCalled();
+    } finally {
+      random.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it('tells a gem, a passive and a rune apart', () => {

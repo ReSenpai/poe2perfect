@@ -20,8 +20,9 @@ const STAND_IN = {
 /**
  * The site's CDN turns a share of requests away in bursts — a page can open with dozens of pictures missing while
  * the same files answer a moment later — so a picture that fails is asked for again before it is given up on.
+ * Each wait is spread by half, since fifty pictures failing together must not ask again together.
  */
-const RETRY_MS = [600, 2000];
+const RETRY_MS = [900, 2500];
 
 export interface IconProps {
   src: string | null | undefined;
@@ -58,7 +59,7 @@ export function Icon({ src, class: className, alt = '', kind, missing = 'box', r
       setAttempt(retryMs.length + 1);
       return;
     }
-    setTimeout(() => setAttempt((n) => n + 1), wait);
+    setTimeout(() => setAttempt((n) => n + 1), wait * (0.5 + Math.random()));
   };
 
   return <img class={className} src={source} alt={alt} loading="lazy" onError={askAgain} />;
