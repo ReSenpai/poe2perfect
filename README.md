@@ -8,10 +8,10 @@ tooltips for everything.
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iaalfjcbfnidaiogadcgcdcfgmekpnce?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/poe2perfect/iaalfjcbfnidaiogadcgcdcfgmekpnce)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-![A Mobalytics build page, then the same build in poe2perfect, tab by tab](docs/images/demo.gif)
+![The Overview tab: the author's guide, with the build summarised beside it](docs/images/overview.jpg)
 
-<sub>The build page as the site shows it, then the same build in poe2perfect: Overview, Skills, Gear, Passives and
-Progression. Build shown: Navira's Fracturing Varashta by MisoxShiru.</sub>
+<sub>Overview: the author's guide, with strengths, weaknesses, main skill, key uniques and ascendancy at a glance.
+Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 
 ## What does it do?
 
@@ -27,41 +27,61 @@ Progression. Build shown: Navira's Fracturing Varashta by MisoxShiru.</sub>
 then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds). It works whether or not you are
 signed in to the site.
 
-## Features
+## A look at every tab
 
 ### Skills
 
 Active skills with their supports, the author's gem priority, and the full details of the skill you pick. Click any
-gem to copy its name; hover a gem in the priority list to see which skill it goes into.
+gem to copy its name for the in-game search; hover a gem in the priority list to see which skill it goes into.
 
-![Skills tab: active skills, gem priority and skill details](docs/images/skills.jpg)
+![Skills: active skills with their supports, gem priority and the details of the selected skill](docs/images/skills.jpg)
 
 ### Gear
 
-Every slot on one screen, with sockets, runes, granted skills and the author's gear priority. Tooltips show the base
-item's own modifier (a ring's resistance, an amulet's spirit) above the rolled ones, and the scales icon opens the
-item on the official trade site.
+Every slot on one screen, with sockets, runes, granted skills and the author's gear priority. Tooltips read like the
+game's own and show the base item's modifier above the rolled ones; the scales icon opens the item on the official
+trade site with its filters already set.
 
-![Gear tab: all slots with an item tooltip open](docs/images/gear.jpg)
+![Gear: every slot on one screen with an item tooltip open](docs/images/gear.jpg)
 
 ### Passives and Atlas Tree
 
-The site's own tree, with zoom and pan, next to the author's passive priority. Hover a passive in the list to
-highlight it on the tree; click it to move the camera there.
+The site's own tree, with zoom and pan, next to the author's passive priority — ascendancy first, then the tree.
+Hover a passive in the list to highlight it on the tree; click it to move the camera there.
 
-![Passives tab: the passive tree beside the priority list](docs/images/passives.jpg)
+![Passives: the passive tree beside the author's priority list](docs/images/passives.jpg)
+
+### Progression
+
+What each stage changes from Act 1 to endgame — skills and supports gained and dropped, gear slot by slot, passive
+points and new nodes — with the campaign quest rewards beside it.
+
+![Progression: what each stage changes, with the quest rewards beside it](docs/images/progression.jpg)
+
+### Save it as a spreadsheet
+
+The button in the tab bar writes an .xlsx workbook: the build itself (Gear, Skills, Gem Priority, Passives, Quest
+Rewards) and, beside it, the numbers. Every modifier of every item, rune and passive lands on a **Stats** sheet, and
+a **Totals** sheet adds them up by formula, per variant:
+
+| Stat | Flat | Increased % | Estimate |
+| --- | --- | --- | --- |
+| Maximum Life | 375 | — | 375 |
+| Maximum Energy Shield | 177 | 276 | 665 |
+| Fire Resistance | 93 | — | 93 |
+
+Change a roll, drop a row or add your own and the totals follow. Excel opens it; Google Sheets imports it.
 
 ### And also
 
-- **Overview** — the build summary, strengths and weaknesses, main skill, key uniques and ascendancy at a glance.
-- **Progression** — what each stage changes from Act 1 to endgame, and the campaign quest rewards.
 - **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–6 switch tabs.
 - **Picks up where you left off**: each build reopens on the tab and act you were reading. A build you open for the
   first time starts on Overview.
+- **The original is one click away**, and the header collapses to leave the build more room.
 
 ## Roadmap
 
-- Resistance and energy shield totals from gear and passives, marked as an estimate.
+- The same totals inside the guide itself, not only in the spreadsheet.
 - More testing on builds of every class — builds that look wrong are the most useful bug reports.
 
 ## Feedback
