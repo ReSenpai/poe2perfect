@@ -1,26 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { pageIndexedDb } from './page-idb';
+import { indexedDbCandidates } from './page-idb';
 
 const factory = (name: string) => ({ name }) as unknown as IDBFactory;
 
-describe('pageIndexedDb', () => {
-  it("uses the content script's own database where that is the page's as well", () => {
+describe('indexedDbCandidates', () => {
+  it("offers the content script's own database where that is the page's as well", () => {
     const own = factory('own');
 
-    expect(pageIndexedDb({ indexedDB: own })).toBe(own);
+    expect(indexedDbCandidates({ indexedDB: own })).toEqual([own]);
   });
 
-  // Firefox keeps a content script's storage apart from the page's; the game data lives in the page's.
-  it("reaches for the page's database where the browser keeps them apart", () => {
+  // Firefox may keep a content script's storage apart from the page's, and the game data lives in the page's.
+  it("offers the page's database too, for browsers that keep the two apart", () => {
     const own = factory('own');
     const page = factory('page');
 
-    expect(pageIndexedDb({ indexedDB: own, wrappedJSObject: { indexedDB: page } })).toBe(page);
+    expect(indexedDbCandidates({ indexedDB: own, wrappedJSObject: { indexedDB: page } })).toEqual([own, page]);
   });
 
-  it('falls back when the page offers no database of its own', () => {
+  it('names each database once, however many ways it is reached', () => {
+    const shared = factory('shared');
+
+    expect(indexedDbCandidates({ indexedDB: shared, wrappedJSObject: { indexedDB: shared } })).toEqual([shared]);
+  });
+
+  it('copes with a page that offers no database of its own', () => {
     const own = factory('own');
 
-    expect(pageIndexedDb({ indexedDB: own, wrappedJSObject: {} })).toBe(own);
+    expect(indexedDbCandidates({ indexedDB: own, wrappedJSObject: {} })).toEqual([own]);
   });
 });

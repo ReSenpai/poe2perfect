@@ -9,6 +9,10 @@ export interface HtmlFetcherOptions {
   attempts?: number;
   sleep?: (ms: number) => Promise<void>;
   delayMs?: (waited: number) => number;
+  /** How long one attempt may take; a request that never answers must not hold up the guide. */
+  attemptMs?: number;
+  /** The clock the attempt is timed by; separate from `sleep`, which only paces the retries. */
+  timer?: (ms: number) => Promise<void>;
 }
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -22,7 +26,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
  * visitor's own session, which the page itself was loaded with.
  */
 export function createHtmlFetcher(fetchImpl: typeof fetch = (input, init) => fetch(input, init), options: HtmlFetcherOptions = {}): HtmlFetcher {
-  const { attempts = 4, sleep = wait, delayMs = (waited) => 700 * 2 ** waited } = options;
+  const { attempts = 4, sleep = wait, delayMs = (waited) => 700 * 2 ** waited, attemptMs = 15_000, timer = wait } = options;
 
   return async (url, onProgress) => {
     let failure: unknown = new Error('No attempt was made');
@@ -34,7 +38,10 @@ export function createHtmlFetcher(fetchImpl: typeof fetch = (input, init) => fet
       }
       const credentials = attempt === attempts && attempts > 1 ? 'include' : 'omit';
       try {
-        const response = await fetchImpl(url, { credentials });
+        const response = await Promise.race([
+          fetchImpl(url, { credentials }),
+          timer(attemptMs).then(() => Promise.reject(new Error('The site took too long to answer'))),
+        ]);
         if (response.ok) return await response.text();
         failure = new Error(`HTTP ${response.status}`);
       } catch (error) {

@@ -1,5 +1,5 @@
 import { isBuildPageUrl } from '@/lib/build-url';
-import { pageIndexedDb } from '@/lib/data/page-idb';
+import { indexedDbCandidates } from '@/lib/data/page-idb';
 import { readStaticData } from '@/lib/data/static-data';
 import { summarizeBuild } from '@/lib/dev/build-summary';
 import { listenForCapture } from '@/lib/dev/capture-messaging';
@@ -29,7 +29,7 @@ export default defineContentScript({
       initialUrl: location.href,
       initialDocument: document,
       fetchHtml,
-      readStaticData: () => readStaticData({ idb: pageIndexedDb(), timeoutMs: 10_000 }),
+      readStaticData: () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 10_000 }),
     });
     const controller = createPageController({
       load,
@@ -79,7 +79,7 @@ export default defineContentScript({
     await handleUrl(location.href);
 
     if (import.meta.env.DEV) {
-      const loadStaticData = () => readStaticData({ idb: pageIndexedDb(), timeoutMs: 5_000 });
+      const loadStaticData = () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 5_000 });
       const capture = () => captureFixture({ url: location.href, loadPage: () => fetchHtml(location.href), readStaticData: loadStaticData });
       ctx.onInvalidated(listenForCapture(browser.runtime.onMessage as never, capture));
       ctx.onInvalidated(listenForPageCapture(document, capture));

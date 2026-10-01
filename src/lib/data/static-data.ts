@@ -9,11 +9,15 @@ export interface StaticDataSnapshot {
 export type StaticDataResult = { ok: true; snapshot: StaticDataSnapshot } | { ok: false; reason: 'unavailable'; message: string };
 
 export interface ReadStaticDataOptions {
-  idb?: IDBFactory;
+  /** Where to look; several are tried in turn, since browsers differ on which database a content script sees. */
+  idb?: IDBFactory | IDBFactory[];
   /** How long to wait for the site to populate its cache. */
   timeoutMs?: number;
   pollIntervalMs?: number;
 }
+
+/** No single read may outlast this: a database that never answers must not hold up the guide. */
+const ATTEMPT_MS = 2_000;
 
 const DB_NAME = 'ngf-static-data';
 const STORE_NAME = 'cache';
@@ -25,11 +29,15 @@ const KEY_PREFIX = 'poe-2|';
  */
 export async function readStaticData(options: ReadStaticDataOptions = {}): Promise<StaticDataResult> {
   const { idb = globalThis.indexedDB, timeoutMs = 15_000, pollIntervalMs = 500 } = options;
+  const factories = (Array.isArray(idb) ? idb : [idb]).filter(Boolean);
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
-    const snapshot = await tryRead(idb).catch(() => null);
-    if (snapshot) return { ok: true, snapshot };
+    for (const factory of factories) {
+      const left = Math.max(50, Math.min(ATTEMPT_MS, deadline - Date.now()));
+      const snapshot = await Promise.race([tryRead(factory), delay(left).then(() => null)]).catch(() => null);
+      if (snapshot) return { ok: true, snapshot };
+    }
     if (Date.now() >= deadline) {
       return { ok: false, reason: 'unavailable', message: `No PoE 2 static data in IndexedDB "${DB_NAME}"` };
     }
