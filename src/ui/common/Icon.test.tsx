@@ -1,5 +1,5 @@
-import { fireEvent, render } from '@testing-library/preact';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, waitFor } from '@testing-library/preact';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Icon } from './Icon';
 
 const ICON = 'https://cdn.mobalytics.gg/assets/poe-2/images/game/Art/2DItems/Rings/AmethystRing.avif';
@@ -13,13 +13,26 @@ describe('Icon', () => {
     expect(img.classList.contains('item-slot__icon')).toBe(true);
   });
 
-  // The site's CDN drops files now and then; the browser's broken-image mark looks like a bug in the guide.
-  it('leaves an empty box where a picture the browser could not load would be', () => {
-    const { container } = render(<Icon src={ICON} class="item-slot__icon" />);
+  // The site's CDN turns a share of requests away in bursts; the same file answers a moment later.
+  it('asks again for a picture that did not arrive', async () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} />);
 
     fireEvent.error(container.querySelector('img')!);
 
-    expect(container.querySelector('img')).toBeNull();
+    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).not.toBe(ICON));
+    expect(container.querySelector('img')?.getAttribute('src')).toContain(ICON);
+    expect(container.querySelector('.icon--missing')).toBeNull();
+  });
+
+  // The site's CDN drops files now and then; the browser's broken-image mark looks like a bug in the guide.
+  it('leaves an empty box once the asking is done', async () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} />);
+
+    fireEvent.error(container.querySelector('img')!);
+    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).not.toBe(ICON));
+    fireEvent.error(container.querySelector('img')!);
+
+    await waitFor(() => expect(container.querySelector('img')).toBeNull());
     const box = container.querySelector('.item-slot__icon')!;
     expect(box.classList.contains('icon--missing')).toBe(true);
   });
@@ -53,11 +66,11 @@ describe('Icon', () => {
     }
   });
 
-  it('can step aside entirely, for pictures that are decoration rather than a slot', () => {
-    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" />);
+  it('can step aside entirely, for pictures that are decoration rather than a slot', async () => {
+    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" retryMs={[]} />);
 
     fireEvent.error(container.querySelector('img')!);
 
-    expect(container.innerHTML).toBe('');
+    await waitFor(() => expect(container.innerHTML).toBe(''));
   });
 });
