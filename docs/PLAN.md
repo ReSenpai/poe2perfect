@@ -359,10 +359,11 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   `poe2perfect@resenpai.dev`, `strict_min_version: 140.0` и объявление `data_collection_permissions: none`.
   Версия для AMO — только цифры (`firefoxVersion`), MV3 в обоих браузерах, команды `dev:firefox`, `build:firefox`,
   `zip:firefox` (последняя собирает и zip с исходниками для проверки AMO).
-- Шаг 2. Запрос страницы билда: в Firefox `fetch` из контент-скрипта идёт от расширения, нужен `content.fetch`
-  (в соседнем проекте — `lib/page/page-fetch.ts`).
-- Шаг 3. Чтение `ngf-static-data` из IndexedDB сайта: в Firefox контент-скрипт видит своё хранилище, а не страницы.
-  Проверить `wrappedJSObject`; если данных нет — билд открывается без подсказок (`hasStaticData: false`).
+- Шаг 2 ✅. `lib/page/page-fetch.ts`: запрос страницы билда идёт через `content.fetch`, когда он есть (Firefox),
+  иначе через обычный `fetch` (Chrome). Иначе Firefox просил бы страницу от имени расширения, с чужого origin.
+- Шаг 3 ✅. `lib/data/page-idb.ts`: справочник читается из базы страницы (`wrappedJSObject.indexedDB` в Firefox),
+  а не из хранилища контент-скрипта. В Chrome это та же база, поведение не меняется. Если данных не окажется,
+  билд всё равно открывается, но без подсказок и с предупреждением в панели вкладок.
 - Шаг 4. Живая проверка в Firefox: дерево пассивок (встраивание чужого canvas), буфер обмена, сохранение .xlsx.
 - Шаг 5. Документация и материалы для addons.mozilla.org.
 
