@@ -1,5 +1,5 @@
 import { CircleDot, Diamond, FlaskConical, Gem, ImageOff, Package, Shield, Shirt, Sparkles, Swords } from 'lucide-preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 /** What the picture would have shown, so its stand-in can suit the slot. */
 export type IconKind = 'item' | 'armour' | 'weapon' | 'offhand' | 'jewellery' | 'flask' | 'charm' | 'gem' | 'passive' | 'rune';
@@ -24,6 +24,9 @@ const STAND_IN = {
  */
 const RETRY_MS = [900, 2500];
 
+/** A picture the browser has already given up on, e.g. a refusal it kept in its cache. */
+const hasFailed = (image: HTMLImageElement) => image.complete && image.naturalWidth === 0;
+
 export interface IconProps {
   src: string | null | undefined;
   class: string;
@@ -33,12 +36,30 @@ export interface IconProps {
   missing?: 'box' | 'none';
   /** How long to wait before each further attempt; injected in tests. */
   retryMs?: number[];
+  /** Whether a picture has already failed; injected in tests. */
+  broken?: (image: HTMLImageElement) => boolean;
 }
 
-export function Icon({ src, class: className, alt = '', kind, missing = 'box', retryMs = RETRY_MS }: IconProps) {
+export function Icon({ src, class: className, alt = '', kind, missing = 'box', retryMs = RETRY_MS, broken = hasFailed }: IconProps) {
   const [attempt, setAttempt] = useState(0);
+  const image = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => setAttempt(0), [src]);
+
+  const askAgain = () => {
+    const wait = retryMs[attempt];
+    if (wait === undefined) {
+      setAttempt(retryMs.length + 1);
+      return;
+    }
+    setTimeout(() => setAttempt((n) => n + 1), wait * (0.5 + Math.random()));
+  };
+
+  // A refusal the browser already holds arrives before the handler below is attached, so the picture is checked
+  // once it is on the page as well.
+  useEffect(() => {
+    if (image.current && broken(image.current)) askAgain();
+  });
 
   if (!src || attempt > retryMs.length) {
     if (missing === 'none') return null;
@@ -53,14 +74,5 @@ export function Icon({ src, class: className, alt = '', kind, missing = 'box', r
   // Each further attempt carries a mark of its own, so the browser asks the CDN again instead of reusing its answer.
   const source = attempt === 0 ? src : `${src}${src.includes('?') ? '&' : '?'}retry=${attempt}`;
 
-  const askAgain = () => {
-    const wait = retryMs[attempt];
-    if (wait === undefined) {
-      setAttempt(retryMs.length + 1);
-      return;
-    }
-    setTimeout(() => setAttempt((n) => n + 1), wait * (0.5 + Math.random()));
-  };
-
-  return <img class={className} src={source} alt={alt} loading="lazy" onError={askAgain} />;
+  return <img ref={image} class={className} src={source} alt={alt} loading="lazy" onError={askAgain} />;
 }

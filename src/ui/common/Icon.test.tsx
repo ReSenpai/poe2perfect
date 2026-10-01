@@ -53,12 +53,20 @@ describe('Icon', () => {
     expect(box.querySelector('svg')).not.toBeNull();
   });
 
+  // A refusal the browser already has in its cache arrives before any handler is attached: the picture would
+  // then sit broken for good, which is what left icons missing in Chrome.
+  it('notices a picture that had already failed before it was being watched', async () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[5]} broken={() => true} />);
+
+    await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toContain('retry=1'));
+  });
+
   // Fifty icons failing together would otherwise ask again together, and meet the same refusal.
   it('spreads the asking out, rather than sending the whole page at once', () => {
     vi.useFakeTimers();
     const random = vi.spyOn(Math, 'random').mockReturnValue(0);
     try {
-      const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[1000]} />);
+      const { container } = render(<Icon src={ICON} class="item-slot__icon" retryMs={[1000]} broken={() => false} />);
       fireEvent.error(container.querySelector('img')!);
 
       act(() => {
@@ -91,7 +99,7 @@ describe('Icon', () => {
   });
 
   it('can step aside entirely, for pictures that are decoration rather than a slot', async () => {
-    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" retryMs={[]} />);
+    const { container } = render(<Icon src={ICON} class="build-header__art" missing="none" retryMs={[]} broken={() => false} />);
 
     fireEvent.error(container.querySelector('img')!);
 
