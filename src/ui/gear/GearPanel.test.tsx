@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/preact';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Build, Variant } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import { TooltipProvider } from '@/ui/tooltip/Tooltip';
@@ -74,6 +74,41 @@ describe('GearPanel', () => {
     expect(helmet.querySelector('.item-slot__icon')?.getAttribute('src')).toContain('AtzirisDisdain');
     expect(helmet.querySelectorAll('.item-slot__socket')).toHaveLength(1);
     expect(within(helmet).getByText(/maximum Mana/)).toBeTruthy();
+  });
+
+  // The site's CDN drops files now and then; a broken-image mark would look like a fault in the guide.
+  it('keeps the slot whole when the site does not give up the item picture', () => {
+    renderPanel();
+    const helmet = slotCard('Helmet');
+
+    fireEvent.error(helmet.querySelector('.item-slot__icon')!);
+
+    expect(helmet.querySelector('img.item-slot__icon')).toBeNull();
+    expect(helmet.querySelector('.item-slot__icon.icon--missing')).not.toBeNull();
+    expect(within(helmet).getByText("Atziri's Disdain")).toBeTruthy();
+  });
+
+  // One build's amulet grants seven skills; a line each stretched the card and the whole grid with it.
+  it('keeps a card that grants many skills to a few lines, and counts the rest', () => {
+    const granting = ENDGAME.equipment.map((slot) =>
+      slot.slot === 'amulet'
+        ? {
+            ...slot,
+            item: {
+              ...slot.item,
+              grantedSkills: ['Wolf Pack', 'Blink', 'Elemental Invocation', 'Elemental Conflux', 'Sacrifice'].map((name) => ({ name, level: null, gem: null })),
+            },
+          }
+        : slot,
+    );
+    renderPanel({ ...ENDGAME, equipment: granting });
+
+    const amulet = slotCard('Amulet');
+    expect(amulet.querySelectorAll('.item-slot__grants:not(.item-slot__grants--rest)')).toHaveLength(2);
+    expect(within(amulet).getByText('+3 more')).toBeTruthy();
+
+    fireEvent.focus(amulet.closest('.tooltip-trigger')!);
+    expect(screen.getByRole('tooltip').textContent).toContain('Elemental Conflux');
   });
 
   it('opens the item tooltip from its slot card', () => {

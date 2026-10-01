@@ -4,6 +4,7 @@ import type { TreeKind } from '@/lib/passives/site-tree';
 import { createTreeFocus, type TreeFocus } from '@/lib/passives/tree-focus';
 import { embedSiteTree, type TreeEmbed, type TreeEmbedStatus } from '@/lib/passives/tree-embed';
 import { passiveTooltip } from '@/lib/tooltip/tooltip-model';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -200,7 +201,7 @@ export function PassiveRows({
           <WithTooltip model={passiveTooltip(passive)}>
             <span class="passive-row__body">
               {numbered && <span class="passive-row__number">{i + 1}</span>}
-              {passive.iconUrl ? <img class="passive-row__icon" src={passive.iconUrl} alt="" /> : <span class="passive-row__icon" />}
+              <Icon src={passive.iconUrl} class="passive-row__icon" kind="passive" />
               <span class="passive-row__text">
                 <span class="passive-row__name">{passive.name}</span>
                 {passive.effects[0] && <span class="passive-row__effect">{passive.effects[0]}</span>}

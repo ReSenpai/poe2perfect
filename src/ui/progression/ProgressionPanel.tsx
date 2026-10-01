@@ -4,6 +4,8 @@ import type { Build, Passive, QuestAct, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, passiveTooltip, type TooltipModel } from '@/lib/tooltip/tooltip-model';
 import { type StageChanges, stageChanges } from '@/lib/ui/progression';
 import type { TabId } from '@/lib/ui/route';
+import type { IconKind } from '@/ui/common/Icon';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -13,6 +15,7 @@ interface ChangeEntry {
   name: string;
   iconUrl: string | null;
   tooltip: TooltipModel;
+  kind: IconKind;
   round?: boolean;
 }
 
@@ -98,6 +101,7 @@ function SkillChanges({ changes, onOpen }: { changes: StageChanges; onOpen: () =
     name: entry.name,
     iconUrl: entry.iconUrl,
     tooltip: gemTooltip(entry),
+    kind: 'gem',
   });
   const added = [...changes.addedSkills.map((skill) => gem(skill.gem)), ...changes.addedSupports.map(gem)];
   const removed = [...changes.removedSkills.map((skill) => gem(skill.gem)), ...changes.removedSupports.map(gem)];
@@ -133,6 +137,7 @@ function GearChanges({ changes, onOpen }: { changes: StageChanges; onOpen: () =>
                       name: change.current.item.name,
                       iconUrl: change.current.item.iconUrl,
                       tooltip: itemTooltip(change.current.item, change.current.socketables),
+                      kind: 'item',
                     }}
                     nameClass={change.current.item.rarity === 'unique' ? 'item-name--unique' : undefined}
                   />
@@ -162,6 +167,7 @@ function PassiveChanges({ changes, onOpen }: { changes: StageChanges; onOpen: ()
     name: entry.name,
     iconUrl: entry.iconUrl,
     tooltip: passiveTooltip(entry),
+    kind: 'passive',
     round: true,
   });
   return (
@@ -201,7 +207,7 @@ function Entry({ entry, nameClass }: { entry: ChangeEntry; nameClass?: string })
   return (
     <WithTooltip model={entry.tooltip}>
       <span class="change__entry">
-        {entry.iconUrl && <img class={entry.round ? 'change__icon change__icon--round' : 'change__icon'} src={entry.iconUrl} alt="" />}
+        <Icon src={entry.iconUrl} class={entry.round ? 'change__icon change__icon--round' : 'change__icon'} kind={entry.kind} />
         <span class={nameClass ? `change__name ${nameClass}` : 'change__name'}>{entry.name}</span>
       </span>
     </WithTooltip>

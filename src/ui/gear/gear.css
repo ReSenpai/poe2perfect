@@ -229,6 +229,10 @@
   white-space: nowrap;
 }
 
+.item-slot__grants--rest {
+  color: var(--text-muted);
+}
+
 .item-slot__grants-icon {
   flex: none;
   width: 14px;

@@ -1,0 +1,55 @@
+name: Check store access
+
+# Run by hand (Actions → Check store access → Run workflow) after setting or renewing store keys: signs in to each
+# store whose keys are set and checks the extension is there, without uploading or submitting anything (--dry-run).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+      CHROME_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run zip && npm run zip:firefox
+      - run: echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+
+      - name: Chrome Web Store
+        if: env.CHROME_SERVICE_ACCOUNT_PRIVATE_KEY != ''
+        # The private key goes in its environment variable (see release.yml).
+        run: |
+          set -o pipefail
+          # A key pasted from the JSON file keeps its quotes and "\n" escapes: make it plain PEM text.
+          key="${CHROME_SERVICE_ACCOUNT_PRIVATE_KEY#\"}"
+          export CHROME_SERVICE_ACCOUNT_PRIVATE_KEY="$(printf '%b' "${key%\"}")"
+          npx wxt submit --dry-run \
+            --chrome-api-version v2 \
+            --chrome-zip ".output/poe2perfect-$VERSION-chrome.zip" \
+            --chrome-extension-id "${{ vars.CHROME_EXTENSION_ID }}" \
+            --chrome-publisher-id "${{ vars.CHROME_PUBLISHER_ID }}" \
+            --chrome-service-account-client-email "${{ vars.CHROME_SERVICE_ACCOUNT_EMAIL }}" \
+            2>&1 | tee submit.log
+          if grep -q '^Usage:' submit.log; then echo "::error::wxt submit did not run"; exit 1; fi
+
+      - name: Firefox Add-ons
+        if: env.AMO_JWT_ISSUER != ''
+        run: |
+          npx wxt submit --dry-run \
+            --firefox-zip ".output/poe2perfect-$VERSION-firefox.zip" \
+            --firefox-sources-zip ".output/poe2perfect-$VERSION-sources.zip" \
+            --firefox-extension-id "poe2perfect@resenpai.dev" \
+            --firefox-channel listed \
+            --firefox-jwt-issuer "$AMO_JWT_ISSUER" \
+            --firefox-jwt-secret "$AMO_JWT_SECRET"

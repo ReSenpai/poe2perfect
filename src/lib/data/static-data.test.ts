@@ -116,3 +116,25 @@ describe('readStaticData', () => {
     expect(result).toEqual({ ok: true, snapshot: { staticData: STATIC_DATA, cacheVersion: null, timestamp: null } });
   });
 });
+
+describe('readStaticData when a browser does not answer', () => {
+  // Firefox keeps a content script's storage apart from the page's; asking the wrong one can hang for good,
+  // and the guide would sit on "Loading build…" forever.
+  it('gives up on a database that never answers, instead of waiting for ever', async () => {
+    const silent = { databases: () => new Promise<IDBDatabaseInfo[]>(() => {}) } as unknown as IDBFactory;
+
+    const result = await readStaticData({ idb: silent, timeoutMs: 30, pollIntervalMs: 5 });
+
+    expect(result).toMatchObject({ ok: false, reason: 'unavailable' });
+  });
+
+  it('tries the next database when the first one does not answer', async () => {
+    const silent = { databases: () => new Promise<IDBDatabaseInfo[]>(() => {}) } as unknown as IDBFactory;
+    const working = new IDBFactory();
+    await seed(working, { 'poe-2|hash': record(STATIC_DATA) });
+
+    const result = await readStaticData({ idb: [silent, working], timeoutMs: 60, pollIntervalMs: 5 });
+
+    expect(result).toMatchObject({ ok: true, snapshot: { cacheVersion: 'v0.0.340' } });
+  });
+});

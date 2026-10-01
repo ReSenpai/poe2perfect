@@ -1,4 +1,5 @@
 import { isBuildPageUrl } from '@/lib/build-url';
+import { indexedDbCandidates } from '@/lib/data/page-idb';
 import { readStaticData } from '@/lib/data/static-data';
 import { summarizeBuild } from '@/lib/dev/build-summary';
 import { listenForCapture } from '@/lib/dev/capture-messaging';
@@ -7,6 +8,7 @@ import { listenForPageCapture } from '@/lib/dev/page-capture';
 import { listenForPageReport } from '@/lib/dev/page-report';
 import { createBuildLoader } from '@/lib/page/build-loader';
 import { createHtmlFetcher } from '@/lib/page/fetch-html';
+import { pageFetch } from '@/lib/page/page-fetch';
 import { createPageController, isOverlayVisible } from '@/lib/page/controller';
 import { glanceCollapsedItem, headerCollapsedItem, lastTabsItem, lastVariantsItem, pageModeItem, rememberPerBuild } from '@/lib/page/preferences';
 import { guardFocus } from '@/lib/page/focus-guard';
@@ -15,7 +17,8 @@ import { mountApp } from '@/ui/app/mount';
 
 const MARKER_ATTRIBUTE = 'data-poe2-build-guide';
 
-const fetchHtml = createHtmlFetcher();
+// Build pages are asked for as the page itself: in Firefox a content script's own fetch goes as the extension.
+const fetchHtml = createHtmlFetcher(pageFetch());
 
 export default defineContentScript({
   // The whole site: build pages are often reached by in-app navigation, which doesn't inject scripts.
@@ -26,7 +29,7 @@ export default defineContentScript({
       initialUrl: location.href,
       initialDocument: document,
       fetchHtml,
-      readStaticData: () => readStaticData({ timeoutMs: 10_000 }),
+      readStaticData: () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 10_000 }),
     });
     const controller = createPageController({
       load,
@@ -76,7 +79,7 @@ export default defineContentScript({
     await handleUrl(location.href);
 
     if (import.meta.env.DEV) {
-      const loadStaticData = () => readStaticData({ timeoutMs: 5_000 });
+      const loadStaticData = () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 5_000 });
       const capture = () => captureFixture({ url: location.href, loadPage: () => fetchHtml(location.href), readStaticData: loadStaticData });
       ctx.onInvalidated(listenForCapture(browser.runtime.onMessage as never, capture));
       ctx.onInvalidated(listenForPageCapture(document, capture));

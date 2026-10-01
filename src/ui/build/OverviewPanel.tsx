@@ -3,6 +3,7 @@ import { useMemo, useState } from 'preact/hooks';
 import type { Build } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, passiveTooltip } from '@/lib/tooltip/tooltip-model';
 import { formatUpdated, keyUniques, showcaseVariant, videoHost } from '@/lib/ui/overview';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -111,7 +112,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
           <p class="glance__label">Main Skill</p>
           <WithTooltip model={gemTooltip(mainSkill)}>
             <span class="glance__entry">
-              {mainSkill.iconUrl && <img class="glance__icon" src={mainSkill.iconUrl} alt="" />}
+              <Icon src={mainSkill.iconUrl} class="glance__icon" kind="gem" />
               <span class="glance__name">{mainSkill.name}</span>
             </span>
           </WithTooltip>
@@ -126,7 +127,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
               <li key={item.slug}>
                 <WithTooltip model={itemTooltip(item, socketables)}>
                   <span class="glance__entry">
-                    {item.iconUrl && <img class="glance__icon" src={item.iconUrl} alt="" />}
+                    <Icon src={item.iconUrl} class="glance__icon" kind="item" />
                     <span class="glance__name item-name--unique">{item.name}</span>
                   </span>
                 </WithTooltip>
@@ -144,7 +145,7 @@ function AtAGlance({ build, renderEntity, onCollapse }: { build: Build; renderEn
               <li key={passive.nodeSlug ?? passive.name}>
                 <WithTooltip model={passiveTooltip(passive)}>
                   <span class="glance__entry">
-                    {passive.iconUrl && <img class="glance__icon glance__icon--round" src={passive.iconUrl} alt="" />}
+                    <Icon src={passive.iconUrl} class="glance__icon glance__icon--round" kind="passive" />
                     <span class="glance__name">{passive.name}</span>
                   </span>
                 </WithTooltip>

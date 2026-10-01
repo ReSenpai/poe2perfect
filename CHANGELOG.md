@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+## 1.3.0
+
+### Firefox
+- poe2perfect is now a Firefox add-on as well, built from the same source as the Chrome extension: the same guide,
+  the same tabs, the same preferences. Firefox 140 or newer.
+- Loading a build could go on forever in Firefox, with the panel left on "Loading build…". The guide now gives the
+  page's own storage and the site a limited time to answer, and falls back to reading the build from the page.
+
+### Gear
+- An item that grants many skills (one amulet grants seven) no longer stretches the whole gear grid: the card shows
+  the first two and counts the rest, and the tooltip still lists them all.
+
+### Pictures
+- A picture the site does not give up — its CDN drops files now and then — leaves a stand-in shape instead of the
+  browser's broken-image mark: armour, a weapon, a shield, jewellery, a flask, a charm, a gem, a passive or a rune,
+  whichever belongs in that place. Names, modifiers and tooltips stay where they are.
+
+### Also
+- A new icon: a gothic medallion with the passive tree on it.
+
 ## 1.2.0
 
 ### Skills

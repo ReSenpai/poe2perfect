@@ -2,6 +2,7 @@ import { Flag, Tag, User } from 'lucide-preact';
 import { useMemo } from 'preact/hooks';
 import type { Build } from '@/lib/build/model';
 import { richTextSummary } from '@/lib/rich-text/summary';
+import { Icon } from '@/ui/common/Icon';
 
 /** Build identity and meta; purely informational — page controls live in the tab bar. */
 export function BuildHeader({ build }: { build: Build }) {
@@ -9,7 +10,7 @@ export function BuildHeader({ build }: { build: Build }) {
 
   return (
     <header class="build-header">
-      {build.headerImageUrl && <img class="build-header__art" src={build.headerImageUrl} alt="" />}
+      <Icon src={build.headerImageUrl} class="build-header__art" missing="none" />
       <div class="build-header__identity">
         <h1 class="build-header__title">{build.title}</h1>
         {(build.className || build.ascendancy) && (

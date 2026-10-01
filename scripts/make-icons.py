@@ -1,40 +1,44 @@
 import os
-import re
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageEnhance
 
-# Extension icons (public/icon/*.png): python scripts/make-icons.py
+# Extension icons (public/icon/*.png) from the medallion: python scripts/make-icons.py
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BG = (22, 24, 29, 255)        # --surface
-RING = (42, 45, 51, 255)      # --border
-ACCENT = (232, 161, 90, 255)  # --accent
-
-SIZE = 1024
-FONT = r'C:\Windows\Fonts\seguibl.ttf' if os.path.exists(r'C:\Windows\Fonts\seguibl.ttf') else r'C:\Windows\Fonts\segoeuib.ttf'
+SOURCE = 'reference/icon-medallion.png'
+SIZES = (16, 32, 48, 96, 128)
+# A browser draws the icon on toolbars of either colour, so the art keeps its own transparent ground.
+MARGIN = 0.02
 
 
-def master():
-    img = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    pad = 24
-    radius = 220
-    d.rounded_rectangle([pad, pad, SIZE - pad, SIZE - pad], radius=radius, fill=BG, outline=RING, width=20)
-    # Accent underline, like the active tab.
-    d.rounded_rectangle([300, 790, SIZE - 300, 840], radius=25, fill=ACCENT)
+def master() -> Image.Image:
+    art = Image.open(SOURCE).convert('RGBA')
+    art = art.crop(art.getbbox())
 
-    font = ImageFont.truetype(FONT, 560)
-    text = 'P2'
-    box = d.textbbox((0, 0), text, font=font)
-    w, h = box[2] - box[0], box[3] - box[1]
-    x = (SIZE - w) / 2 - box[0]
-    y = (SIZE - h) / 2 - box[1] - 60
-    d.text((x, y), text, font=font, fill=ACCENT)
-    return img
+    side = round(max(art.size) * (1 + MARGIN * 2))
+    canvas = Image.new('RGBA', (side, side), (0, 0, 0, 0))
+    canvas.alpha_composite(art, ((side - art.width) // 2, (side - art.height) // 2))
+    return canvas
+
+
+# At toolbar sizes the long spikes leave the medallion a blob, so the small icons close in on its body.
+CLOSE_UP = {16: 0.75, 32: 0.80, 48: 0.90}
+
+
+def icon(base: Image.Image, size: int) -> Image.Image:
+    art = base
+    keep = CLOSE_UP.get(size)
+    if keep:
+        side = round(base.width * keep)
+        edge = (base.width - side) // 2
+        art = base.crop((edge, edge, edge + side, edge + side))
+    small = art.resize((size, size), Image.LANCZOS)
+    # Fine gold tracery on dark metal: a touch more contrast keeps it legible once it is this small.
+    return ImageEnhance.Contrast(small).enhance(1.2) if size <= 48 else small
 
 
 os.makedirs('public/icon', exist_ok=True)
 base = master()
-for size in (16, 32, 48, 96, 128):
-    base.resize((size, size), Image.LANCZOS).save(f'public/icon/{size}.png')
-print('icons written to public/icon')
+for size in SIZES:
+    icon(base, size).save(f'public/icon/{size}.png', optimize=True)
+print('icons written to public/icon from', SOURCE)

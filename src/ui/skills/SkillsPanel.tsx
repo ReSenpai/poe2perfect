@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Attributes, EntityInfo, Gem, GemPriorityEntry, Skill, Variant } from '@/lib/build/model';
 import { gemAttribute, gemTooltip } from '@/lib/tooltip/tooltip-model';
 import { copyText } from '@/lib/ui/clipboard';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
@@ -273,7 +274,7 @@ function SkillDetails({ skill, onCopy }: { skill: Skill; onCopy: (name: string) 
 }
 
 function GemIcon({ gem, class: className }: { gem: Gem; class: string }) {
-  return gem.iconUrl ? <img class={className} src={gem.iconUrl} alt="" /> : <span class={`${className} gem-icon--missing`} />;
+  return <Icon src={gem.iconUrl} class={className} kind="gem" />;
 }
 
 function formatAttributes({ str, dex, int }: Attributes): string {

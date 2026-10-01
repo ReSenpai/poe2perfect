@@ -36,6 +36,13 @@ describe('createHtmlFetcher', () => {
     expect(fetch).toHaveBeenLastCalledWith(URL, { credentials: 'include' });
   });
 
+  // A request that never answers would leave the guide on "Loading build…" for good.
+  it('does not wait for ever on a request that never answers', async () => {
+    const fetch = vi.fn(() => new Promise<Response>(() => {})) as unknown as typeof globalThis.fetch;
+
+    await expect(fetcher(fetch, { attempts: 2, attemptMs: 20 })(URL)).rejects.toThrow(/too long|timed out/i);
+  });
+
   it('gives up after the last attempt, naming the status the site answered with', async () => {
     const fetch = responses(503, 503, 503, 503);
 

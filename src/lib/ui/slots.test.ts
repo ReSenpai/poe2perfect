@@ -1,10 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import type { EquipmentSlot, SlotId } from '@/lib/build/model';
-import { sheetSlots, slotLabel } from './slots';
+import { sheetSlots, slotIconKind, slotLabel } from './slots';
 
 function slot(id: SlotId, weaponSet: 1 | 2 | null = null): EquipmentSlot {
   return { slot: id, weaponSet, item: { name: `${id}${weaponSet ?? ''}` } as EquipmentSlot['item'], socketables: [] };
 }
+
+describe('slotIconKind', () => {
+  // A slot without a picture should still say what belongs in it.
+  it('names the kind of thing each slot holds', () => {
+    expect(slotIconKind('helmet')).toBe('armour');
+    expect(slotIconKind('body')).toBe('armour');
+    expect(slotIconKind('mainHand')).toBe('weapon');
+    expect(slotIconKind('offHand')).toBe('offhand');
+    expect(slotIconKind('amulet')).toBe('jewellery');
+    expect(slotIconKind('leftRing')).toBe('jewellery');
+    expect(slotIconKind('belt')).toBe('jewellery');
+    expect(slotIconKind('flask1')).toBe('flask');
+    expect(slotIconKind('charm2')).toBe('charm');
+  });
+
+  it('falls back to a plain item for anything it does not know', () => {
+    expect(slotIconKind(null)).toBe('item');
+    expect(slotIconKind('mirror-of-kalandra')).toBe('item');
+  });
+});
 
 describe('slotLabel', () => {
   it.each([

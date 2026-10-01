@@ -2,12 +2,16 @@ import { Scale } from 'lucide-preact';
 import { useMemo } from 'preact/hooks';
 import type { EntityInfo, EquipmentSlot, ItemRef, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, socketableTooltip } from '@/lib/tooltip/tooltip-model';
-import { type SheetSlot, sheetSlots, slotLabel } from '@/lib/ui/slots';
+import { type SheetSlot, sheetSlots, slotIconKind, slotLabel } from '@/lib/ui/slots';
+import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
 import { WithTooltip } from '@/ui/tooltip/Tooltip';
 
 const EMPTY = "The author hasn't listed gear for this variant.";
+
+/** An item can grant a handful of skills; the rest are counted, so one item cannot stretch the whole grid. */
+const GRANTS_SHOWN = 2;
 
 export function GearPanel({ variant, entities }: { variant: Variant; entities: Record<string, EntityInfo> }) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
@@ -70,7 +74,7 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
     <WithTooltip model={itemTooltip(item, socketables)}>
       <div class={`item-slot item-slot--${size}`}>
         <div class="item-slot__art">
-          {item.iconUrl && <img class="item-slot__icon" src={item.iconUrl} alt="" />}
+          <Icon src={item.iconUrl} class="item-slot__icon" kind={slotIconKind(sheetSlot.slot)} />
           {item.tradeUrl && (
             <a
               class="item-slot__trade"
@@ -88,25 +92,29 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
         <div class="item-slot__body">
           <span class="item-slot__label">{label}</span>
           <span class={`item-name item-name--${item.rarity}`}>{item.name}</span>
-          {item.grantedSkills.map((skill) => (
+          {item.grantedSkills.slice(0, GRANTS_SHOWN).map((skill) => (
             <WithTooltip key={skill.name} model={skill.gem ? gemTooltip(skill.gem) : null}>
               <span class="item-slot__grants">
-                {skill.gem?.iconUrl && <img class="item-slot__grants-icon" src={skill.gem.iconUrl} alt="" />}
+                <Icon src={skill.gem?.iconUrl} class="item-slot__grants-icon" kind="gem" />
                 {skill.name}
               </span>
             </WithTooltip>
           ))}
+          {item.grantedSkills.length > GRANTS_SHOWN && (
+            <span class="item-slot__grants item-slot__grants--rest">+{item.grantedSkills.length - GRANTS_SHOWN} more</span>
+          )}
           {size === 'large' && item.modifiers.length > 0 && <span class="item-slot__mods">{item.modifiers.slice(0, 2).join(' · ')}</span>}
         </div>
         {socketables.length > 0 && (
           <span class="item-slot__sockets">
             {socketables.map((socketable, i) => (
               <WithTooltip key={i} model={socketableTooltip(socketable)}>
-                {socketable.iconUrl ? (
-                  <img class="item-slot__socket" src={socketable.iconUrl} alt={socketable.name ?? ''} />
-                ) : (
-                  <span class="item-slot__socket item-slot__socket--empty" />
-                )}
+                <Icon
+                  src={socketable.iconUrl}
+                  class={`item-slot__socket${socketable.iconUrl ? '' : ' item-slot__socket--empty'}`}
+                  alt={socketable.name ?? ''}
+                  kind={socketable.iconUrl ? 'rune' : undefined}
+                />
               </WithTooltip>
             ))}
           </span>
@@ -129,7 +137,7 @@ function PriorityCard({ items, equipment }: { items: ItemRef[]; equipment: Equip
               <span class="priority__number">{i + 1}</span>
               <WithTooltip model={equipped ? itemTooltip(equipped.item, equipped.socketables) : null}>
                 <span class="priority__item">
-                  {ref.iconUrl && <img class="priority__icon" src={ref.iconUrl} alt="" />}
+                  <Icon src={ref.iconUrl} class="priority__icon" kind={slotIconKind(ref.slot)} />
                   <span class={`priority__name item-name item-name--${equipped?.item.rarity ?? 'normal'}`}>{ref.name}</span>
                 </span>
               </WithTooltip>
