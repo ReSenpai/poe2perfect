@@ -1,14 +1,18 @@
+import { readFileSync } from 'node:fs';
 import preact from '@preact/preset-vite';
 import { defineConfig } from 'wxt';
+import { manifestFor } from './src/lib/build/manifest';
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
 
 export default defineConfig({
   srcDir: 'src',
-  manifest: {
-    name: 'poe2perfect',
-    description: 'A clean, tabbed view of Path of Exile 2 build guides on mobalytics.gg',
-    permissions: ['storage'],
-    homepage_url: 'https://github.com/ReSenpai/poe2perfect',
-  },
+  // One manifest for Chrome and Firefox; Firefox adds its id and settings (src/lib/build/manifest.ts).
+  manifest: ({ browser }) => manifestFor(browser, version),
+  // Manifest V3 in Firefox too (WXT builds MV2 for it by default), so both browsers follow the same rules.
+  manifestVersion: 3,
+  // The sources ZIP addons.mozilla.org asks for: what builds the extension, not store material or notes.
+  zip: { excludeSources: ['store/**', 'docs/images/**', 'reference/**'] },
   // Dev build is loaded manually into the everyday Chrome (mobalytics sits behind Cloudflare).
   webExt: { disabled: true },
   hooks: {

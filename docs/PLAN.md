@@ -352,6 +352,20 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   оценка `Flat × (1 + Increased%) × (1 + More%)`. Считает не расширение, а сама таблица: правки пересчитываются.
 - Диапазоны роллов идут в расчёт средним, границы остаются в колонках Min и Max. В Overview три строки-пояснения.
 
+### Порт на Firefox (в работе)
+По образцу соседнего проекта `poe2perfect-trade`.
+
+- Шаг 1 ✅. Один манифест на оба браузера: `lib/build/manifest.ts` (+ тесты). Firefox получает постоянный id
+  `poe2perfect@resenpai.dev`, `strict_min_version: 140.0` и объявление `data_collection_permissions: none`.
+  Версия для AMO — только цифры (`firefoxVersion`), MV3 в обоих браузерах, команды `dev:firefox`, `build:firefox`,
+  `zip:firefox` (последняя собирает и zip с исходниками для проверки AMO).
+- Шаг 2. Запрос страницы билда: в Firefox `fetch` из контент-скрипта идёт от расширения, нужен `content.fetch`
+  (в соседнем проекте — `lib/page/page-fetch.ts`).
+- Шаг 3. Чтение `ngf-static-data` из IndexedDB сайта: в Firefox контент-скрипт видит своё хранилище, а не страницы.
+  Проверить `wrappedJSObject`; если данных нет — билд открывается без подсказок (`hasStaticData: false`).
+- Шаг 4. Живая проверка в Firefox: дерево пассивок (встраивание чужого canvas), буфер обмена, сохранение .xlsx.
+- Шаг 5. Документация и материалы для addons.mozilla.org.
+
 ## Будущие фичи
 
 ### Резисты и ES (beta)
