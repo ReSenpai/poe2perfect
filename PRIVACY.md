@@ -1,8 +1,9 @@
 # poe2perfect — Privacy Policy
 
-_Last updated: September 19, 2026_
+_Last updated: October 1, 2026_
 
-poe2perfect is a browser extension that shows Path of Exile 2 build guides from mobalytics.gg in a tabbed layout.
+poe2perfect is a browser extension for Chrome and Firefox that shows Path of Exile 2 build guides from
+mobalytics.gg in a tabbed layout. The same policy covers both; the extension behaves identically in each.
 
 ## What the extension does with data
 
@@ -25,7 +26,7 @@ poe2perfect is a browser extension that shows Path of Exile 2 build guides from 
 
 ## Removing data
 
-Removing the extension from Chrome deletes its stored preferences.
+Removing the extension from your browser deletes its stored preferences.
 
 ## Contact
 
