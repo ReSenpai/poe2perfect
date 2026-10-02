@@ -30,7 +30,8 @@ signed in to the site.
 **Firefox** 140 or newer, from 1.3.0. The add-on is awaiting review on addons.mozilla.org; until it is listed, install
 the signed package from the [latest release](https://github.com/ReSenpai/poe2perfect/releases/latest):
 download `poe2perfect-<version>-firefox.xpi`, then open `about:addons` → the gear icon → *Install Add-on From File*.
-It is signed by Mozilla, so it stays installed and updates itself once the listing is live.
+It is signed by Mozilla, so it stays installed between restarts. It does not update itself, so once the listing is
+live, install the add-on from addons.mozilla.org to get later versions.
 
 ## A look at every tab
 
