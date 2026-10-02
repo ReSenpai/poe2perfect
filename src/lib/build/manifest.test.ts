@@ -28,6 +28,11 @@ describe('manifestFor', () => {
     expect(manifestFor('firefox', '1.3.0').version).toBe('1.3.0');
     expect(manifestFor('chrome', '1.3.0').version).toBeUndefined();
   });
+
+  it('carries a tester build number through to the Firefox version', () => {
+    expect(manifestFor('firefox', '1.3.0', 2).version).toBe('1.3.0.2');
+    expect(manifestFor('chrome', '1.3.0', 2).version).toBeUndefined();
+  });
 });
 
 describe('firefoxVersion', () => {
@@ -41,6 +46,14 @@ describe('firefoxVersion', () => {
     expect(firefoxVersion('1.3.0-beta.1')).toBe('1.2.999.1');
     expect(firefoxVersion('1.3.2-beta.4')).toBe('1.3.1.4');
     expect(firefoxVersion('2.0.0-beta.2')).toBe('1.999.999.2');
+  });
+
+  // While a release waits for review, testers get the same code signed unlisted — and AMO takes each number once,
+  // so that package sits just above the release and below the next one.
+  it('numbers a signed build for testers above the release it carries', () => {
+    expect(firefoxVersion('1.3.0', 1)).toBe('1.3.0.1');
+    expect(firefoxVersion('1.3.0', 2)).toBe('1.3.0.2');
+    expect(firefoxVersion('1.3.0-beta.1', 1)).toBe('1.2.999.1');
   });
 
   it('refuses a version it cannot number, rather than guessing', () => {
