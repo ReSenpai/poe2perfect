@@ -1,0 +1,22 @@
+name: Idea
+description: Something the extension could do better.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would help
+      description: What you are trying to read or work out about a build, and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: Optional. A sketch, a screenshot of the guide or of another tool.
+  - type: input
+    id: link
+    attributes:
+      label: A build it would show on
+      description: Optional, and useful — an idea is easier to judge against a real build.
+      placeholder: https://mobalytics.gg/poe-2/builds/…
