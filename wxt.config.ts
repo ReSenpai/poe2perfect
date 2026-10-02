@@ -4,11 +4,13 @@ import { defineConfig } from 'wxt';
 import { manifestFor } from './src/lib/build/manifest';
 
 const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+// Set when signing a tester package unlisted while the release waits for review (.github/workflows/sign-xpi.yml).
+const firefoxBuild = process.env.FIREFOX_BUILD ? Number(process.env.FIREFOX_BUILD) : undefined;
 
 export default defineConfig({
   srcDir: 'src',
   // One manifest for Chrome and Firefox; Firefox adds its id and settings (src/lib/build/manifest.ts).
-  manifest: ({ browser }) => manifestFor(browser, version),
+  manifest: ({ browser }) => manifestFor(browser, version, firefoxBuild),
   // Manifest V3 in Firefox too (WXT builds MV2 for it by default), so both browsers follow the same rules.
   manifestVersion: 3,
   // The sources ZIP addons.mozilla.org asks for: what builds the extension, not store material or notes.
