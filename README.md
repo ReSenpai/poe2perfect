@@ -6,6 +6,7 @@ One click turns a long build page into tabs: skills, gear, passives and progress
 tooltips for everything.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iaalfjcbfnidaiogadcgcdcfgmekpnce?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/poe2perfect/iaalfjcbfnidaiogadcgcdcfgmekpnce)
+[![Firefox Add-ons](https://img.shields.io/amo/v/poe2perfect-trade?label=Firefox%20Add-ons&logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/poe2perfect/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 ![The Overview tab: the author's guide, with the build summarised beside it](docs/images/overview.jpg)
