@@ -109,6 +109,9 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
   const { state, controller, isOpen, onToggle, replyingTo, onReply, onSignIn } = props;
   const comment = state.list.comments[id]!;
   const canReply = !comment.deleted;
+  const folds = hasReplies(state, id) && isOpen(id);
+  // A deleted comment has no votes or Reply: folded, its row would stand empty, so it goes.
+  const hasRow = folds || !comment.deleted || Boolean(children);
 
   const post = (text: string): Promise<PostOutcome> => controller.post(id, text);
   const done = () => {
@@ -118,16 +121,18 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
 
   return (
     <>
-      <div class="comment__actions">
-        {hasReplies(state, id) && isOpen(id) && <Fold id={id} {...props} />}
-        {!comment.deleted && <Votes comment={comment} controller={controller} onSignIn={onSignIn} />}
-        {canReply && (
-          <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
-            Reply
-          </button>
-        )}
-        {children}
-      </div>
+      {hasRow && (
+        <div class="comment__actions">
+          {folds && <Fold id={id} {...props} />}
+          {!comment.deleted && <Votes comment={comment} controller={controller} onSignIn={onSignIn} />}
+          {canReply && (
+            <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
+              Reply
+            </button>
+          )}
+          {children}
+        </div>
+      )}
       {hasReplies(state, id) && !isOpen(id) && <Unfold id={id} {...props} />}
       {canReply && replyingTo === id && (
         <CommentComposer

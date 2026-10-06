@@ -139,6 +139,16 @@ describe('CommentsPanel', () => {
     expect(within(deleted).getAllByText('3 hours ago')).toHaveLength(1);
   });
 
+  it('leaves no empty actions row on a folded deleted comment, only its View 1 reply', () => {
+    renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1', author: ashen })]));
+    const deleted = screen.getByText('[deleted]', { selector: '.comment__name' }).closest('article')!;
+
+    fireEvent.click(within(deleted).getByRole('button', { name: 'Hide replies' }));
+
+    expect(deleted.querySelector(':scope > .comment__main > .comment__actions')).toBeNull();
+    expect(within(deleted).getByRole('button', { name: 'View 1 reply' })).toBeTruthy();
+  });
+
   it('says when a moderator removed a comment', () => {
     renderPanel(readySeed([deletedComment({ id: 'm1', replyCount: 1, deletedByModerator: true }), rawComment({ id: 'a1', parentId: 'm1', author: ashen })]));
 
