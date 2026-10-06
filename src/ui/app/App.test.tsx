@@ -23,6 +23,29 @@ function renderApp(state: PageState) {
   return { ...view, onModeChange, onRetry };
 }
 
+describe('App original comments', () => {
+  it("shows the site's own discussion in place of the guide, saying whether to reply", () => {
+    const onModeChange = vi.fn();
+    const onOriginalComments = vi.fn();
+    render(
+      <App
+        state={{ ...base, mode: 'extension', status: 'ready', build: BUILD, comments: null }}
+        onModeChange={onModeChange}
+        onRetry={vi.fn()}
+        headerCollapsed={false}
+        onHeaderCollapsedChange={vi.fn()}
+        onOriginalComments={onOriginalComments}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Comments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open on Mobalytics' }));
+
+    expect(onModeChange).toHaveBeenCalledWith('original');
+    expect(onOriginalComments).toHaveBeenCalledWith('open');
+  });
+});
+
 describe('App', () => {
   it('renders nothing away from build pages', () => {
     const { container } = renderApp({ active: false, mode: 'extension' });

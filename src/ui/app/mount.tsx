@@ -7,6 +7,7 @@ import { BASE_CSS } from '@/ui/styles';
 import { registerFonts } from '@/ui/theme/fonts';
 import { INTER_SOURCES } from '@/ui/theme/inter-sources';
 import appCss from './app.css?inline';
+import type { OriginalIntent } from '@/ui/comments/CommentsPanel';
 import { ConnectedApp } from './App';
 
 /** Mounts the extension UI in an isolated shadow root at the end of the page body; returns the shadow host. */
@@ -22,6 +23,7 @@ export async function mountApp(
     onGlanceCollapsedChange: (collapsed: boolean) => void;
     lastVariants: Record<string, RememberedVariant>;
     onVariantChange: (buildSlug: string, variant: RememberedVariant) => void;
+    onOriginalComments: (intent: OriginalIntent) => void;
   },
 ): Promise<HTMLElement> {
   registerFonts({ fontSet: document.fonts, FontFace, sources: INTER_SOURCES });
@@ -44,6 +46,7 @@ export async function mountApp(
           onGlanceCollapsedChange={preferences.onGlanceCollapsedChange}
           initialLastVariants={preferences.lastVariants}
           onVariantChange={preferences.onVariantChange}
+          onOriginalComments={preferences.onOriginalComments}
         />,
         container,
       );

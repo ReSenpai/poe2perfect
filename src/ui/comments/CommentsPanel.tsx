@@ -1,4 +1,4 @@
-import { Layers, MessageSquare } from 'lucide-preact';
+import { ArrowUpRight, Layers, MessageSquare } from 'lucide-preact';
 import { useRef, useState } from 'preact/hooks';
 import type { CommentsController, CommentsState, LoadState } from '@/lib/comments/controller';
 import { commentElementId } from './CommentCard';
@@ -7,8 +7,20 @@ import { useCommentsState } from './use-comments';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
+/** `reply` heads for the site's reply box, `open` just to its discussion. */
+export type OriginalIntent = 'open' | 'reply';
+
 /** The build's discussion as a tab: header, the threads in the site's order, and the way to more of them. */
-export function CommentsPanel({ controller, now = Date.now }: { controller: CommentsController | null; now?: () => number }) {
+export function CommentsPanel({
+  controller,
+  now = Date.now,
+  onOpenOriginal,
+}: {
+  controller: CommentsController | null;
+  now?: () => number;
+  /** Shows the discussion on the site itself, in place of the guide. */
+  onOpenOriginal?: (intent: OriginalIntent) => void;
+}) {
   const state = useCommentsState(controller);
   // Threads the reader opened or folded against the default; the rest follow their depth.
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
@@ -41,10 +53,20 @@ export function CommentsPanel({ controller, now = Date.now }: { controller: Comm
         </span>
       </header>
       {state.status === 'ready' ? (
-        controller && <ReadyList state={state} controller={controller} now={now()} isOpen={isOpen} onToggle={toggle} onShowComment={showComment} />
+        controller && (
+          <ReadyList
+            state={state}
+            controller={controller}
+            now={now()}
+            isOpen={isOpen}
+            onToggle={toggle}
+            onShowComment={showComment}
+            onOpenOriginal={onOpenOriginal}
+          />
+        )
       ) : (
         <div class="comments__list">
-          <Placeholder state={state} onRetry={() => controller?.retry()} />
+          <Placeholder state={state} onRetry={() => controller?.retry()} onOpenOriginal={onOpenOriginal} />
         </div>
       )}
     </div>
@@ -54,6 +76,7 @@ export function CommentsPanel({ controller, now = Date.now }: { controller: Comm
 function ReadyList({
   state,
   controller,
+  onOpenOriginal,
   ...thread
 }: {
   state: Ready;
@@ -62,24 +85,20 @@ function ReadyList({
   isOpen: (id: string) => boolean;
   onToggle: (id: string) => void;
   onShowComment: (id: string) => void;
+  onOpenOriginal?: (intent: OriginalIntent) => void;
 }) {
   const { page } = state.list;
   const rootIds = state.list.rootIds.filter((id) => isShown(state, id));
-  if (rootIds.length === 0 && !page.hasMore) {
-    return (
-      <div class="comments__list">
-        <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
-      </div>
-    );
-  }
   return (
     <>
       <div class="comments__list">
-        {rootIds.map((id) => (
-          <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
-        ))}
+        {rootIds.length === 0 && !page.hasMore ? (
+          <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
+        ) : (
+          rootIds.map((id) => <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />)
+        )}
       </div>
-      {(page.hasMore || state.more.status === 'error') && (
+      {(page.hasMore || state.more.status === 'error' || onOpenOriginal) && (
         <footer class="comments__footer">
           {state.more.status === 'error' && (
             <p class="comments__error" role="alert">
@@ -92,13 +111,22 @@ function ReadyList({
               {state.more.status === 'loading' ? 'Loading…' : 'Load more comments'}
             </button>
           )}
+          {onOpenOriginal && <OriginalButton intent="reply" onOpen={onOpenOriginal} />}
         </footer>
       )}
     </>
   );
 }
 
-function Placeholder({ state, onRetry }: { state: Exclude<CommentsState, Ready>; onRetry: () => void }) {
+function Placeholder({
+  state,
+  onRetry,
+  onOpenOriginal,
+}: {
+  state: Exclude<CommentsState, Ready>;
+  onRetry: () => void;
+  onOpenOriginal?: (intent: OriginalIntent) => void;
+}) {
   if (state.status === 'disabled') return <EmptyState title="Comments are disabled for this build" />;
   if (state.load.status === 'loading') {
     return (
@@ -111,11 +139,14 @@ function Placeholder({ state, onRetry }: { state: Exclude<CommentsState, Ready>;
   const text = state.load.status === 'error' ? `Couldn't load comments (${state.load.message}).` : "The build page didn't include its discussion.";
   return (
     <EmptyState title="Comments are unavailable here" text={text}>
-      {state.canRetry && (
-        <button type="button" class="button" onClick={onRetry}>
-          Try again
-        </button>
-      )}
+      <div class="comments__empty-actions">
+        {state.canRetry && (
+          <button type="button" class="button" onClick={onRetry}>
+            Try again
+          </button>
+        )}
+        {onOpenOriginal && <OriginalButton intent="open" onOpen={onOpenOriginal} />}
+      </div>
     </EmptyState>
   );
 }
@@ -128,6 +159,16 @@ function EmptyState({ title, text, children }: { title: string; text?: string; c
       {text && <p class="comments__empty-text">{text}</p>}
       {children}
     </div>
+  );
+}
+
+/** Switches to the site's own page in this tab, so the arrow points up-right rather than out of the browser. */
+function OriginalButton({ intent, onOpen }: { intent: OriginalIntent; onOpen: (intent: OriginalIntent) => void }) {
+  return (
+    <button type="button" class="button button--accent comments__original" onClick={() => onOpen(intent)}>
+      {intent === 'reply' ? 'Reply on Mobalytics' : 'Open on Mobalytics'}
+      <ArrowUpRight size={16} aria-hidden="true" />
+    </button>
   );
 }
 

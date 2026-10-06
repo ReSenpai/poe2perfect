@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { PageController, PageMode, PageState } from '@/lib/page/controller';
 import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BuildView } from '@/ui/build/BuildView';
+import type { OriginalIntent } from '@/ui/comments/CommentsPanel';
 
 export interface AppProps {
   state: PageState;
@@ -18,6 +19,8 @@ export interface AppProps {
   /** The variant this build was last read at, and where to report the reader's pick. */
   lastVariant?: RememberedVariant | null;
   onVariantChange?: (variant: RememberedVariant) => void;
+  /** Called once the site's page is in front, to bring its discussion into view. */
+  onOriginalComments?: (intent: OriginalIntent) => void;
 }
 
 export function App({
@@ -32,6 +35,7 @@ export function App({
   onGlanceCollapsedChange,
   lastVariant,
   onVariantChange,
+  onOriginalComments,
 }: AppProps) {
   if (!state.active) return null;
 
@@ -62,6 +66,10 @@ export function App({
           glanceCollapsed={glanceCollapsed}
           onGlanceCollapsedChange={onGlanceCollapsedChange}
           comments={state.comments}
+          onOriginalComments={(intent) => {
+            onModeChange('original');
+            onOriginalComments?.(intent);
+          }}
         />
       </div>
     );
@@ -128,6 +136,8 @@ export interface ConnectedAppProps {
   initialLastVariants?: Record<string, RememberedVariant>;
   /** Persists the variant this build is now read at. */
   onVariantChange?: (buildSlug: string, variant: RememberedVariant) => void;
+  /** Brings the site's discussion into view once its page is in front. */
+  onOriginalComments?: (intent: OriginalIntent) => void;
 }
 
 export function ConnectedApp({
@@ -140,6 +150,7 @@ export function ConnectedApp({
   onGlanceCollapsedChange,
   initialLastVariants = {},
   onVariantChange,
+  onOriginalComments,
 }: ConnectedAppProps) {
   const [state, setState] = useState(controller.getState());
   const [headerCollapsed, setHeaderCollapsed] = useState(initialHeaderCollapsed);
@@ -188,6 +199,7 @@ export function ConnectedApp({
       onGlanceCollapsedChange={changeGlanceCollapsed}
       lastVariant={buildSlug ? lastVariants[buildSlug] : null}
       onVariantChange={changeVariant}
+      onOriginalComments={onOriginalComments}
     />
   );
 }

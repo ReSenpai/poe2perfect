@@ -17,6 +17,7 @@ import { glanceCollapsedItem, headerCollapsedItem, lastTabsItem, lastVariantsIte
 import { guardFocus } from '@/lib/page/focus-guard';
 import { setPageLocked } from '@/lib/page/page-lock';
 import { mountApp } from '@/ui/app/mount';
+import { revealOriginalComments } from '@/lib/page/original-comments';
 
 const MARKER_ATTRIBUTE = 'data-poe2-build-guide';
 
@@ -72,6 +73,7 @@ export default defineContentScript({
             lastVariants,
             onVariantChange: (buildSlug, variant) =>
               void lastVariantsItem.getValue().then((remembered) => lastVariantsItem.setValue(rememberPerBuild(remembered, buildSlug, variant))),
+            onOriginalComments: (intent) => void revealOriginalComments(document, { focusEditor: intent === 'reply' }),
           }).then((host) => {
             ctx.onInvalidated(guardFocus({ doc: document, host, isActive: () => isOverlayVisible(controller.getState()) }));
           }),

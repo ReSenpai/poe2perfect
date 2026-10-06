@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/preact';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AUTHOR_ID, commentsPayload, deletedComment, rawComment, resourceIdOf } from '../../../tests/fixtures/comments';
 import { createCommentsController } from '@/lib/comments/controller';
 import type { CommentsSeed } from '@/lib/comments/model';
@@ -37,10 +37,10 @@ function readySeed(comments: ReturnType<typeof rawComment>[], extra: Parameters<
   };
 }
 
-function renderPanel(seed: CommentsSeed) {
+function renderPanel(seed: CommentsSeed, onOpenOriginal?: (intent: 'open' | 'reply') => void) {
   const { source, calls } = fakeSource();
   const controller = createCommentsController({ seed, source, now: () => NOW });
-  const view = render(<CommentsPanel controller={controller} now={() => NOW} />);
+  const view = render(<CommentsPanel controller={controller} now={() => NOW} onOpenOriginal={onOpenOriginal} />);
   const settle = async (index: number, result: SourceResult) => {
     await act(async () => {
       calls[index]!.resolve(result);
@@ -285,6 +285,47 @@ describe('CommentsPanel', () => {
       await settle(0, { ok: false, error: { message: 'RATE_LIMITED', retryAfterSeconds: 30 } });
 
       expect(screen.getByRole('alert').textContent).toContain('The site asked to wait 30 s.');
+    });
+  });
+
+  describe('the original discussion', () => {
+    it("offers to reply on the site, below the comments", () => {
+      const open = vi.fn();
+      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]), open);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reply on Mobalytics' }));
+
+      expect(open).toHaveBeenCalledWith('reply');
+    });
+
+    it('offers it next to Load more comments too', () => {
+      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), vi.fn());
+
+      const footer = screen.getByRole('button', { name: 'Load more comments' }).closest('footer')!;
+      expect(within(footer).getByRole('button', { name: 'Reply on Mobalytics' })).toBeTruthy();
+    });
+
+    it('invites the first comment on the site when there is none', () => {
+      const open = vi.fn();
+      renderPanel(readySeed([], {}, 0), open);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reply on Mobalytics' }));
+      expect(open).toHaveBeenCalledWith('reply');
+    });
+
+    it('opens the discussion on the site when it could not be read here', () => {
+      const open = vi.fn();
+      renderPanel({ status: 'unavailable', resourceId: null, authorId: null, total: null }, open);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open on Mobalytics' }));
+      expect(open).toHaveBeenCalledWith('open');
+      expect(screen.queryByRole('button', { name: 'Reply on Mobalytics' })).toBeNull();
+    });
+
+    it('offers no reply when the author turned comments off', () => {
+      renderPanel({ status: 'disabled' }, vi.fn());
+
+      expect(screen.queryByRole('button', { name: /Mobalytics/ })).toBeNull();
     });
   });
 

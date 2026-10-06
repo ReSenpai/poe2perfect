@@ -79,6 +79,26 @@
   cursor: progress;
 }
 
+.comments__original {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Reply sits at the far end of the footer, as in the concept. */
+.comments__footer .comments__original {
+  min-width: 220px;
+  margin-left: auto;
+}
+
+.comments__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
 .comments__error {
   flex: 1 1 100%;
   margin: 0;

@@ -10,7 +10,7 @@ import { AtlasPanel } from '@/ui/passives/AtlasPanel';
 import { PassivesPanel } from '@/ui/passives/PassivesPanel';
 import { ProgressionPanel } from '@/ui/progression/ProgressionPanel';
 import { SkillsPanel } from '@/ui/skills/SkillsPanel';
-import { CommentsPanel } from '@/ui/comments/CommentsPanel';
+import { CommentsPanel, type OriginalIntent } from '@/ui/comments/CommentsPanel';
 import { useCommentsState } from '@/ui/comments/use-comments';
 import { OverviewPanel } from './OverviewPanel';
 import { VariantPicker } from './VariantPicker';
@@ -40,6 +40,8 @@ export interface BuildViewProps {
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
   /** The build's discussion; without one the Comments tab says it is unavailable. */
   comments?: CommentsController | null;
+  /** Shows the discussion on the site itself, in place of the guide. */
+  onOriginalComments?: (intent: OriginalIntent) => void;
 }
 
 const NO_VARIANTS = "The author hasn't added build variants yet.";
@@ -60,6 +62,7 @@ export function BuildView({
   glanceCollapsed,
   onGlanceCollapsedChange,
   comments = null,
+  onOriginalComments,
 }: BuildViewProps) {
   const tabs = availableTabs(build);
   const commentsState = useCommentsState(comments);
@@ -137,7 +140,7 @@ export function BuildView({
           {route.tab === 'progression' && variant && (
             <ProgressionPanel build={build} variant={variant} onSelectVariant={selectVariant} onOpenTab={selectTab} />
           )}
-          {route.tab === 'comments' && <CommentsPanel controller={comments} />}
+          {route.tab === 'comments' && <CommentsPanel controller={comments} onOpenOriginal={onOriginalComments} />}
         </section>
       </div>
     </TooltipProvider>

@@ -480,9 +480,13 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   Load more comments и ошибки страниц (с «The site asked to wait N s.»). Состояния: No comments yet, disabled,
   unavailable (+ Try again через API), Loading comments…. Проверено вживую: 10 → 20 корней, ответ автора с бейджем
   и линией, второй уровень ответов.
-- **C5. Переход на сайт.** `Reply on Mobalytics` / `Open on Mobalytics`: режим original в той же вкладке, прокрутка
-  к виджету сайта (поиск ≤ 5 с, observer снимается), page lock и focus guard не мешают; Open guide возвращает на
-  Comments. Иконка ArrowUpRight (это смена режима, не внешняя ссылка). `Open thread` — только если найдём якорь ветки.
+- **C5. Переход на сайт ✅** (`lib/page/original-comments.ts`). «Reply on Mobalytics» в подвале вкладки (и при
+  пустом списке), «Open on Mobalytics» в состоянии unavailable; disabled — без кнопок. Режим original в той же вкладке
+  (ArrowUpRight), затем `revealOriginalComments`: ждёт `[data-testid="comment-widget-general"]` до 5 с
+  (MutationObserver), прокручивает окно так, чтобы верх виджета был в 72 px от края (липкая шапка сайта — 56 px),
+  для Reply ставит курсор в поле сайта (`role=textbox`, есть только у вошедших) — ничего не пишет и не отправляет.
+  Open guide возвращает на Comments (hash не меняется). `Open thread` не делаем: `data-id` комментариев в DOM сайта
+  то есть, то нет между загрузками — надёжного якоря ветки нет.
 - **C5a. Reply из расширения** (Open on Mobalytics остаётся). Мутации и их input известны (см. «Данные»):
   новый комментарий — `NgfCreateCommentMutation { resourceId, content }`, ответ — `NgfCreateReplyMutation
   { parentId, content }`, `content` — Lexical `{ root }` (из plain text: абзац на строку). Осталось выяснить,
