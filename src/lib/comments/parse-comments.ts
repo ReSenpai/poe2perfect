@@ -13,24 +13,27 @@ const asSort = (value: unknown): CommentsSort | null => (COMMENT_SORTS as readon
 
 /** The discussion as the build page ships it: the comments widget's first page and the guide's counter. */
 export function parseCommentsSeed(doc: RawBuildDocument): CommentsSeed {
+  const authorId = isObj(doc.author) ? str(doc.author.id) : null;
+  const stats = isObj(doc.comments) && isObj(doc.comments.stats) ? doc.comments.stats : null;
+  const total = stats ? count(stats.totalComments) : null;
+
   const widget = doc.content.find((w) => w.__typename === COMMENTS_WIDGET);
-  if (!widget) return { status: 'unavailable' };
+  if (!widget) return { status: 'unavailable', resourceId: null, authorId, total };
   if (widget.data.isDisabled === true) return { status: 'disabled' };
 
-  const authorId = isObj(doc.author) ? str(doc.author.id) : null;
+  const payload = isObj(widget.data.payload) ? widget.data.payload : {};
+  const resourceId = str(payload.resourceId) ?? `Poe2:UG:${doc.id}`;
   const list = parseCommentsPayload(widget.data.payload, authorId);
-  if (!list) return { status: 'unavailable' };
+  if (!list) return { status: 'unavailable', resourceId, authorId, total };
 
-  const payload = widget.data.payload as Obj;
-  const data = payload.data as Obj;
   const sorting = isObj(widget.data.commentsUiCapabilities) ? widget.data.commentsUiCapabilities.sorting : null;
-  const stats = isObj(doc.comments) && isObj(doc.comments.stats) ? doc.comments.stats : null;
   return {
     status: 'ready',
-    resourceId: str(payload.resourceId) ?? `Poe2:UG:${doc.id}`,
-    sort: asSort(data.sortBy) ?? 'NEW',
+    resourceId,
+    authorId,
+    sort: asSort((payload.data as Obj).sortBy) ?? 'NEW',
     canSort: !isObj(sorting) || sorting.enabled !== false,
-    total: stats ? count(stats.totalComments) : null,
+    total,
     list,
   };
 }
@@ -63,6 +66,20 @@ export function parseCommentsPayload(payload: unknown, authorId: string | null):
   const page = isObj(payload.page) ? payload.page : {};
   const hasMore = page.hasMoreItems === true && str(page.nextCursor) !== null;
   return { comments, rootIds, replies, page: { hasMore, cursor: hasMore ? str(page.nextCursor) : null } };
+}
+
+/**
+ * `next` added to `base`: new roots go after the known ones, a comment seen again replaces its earlier copy in place,
+ * replies stay oldest first. The root continuation comes from `next` only when it is the next page of roots.
+ */
+export function mergeCommentLists(base: CommentsList, next: CommentsList, { rootsPage }: { rootsPage: boolean }): CommentsList {
+  const comments = { ...base.comments, ...next.comments };
+  const rootIds = [...new Set([...base.rootIds, ...next.rootIds])];
+  const replies = { ...base.replies };
+  for (const [parentId, ids] of Object.entries(next.replies)) {
+    replies[parentId] = [...new Set([...(replies[parentId] ?? []), ...ids])].sort((a, b) => compareOldestFirst(comments[a]!, comments[b]!));
+  }
+  return { comments, rootIds, replies, page: rootsPage ? next.page : base.page };
 }
 
 /** Dated replies by date; undated ones keep their place after them (`sort` is stable). */

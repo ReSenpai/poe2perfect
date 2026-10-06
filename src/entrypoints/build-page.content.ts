@@ -1,7 +1,9 @@
 import { isBuildPageUrl } from '@/lib/build-url';
 import { indexedDbCandidates } from '@/lib/data/page-idb';
 import { readStaticData } from '@/lib/data/static-data';
+import { createCommentsSource } from '@/lib/comments/source';
 import { summarizeBuild } from '@/lib/dev/build-summary';
+import { probeComments } from '@/lib/dev/comments-probe';
 import { listenForCapture } from '@/lib/dev/capture-messaging';
 import { captureFixture } from '@/lib/dev/fixture';
 import { listenForPageCapture } from '@/lib/dev/page-capture';
@@ -93,6 +95,13 @@ export default defineContentScript({
         listenForPageReport(document, { event: 'poe2-build-guide:parse', attribute: 'data-poe2-build-guide-parse' }, async () =>
           summarizeBuild(await loadBuild()),
         ),
+      );
+      ctx.onInvalidated(
+        listenForPageReport(document, { event: 'poe2-build-guide:comments', attribute: 'data-poe2-build-guide-comments' }, async () => {
+          const result = await load(location.href);
+          if (!result.ok) throw new Error(result.message);
+          return probeComments(result.comments, createCommentsSource({ fetch: pageFetch(), origin: location.origin }));
+        }),
       );
       ctx.onInvalidated(
         listenForPageReport(document, { event: 'poe2-build-guide:preview', attribute: 'data-poe2-build-guide-preview' }, async () => {

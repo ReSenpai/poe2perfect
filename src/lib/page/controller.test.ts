@@ -4,7 +4,7 @@ import type { LoadResult } from './build-loader';
 import { createPageController, isOverlayVisible, type PageState } from './controller';
 
 /** The build page had no discussion to read; these tests are about the build. */
-const NO_COMMENTS = { status: 'unavailable' } as const;
+const NO_COMMENTS = { status: 'unavailable', resourceId: null, authorId: null, total: null } as const;
 
 const A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const B = 'https://mobalytics.gg/poe-2/builds/build-b';

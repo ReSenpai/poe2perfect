@@ -6,7 +6,7 @@ import { loadFixture } from '../../../tests/fixtures/load';
 import { App, ConnectedApp } from './App';
 
 /** The build page had no discussion to read; these tests are about the build. */
-const NO_COMMENTS = { status: 'unavailable' } as const;
+const NO_COMMENTS = { status: 'unavailable', resourceId: null, authorId: null, total: null } as const;
 
 const URL_A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');

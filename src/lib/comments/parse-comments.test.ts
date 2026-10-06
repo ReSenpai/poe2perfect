@@ -28,21 +28,22 @@ const ready = (seed: ReturnType<typeof parseCommentsSeed>) => {
 };
 
 describe('parseCommentsSeed', () => {
-  it('is unavailable, not empty, when the page has no comments widget', () => {
-    expect(parseCommentsSeed(baseDoc())).toEqual({ status: 'unavailable' });
+  it('is unavailable, not empty, when the page has no comments widget, with nothing to load from', () => {
+    expect(parseCommentsSeed(baseDoc())).toEqual({ status: 'unavailable', resourceId: null, authorId: AUTHOR_ID, total: null });
   });
 
-  it('is unavailable when the widget carries no payload or an unreadable one', () => {
+  it('is unavailable but loadable when the widget carries no payload or an unreadable one', () => {
     for (const payload of [null, { data: { comments: 'nope' } }, 'x']) {
-      const doc = withComments(baseDoc(), { widget: commentsWidget({ payload: payload as never }) });
-      expect(parseCommentsSeed(doc)).toEqual({ status: 'unavailable' });
+      const doc = withComments(baseDoc(), { widget: commentsWidget({ payload: payload as never }), totalComments: 4 });
+      expect(parseCommentsSeed(doc)).toEqual({ status: 'unavailable', resourceId: resourceIdOf('doc-1'), authorId: AUTHOR_ID, total: 4 });
     }
   });
 
   it('is unavailable when the site reports an error instead of comments', () => {
     const error = { code: 'RATE_LIMITED', message: 'slow down', retryAfterSeconds: 5 };
-    expect(parseCommentsSeed(withComments(baseDoc(), { widget: commentsWidget({ payload: commentsPayload({ error }) }) }))).toEqual({
+    expect(parseCommentsSeed(withComments(baseDoc(), { widget: commentsWidget({ payload: commentsPayload({ error }) }) }))).toMatchObject({
       status: 'unavailable',
+      resourceId: resourceIdOf('doc-1'),
     });
   });
 
@@ -62,7 +63,7 @@ describe('parseCommentsSeed', () => {
   it("keeps the site's counter, its resource id, sort order and continuation", () => {
     const seed = ready(seedOf({ comments: [rawComment({ id: 'r1' })], hasMore: true, cursor: 'next-1', sortBy: 'NEW' }, 30));
 
-    expect(seed).toMatchObject({ resourceId: resourceIdOf('doc-1'), sort: 'NEW', canSort: true, total: 30 });
+    expect(seed).toMatchObject({ resourceId: resourceIdOf('doc-1'), authorId: AUTHOR_ID, sort: 'NEW', canSort: true, total: 30 });
     expect(seed.list.page).toEqual({ hasMore: true, cursor: 'next-1' });
   });
 

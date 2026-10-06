@@ -52,12 +52,20 @@ export interface CommentsList {
 
 /** What the build page itself says about its discussion; further pages come from the site's API. */
 export type CommentsSeed =
-  | { status: 'unavailable' }
+  | {
+      status: 'unavailable';
+      /** Set when the page has a comments section whose list just didn't come through: the API can still load it. */
+      resourceId: string | null;
+      authorId: string | null;
+      total: number | null;
+    }
   | { status: 'disabled' }
   | {
       status: 'ready';
       /** `Poe2:UG:<document id>`, the key of the site's comment API. */
       resourceId: string;
+      /** The guide author's account id, to recognise their comments on later pages. */
+      authorId: string | null;
       sort: CommentsSort;
       canSort: boolean;
       /** The counter the site shows on the guide (messages of all levels); null when the page has none. */

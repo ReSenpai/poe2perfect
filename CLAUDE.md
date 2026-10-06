@@ -49,6 +49,8 @@ version's section of `CHANGELOG.md` as its notes, and submits to the stores.
   `data-poe2-build-guide-capture` on `<html>` for a JSON report.
 - Live parser check (dev build): `document.dispatchEvent(new Event('poe2-build-guide:parse'))`, then poll
   `data-poe2-build-guide-parse` on `<html>` for a `BuildSummary` JSON.
+- Live comments check (dev build): `document.dispatchEvent(new Event('poe2-build-guide:comments'))`, then poll
+  `data-poe2-build-guide-comments` for counts (seed, one more page, one missing thread, author's messages).
 - Rich text preview (dev build): `document.dispatchEvent(new Event('poe2-build-guide:preview'))` toggles a
   panel with every guide text rendered by `<RichText>` (shadow root `poe2-build-guide-preview`).
 - Shadow-root UI CSS is passed inline (`import css from '...css?inline'`, `createShadowRootUi({ css })`);

@@ -458,11 +458,15 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   спойлер с подписью, автор по `doc.author.id`, аватар только https, мусорные записи пропускаются.
   `LoadResult` несёт `comments` рядом с `build`. **Edited не показываем:** `updatedAt` сдвигается от голосов
   (у всех 58 проголосованных из 247 комментариев), признака правки у сайта нет.
-- **C3. Источник и контроллер** (`source.ts`, `controller.ts`). `NgfCommentsQuery` для корней и
-  `NgfCommentRepliesQuery` для ответов второго уровня и хвостов веток. Тесты: Load more добавляет страницу, дубли по id
-  заменяются, ошибка страницы оставляет загруженное, `retryAfterSeconds`, повторный клик не шлёт второй запрос,
-  смена билда / сортировки отменяет старый запрос (AbortController + generation), без бесконечных повторов.
-  Контент только в памяти, в storage не пишем.
+- **C3. Источник и контроллер ✅** (`lib/comments/source.ts`, `controller.ts`). Источник: `NgfCommentsQuery` и
+  `NgfCommentRepliesQuery` через `pageFetch` (same-origin), ошибки сведены к `{ message, retryAfterSeconds }`
+  (`HTTP 429` + Retry-After, код сайта, `network error`, `unexpected answer`), отмена — AbortError. Контроллер на
+  билд: первая страница из документа, `loadMore`, `loadReplies` (ответы от старых к новым, в т.ч. второй уровень),
+  `setSort` (лист меняется только по приходу новой страницы, страницы старого порядка отбрасываются), `retry` для
+  `unavailable` (первая страница через API), `dispose`; один запрос на вид, без повторов до `retryAt`.
+  Seed `unavailable` теперь несёт `resourceId`/`authorId`/`total`. Живая проверка в Chrome (dev-хук
+  `poe2-build-guide:comments`): sample build — 10 → 18 корней, ответ второго уровня догружен; билд с ответами
+  автора — 14 его сообщений распознано. Firefox — проверить руками.
 - **C4. Вкладка Comments (read-only).** `route.ts` (`comments`, `hasVariant: false`, вариант не сбрасывается),
   `Tabs` (MessageSquare, число — только подтверждённое), `ui/comments/` (CommentsPanel, CommentThread, CommentBody,
   `comments.css`). Карточки по эскизу -2: аватар/инициалы, имя, Build author, время (полная дата в title),
