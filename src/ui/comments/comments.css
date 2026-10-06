@@ -807,13 +807,25 @@
   cursor: pointer;
 }
 
+/* A folded branch: "View N replies" under the actions, the plus on the thread line beside it. */
+.thread__folded {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  margin-top: 4px;
+}
+
+.thread__unfold {
+  color: var(--accent);
+}
+
+.thread__unfold:hover {
+  color: var(--accent-strong);
+}
+
 .thread__fold:hover {
   border-color: var(--text);
   color: var(--text);
-}
-
-.thread__fold[aria-expanded='false'] {
-  border-color: var(--text-muted);
 }
 
 .thread__fold:focus-visible {

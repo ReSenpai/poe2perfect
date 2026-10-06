@@ -119,7 +119,7 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
   return (
     <>
       <div class="comment__actions">
-        {hasReplies(state, id) && <Fold id={id} {...props} />}
+        {hasReplies(state, id) && isOpen(id) && <Fold id={id} {...props} />}
         {!comment.deleted && <Votes comment={comment} controller={controller} onSignIn={onSignIn} />}
         {canReply && (
           <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
@@ -128,6 +128,7 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
         )}
         {children}
       </div>
+      {hasReplies(state, id) && !isOpen(id) && <Unfold id={id} {...props} />}
       {canReply && replyingTo === id && (
         <CommentComposer
           label={`Reply to ${comment.author?.name ?? 'this comment'}`}
@@ -190,26 +191,39 @@ function Votes({ comment, controller, onSignIn }: { comment: Comment; controller
   );
 }
 
-/** The ±-circle on the thread line: minus folds the answers away, plus brings them back. */
-function Fold({ id, state, isOpen, onToggle }: ThreadProps & { id: string }) {
-  const comment = state.list.comments[id]!;
-  const loaded = state.list.replies[id]?.length ?? 0;
-  const open = isOpen(id);
-  const Icon = open ? Minus : Plus;
-  const label = open ? 'Hide replies' : repliesLabel(Math.max(comment.replyCount, loaded));
-
+/** The minus on the thread line of an open branch: folds its answers away. */
+function Fold({ id, onToggle }: ThreadProps & { id: string }) {
   return (
     <button
       type="button"
       class="thread__fold"
-      aria-label={label}
-      title={label}
-      aria-expanded={open}
-      aria-controls={open ? repliesElementId(id) : undefined}
+      aria-label="Hide replies"
+      title="Hide replies"
+      aria-expanded="true"
+      aria-controls={repliesElementId(id)}
       onClick={() => onToggle(id)}
     >
-      <Icon size={10} strokeWidth={3} aria-hidden="true" />
+      <Minus size={10} strokeWidth={3} aria-hidden="true" />
     </button>
+  );
+}
+
+/**
+ * A folded branch, as the site shows it: "View N replies" under the actions, with a plus on the thread line beside it.
+ * The words are the control; the plus repeats it for the pointer.
+ */
+function Unfold({ id, state, onToggle }: ThreadProps & { id: string }) {
+  const comment = state.list.comments[id]!;
+  const label = repliesLabel(Math.max(comment.replyCount, state.list.replies[id]?.length ?? 0));
+  return (
+    <div class="thread__folded">
+      <button type="button" class="thread__fold" aria-hidden="true" tabIndex={-1} title={label} onClick={() => onToggle(id)}>
+        <Plus size={10} strokeWidth={3} aria-hidden="true" />
+      </button>
+      <button type="button" class="comment__link thread__unfold" aria-expanded="false" onClick={() => onToggle(id)}>
+        {label}
+      </button>
+    </div>
   );
 }
 

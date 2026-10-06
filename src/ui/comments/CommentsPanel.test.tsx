@@ -189,10 +189,15 @@ describe('CommentsPanel', () => {
 
       fireEvent.click(toggle);
 
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      expect(toggle.getAttribute('aria-label')).toBe('View 2 replies');
-      expect(toggle.textContent).toBe('');
+      // Folded, the line says how many answers wait there, as on the site, beside a plus on the thread line.
+      const unfold = screen.getByRole('button', { name: 'View 2 replies' });
+      expect(unfold.textContent).toBe('View 2 replies');
+      expect(unfold.getAttribute('aria-expanded')).toBe('false');
+      expect(unfold.parentElement!.querySelector('.thread__fold')).toBeTruthy();
       expect(screen.queryByText('Start with a rare.')).toBeNull();
+
+      fireEvent.click(unfold.parentElement!.querySelector('.thread__fold')!);
+      expect(screen.getByText('Start with a rare.')).toBeTruthy();
     });
 
     it('fold from their line too, as on Reddit', () => {
@@ -277,7 +282,7 @@ describe('CommentsPanel', () => {
 
       fireEvent.click(deeper);
       expect(calls[2]).toMatchObject({ input: { parentId: 'c1' } });
-      expect(deeper.getAttribute('aria-label')).toBe('Hide replies');
+      expect(within(screen.getByText('Level three').closest('article')!).getByRole('button', { name: 'Hide replies' })).toBeTruthy();
     });
 
     it('give every open thread its own fold, so a branch folds alone', async () => {
