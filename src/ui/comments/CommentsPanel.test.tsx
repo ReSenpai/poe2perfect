@@ -190,8 +190,18 @@ describe('CommentsPanel', () => {
       fireEvent.click(toggle);
 
       expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      expect(toggle.textContent).toContain('View 2 replies');
+      expect(toggle.getAttribute('aria-label')).toBe('View 2 replies');
+      expect(toggle.textContent).toBe('');
       expect(screen.queryByText('Start with a rare.')).toBeNull();
+    });
+
+    it('fold from their line too, as on Reddit', () => {
+      const { container } = renderPanel(thread());
+
+      fireEvent.click(container.querySelector('.thread__rail')!);
+
+      expect(screen.queryByText('Start with a rare.')).toBeNull();
+      expect(screen.getByRole('button', { name: 'View 2 replies' })).toBeTruthy();
     });
 
     it("say when the build author answered in the thread", () => {
@@ -231,7 +241,7 @@ describe('CommentsPanel', () => {
       expect(calls).toHaveLength(2);
     });
 
-    it('show answers to a reply at the same depth, saying whom they answer', async () => {
+    it('nest answers to a reply under it, like a thread', async () => {
       const { calls, settle } = renderPanel(
         readySeed([rawComment({ id: 'r1', author: frost, replyCount: 1 }), rawComment({ id: 'a1', parentId: 'r1', author, replyCount: 1, text: 'Use a rare.' })]),
       );
@@ -242,8 +252,8 @@ describe('CommentsPanel', () => {
 
       const answer = card('AshenExile');
       expect(within(answer).getByText('Which rare?')).toBeTruthy();
-      expect(within(answer).getByText('Replying to @MisoxShiru')).toBeTruthy();
-      expect(answer.parentElement).toBe(card('MisoxShiru').parentElement);
+      expect(card('MisoxShiru').contains(answer)).toBe(true);
+      expect(screen.queryByText(/Replying to/)).toBeNull();
     });
   });
 
@@ -267,17 +277,21 @@ describe('CommentsPanel', () => {
 
       fireEvent.click(deeper);
       expect(calls[2]).toMatchObject({ input: { parentId: 'c1' } });
-      expect(deeper.textContent).toContain('Hide replies');
+      expect(deeper.getAttribute('aria-label')).toBe('Hide replies');
     });
 
-    it('fold from the root only, keeping open answers free of toggles', async () => {
+    it('give every open thread its own fold, so a branch folds alone', async () => {
       const { settle } = renderPanel(
         readySeed([rawComment({ id: 'r1', author: frost, replyCount: 1 }), rawComment({ id: 'a1', parentId: 'r1', author: ashen, replyCount: 1 })]),
       );
       await settle(0, ok([rawComment({ id: 'b1', parentId: 'a1', depth: 2, author: frost, text: 'Level two' })], { parentId: 'a1' }));
 
-      expect(screen.getAllByRole('button', { name: /Hide replies|View/ })).toHaveLength(1);
-      expect(screen.getByText('Level two')).toBeTruthy();
+      const folds = screen.getAllByRole('button', { name: 'Hide replies' });
+      expect(folds).toHaveLength(2);
+      fireEvent.click(folds[1]!);
+
+      expect(screen.queryByText('Level two')).toBeNull();
+      expect(card('AshenExile')).toBeTruthy();
     });
   });
 
@@ -326,37 +340,65 @@ describe('CommentsPanel', () => {
   });
 
   describe('sorting', () => {
-    it('loads the first page in the order picked, showing the pick while it comes', async () => {
+    const sortButton = () => screen.getByRole('button', { name: /^Sort comments/ });
+
+    it('picks the order from a menu in the guide\'s own style, loading the first page in it', async () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
-      const select = screen.getByRole('combobox', { name: 'Sort comments' }) as HTMLSelectElement;
 
-      expect([...select.options].map((o) => o.textContent)).toEqual(['Newest', 'Oldest', 'Top']);
-      expect(select.value).toBe('NEW');
-      fireEvent.change(select, { target: { value: 'OLD' } });
+      expect(sortButton().getAttribute('aria-label')).toBe('Sort comments: Newest');
+      expect(sortButton().getAttribute('aria-expanded')).toBe('false');
+      fireEvent.click(sortButton());
 
+      const menu = screen.getByRole('listbox', { name: 'Sort comments' });
+      const options = within(menu).getAllByRole('option');
+      expect(options.map((o) => o.textContent)).toEqual(['Newest', 'Oldest', 'Top']);
+      expect(options.map((o) => o.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false']);
+
+      fireEvent.click(options[1]!);
+
+      expect(screen.queryByRole('listbox')).toBeNull();
       expect(calls[0]).toMatchObject({ kind: 'roots', input: { sort: 'OLD', cursor: null } });
-      expect(select.value).toBe('OLD');
+      expect(sortButton().getAttribute('aria-label')).toBe('Sort comments: Oldest');
 
       await settle(0, ok([rawComment({ id: 'old', author: ashen })], { sortBy: 'OLD' }));
       expect(card('AshenExile')).toBeTruthy();
       expect(screen.queryByText('FrostRunner')).toBeNull();
     });
 
+    it('works from the keyboard: arrows move, Enter picks, Escape closes', () => {
+      const { calls } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+
+      fireEvent.keyDown(sortButton(), { key: 'ArrowDown' });
+      const menu = screen.getByRole('listbox', { name: 'Sort comments' });
+      expect(menu.getAttribute('aria-activedescendant')).toBe(within(menu).getAllByRole('option')[0]!.id);
+
+      fireEvent.keyDown(menu, { key: 'ArrowDown' });
+      fireEvent.keyDown(menu, { key: 'ArrowDown' });
+      expect(menu.getAttribute('aria-activedescendant')).toBe(within(menu).getAllByRole('option')[2]!.id);
+      fireEvent.keyDown(menu, { key: 'Enter' });
+      expect(calls[0]).toMatchObject({ input: { sort: 'TOP' } });
+
+      fireEvent.click(sortButton());
+      fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+      expect(screen.queryByRole('listbox')).toBeNull();
+      expect(document.activeElement).toBe(sortButton());
+    });
+
     it('goes back to the order shown when the new one fails', async () => {
       const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
-      const select = screen.getByRole('combobox', { name: 'Sort comments' }) as HTMLSelectElement;
 
-      fireEvent.change(select, { target: { value: 'TOP' } });
+      fireEvent.click(sortButton());
+      fireEvent.click(screen.getByRole('option', { name: 'Top' }));
       await settle(0, { ok: false, error: { message: 'HTTP 502', retryAfterSeconds: null } });
 
       expect(screen.getByRole('alert').textContent).toBe("Couldn't sort the comments (HTTP 502).");
-      expect(select.value).toBe('NEW');
+      expect(sortButton().getAttribute('aria-label')).toBe('Sort comments: Newest');
     });
 
     it('is not offered when the site does not sort this discussion', () => {
       renderPanel({ ...readySeed([rawComment({ id: 'r1' })]), canSort: false } as CommentsSeed);
 
-      expect(screen.queryByRole('combobox', { name: 'Sort comments' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Sort comments/ })).toBeNull();
     });
   });
 

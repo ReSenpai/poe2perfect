@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { hasMissingReplies, type CommentsController, type CommentsState, type LoadState } from '@/lib/comments/controller';
 import { filterThreads, type FilteredThreads } from '@/lib/comments/filter';
 import type { CommentsSort } from '@/lib/comments/model';
-import { commentElementId } from './CommentCard';
 import { CommentComposer } from './CommentComposer';
 import { CommentThread, isShown, OPEN_BELOW_DEPTH } from './CommentThread';
+import { SortMenu } from './SortMenu';
 import { useCommentsState } from './use-comments';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
-const SORT_LABELS: Record<CommentsSort, string> = { NEW: 'Newest', OLD: 'Oldest', TOP: 'Top' };
 /** Name of the CSS highlight that marks search matches (styled with `::highlight()`). */
 const SEARCH_HIGHLIGHT = 'poe2perfect-comment-search';
 
@@ -46,12 +45,6 @@ export function CommentsPanel({
   const isOpen = (id: string) => Boolean(filtered?.reveal.has(id)) || (toggled.get(id) ?? openByDefault(id));
   const toggle = (id: string) => setToggled((current) => new Map(current).set(id, !isOpen(id)));
 
-  const showComment = (id: string) => {
-    const element = (root.current?.getRootNode() as Document | ShadowRoot | undefined)?.getElementById(commentElementId(id));
-    element?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    element?.focus({ preventScroll: true });
-  };
-
   const sortShown = state.status === 'ready' && state.resort.status === 'loading' && wantedSort ? wantedSort : state.status === 'ready' ? state.sort : 'NEW';
 
   // Filter, search and sort scroll away with the comments; the tab already names the discussion and counts it.
@@ -84,22 +77,13 @@ export function CommentsPanel({
             )}
           </label>
           {state.canSort && controller && (
-            <select
-              class="comments__sort"
-              aria-label="Sort comments"
+            <SortMenu
               value={sortShown}
-              onChange={(event) => {
-                const sort = (event.target as HTMLSelectElement).value as CommentsSort;
+              onChange={(sort) => {
                 setWantedSort(sort);
                 controller.setSort(sort);
               }}
-            >
-              {(Object.keys(SORT_LABELS) as CommentsSort[]).map((sort) => (
-                <option key={sort} value={sort}>
-                  {SORT_LABELS[sort]}
-                </option>
-              ))}
-            </select>
+            />
           )}
           {onOpenOriginal && (
             <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
@@ -126,7 +110,6 @@ export function CommentsPanel({
             now={now()}
             isOpen={isOpen}
             onToggle={toggle}
-            onShowComment={showComment}
             replyingTo={replyingTo}
             onReply={setReplyingTo}
             onSignIn={onOpenOriginal}
@@ -160,7 +143,6 @@ function ReadyList({
   now: number;
   isOpen: (id: string) => boolean;
   onToggle: (id: string) => void;
-  onShowComment: (id: string) => void;
   replyingTo: string | null;
   onReply: (id: string | null) => void;
   onSignIn?: () => void;
@@ -202,7 +184,7 @@ function ReadyList({
             !page.hasMore && <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
           ))}
         {rootIds.map((id) => (
-          <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
+          <CommentThread key={id} id={id} state={state} controller={controller} {...thread} />
         ))}
         {page.hasMore && !searching && more.status === 'idle' && <div ref={end} class="comments__end" aria-hidden="true" />}
         {more.status === 'loading' && !searching && (

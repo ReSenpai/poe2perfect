@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from 'lucide-preact';
+import { Minus, Plus } from 'lucide-preact';
 import { useEffect } from 'preact/hooks';
 import { hasMissingReplies, type CommentsController, type CommentsState, type PostOutcome } from '@/lib/comments/controller';
 import { CommentCard } from './CommentCard';
@@ -16,8 +16,6 @@ export interface ThreadProps {
   /** Whether a comment's answers are shown: open by depth unless the reader toggled it. Shared by every thread. */
   isOpen: (id: string) => boolean;
   onToggle: (id: string) => void;
-  /** Brings a comment into view, e.g. the one a reply answers. */
-  onShowComment: (id: string) => void;
   /** The comment whose reply box is open, if any; one at a time. */
   replyingTo: string | null;
   onReply: (id: string | null) => void;
@@ -37,22 +35,24 @@ export const isShown = (state: Ready, id: string) => {
 };
 
 /**
- * A root comment with its replies. Every answer sits one step in, in reading order; an answer to a reply follows that
- * reply and says whom it answers, so the thread never turns into a staircase.
+ * A comment with its answers nested under it, as on Reddit: a line runs down from the avatar along the answers, each
+ * answer hooks onto it, and the line or the ±-circle on it folds the branch.
  */
-export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: string }) {
-  const { state, now, isOpen } = props;
-  const root = state.list.comments[rootId]!;
-  const authorReplied = descendants(state, rootId).some((id) => state.list.comments[id]?.author?.isBuildAuthor);
+export function CommentThread({ id, ...props }: ThreadProps & { id: string }) {
+  const { state, now, isOpen, onToggle } = props;
+  const comment = state.list.comments[id]!;
+  const open = isOpen(id) && hasReplies(state, id);
+  const authorReplied = comment.depth === 0 && descendants(state, id).some((child) => state.list.comments[child]?.author?.isBuildAuthor);
 
   return (
-    <CommentCard comment={root} now={now}>
-      <Actions id={rootId} toggle={hasReplies(state, rootId)} {...props}>
+    <CommentCard comment={comment} now={now} open={open}>
+      {open && <div class="thread__rail" aria-hidden="true" onClick={() => onToggle(id)} />}
+      <Actions id={id} {...props}>
         {authorReplied && <span class="comment__author-replied">Author replied</span>}
       </Actions>
-      {isOpen(rootId) && hasReplies(state, rootId) && (
-        <div class="thread__replies" id={repliesElementId(rootId)}>
-          <Replies parentId={rootId} {...props} />
+      {open && (
+        <div class="thread__replies" id={repliesElementId(id)}>
+          <Replies parentId={id} {...props} />
         </div>
       )}
     </CommentCard>
@@ -60,12 +60,11 @@ export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: stri
 }
 
 /**
- * The loaded answers to `parentId`, each followed by its own open answers, then how loading them is going. Answers the
- * page left out are asked for as soon as they are shown; further pages wait for "Load more replies".
+ * The loaded answers to `parentId`, then how loading them is going. Answers the page left out are asked for as soon as
+ * they are shown; further pages wait for "Load more replies".
  */
 function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
-  const { state, controller, now, isOpen, onShowComment } = props;
-  const parent = state.list.comments[parentId]!;
+  const { state, controller } = props;
   const ids = (state.list.replies[parentId] ?? []).filter((id) => isShown(state, id));
   const thread = state.replies[parentId];
   const load = thread?.load ?? { status: 'idle' };
@@ -78,23 +77,9 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
 
   return (
     <>
-      {ids.map((id) => {
-        const reply = state.list.comments[id]!;
-        // Answers open by default fold with their root; deeper ones get their own toggle.
-        const toggle = hasReplies(state, id) && (reply.depth >= OPEN_BELOW_DEPTH || !isOpen(id));
-        return [
-          <CommentCard
-            key={id}
-            comment={reply}
-            now={now}
-            replyingTo={parent.depth > 0 ? (parent.author?.name ?? 'deleted comment') : undefined}
-            onShowParent={() => onShowComment(parentId)}
-          >
-            <Actions id={id} toggle={toggle} {...props} />
-          </CommentCard>,
-          isOpen(id) && hasReplies(state, id) && <Replies key={`${id}-replies`} parentId={id} {...props} />,
-        ];
-      })}
+      {ids.map((id) => (
+        <CommentThread key={id} id={id} {...props} />
+      ))}
       {load.status === 'loading' && (
         <p class="thread__status" role="status">
           <span class="spinner spinner--small" aria-hidden="true" />
@@ -118,8 +103,8 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
   );
 }
 
-/** A comment's controls: its replies toggle, Reply, and the reply box once opened. */
-function Actions({ id, toggle, children, ...props }: ThreadProps & { id: string; toggle: boolean; children?: preact.ComponentChildren }) {
+/** A comment's controls: the fold on its line, Reply, and the reply box once opened. */
+function Actions({ id, children, ...props }: ThreadProps & { id: string; children?: preact.ComponentChildren }) {
   const { state, controller, isOpen, onToggle, replyingTo, onReply, onSignIn } = props;
   const comment = state.list.comments[id]!;
   const canReply = !comment.deleted;
@@ -133,7 +118,7 @@ function Actions({ id, toggle, children, ...props }: ThreadProps & { id: string;
   return (
     <>
       <div class="comment__actions">
-        {toggle && <RepliesToggle id={id} {...props} />}
+        {hasReplies(state, id) && <Fold id={id} {...props} />}
         {canReply && (
           <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
             Reply
@@ -157,22 +142,25 @@ function Actions({ id, toggle, children, ...props }: ThreadProps & { id: string;
   );
 }
 
-function RepliesToggle({ id, state, isOpen, onToggle }: ThreadProps & { id: string }) {
+/** The ±-circle on the thread line: minus folds the answers away, plus brings them back. */
+function Fold({ id, state, isOpen, onToggle }: ThreadProps & { id: string }) {
   const comment = state.list.comments[id]!;
   const loaded = state.list.replies[id]?.length ?? 0;
   const open = isOpen(id);
-  const Chevron = open ? ChevronUp : ChevronDown;
+  const Icon = open ? Minus : Plus;
+  const label = open ? 'Hide replies' : repliesLabel(Math.max(comment.replyCount, loaded));
 
   return (
     <button
       type="button"
-      class="comment__link"
+      class="thread__fold"
+      aria-label={label}
+      title={label}
       aria-expanded={open}
-      aria-controls={comment.depth === 0 && open ? repliesElementId(id) : undefined}
+      aria-controls={open ? repliesElementId(id) : undefined}
       onClick={() => onToggle(id)}
     >
-      <span>{open ? 'Hide replies' : repliesLabel(Math.max(comment.replyCount, loaded))}</span>
-      <Chevron size={14} aria-hidden="true" />
+      <Icon size={10} strokeWidth={3} aria-hidden="true" />
     </button>
   );
 }

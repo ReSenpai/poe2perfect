@@ -113,9 +113,17 @@
   color: var(--text);
 }
 
-.comments__sort {
+/* The order: a quiet text button opening a small menu in the guide's style. */
+.sort-menu {
+  position: relative;
+}
+
+.sort-menu__button {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
   height: 30px;
-  padding: 0 4px;
+  padding: 0 6px;
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
@@ -124,19 +132,51 @@
   cursor: pointer;
 }
 
-.comments__sort:hover {
+.sort-menu__button:hover,
+.sort-menu__button[aria-expanded='true'] {
+  background: var(--surface-hover);
   color: var(--text);
 }
 
-.comments__sort option {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.comments__clear:focus-visible,
-.comments__sort:focus-visible {
+.sort-menu__button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 0;
+}
+
+.sort-menu__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  min-width: 150px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  list-style: none;
+  outline: none;
+}
+
+.sort-menu__option {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font: 13px/20px var(--font);
+  cursor: pointer;
+}
+
+.sort-menu__option--active {
+  background: var(--surface-hover);
+}
+
+.sort-menu__option[aria-selected='true'] {
+  color: var(--accent);
 }
 
 .comments__bar > .comments__error {
@@ -548,8 +588,7 @@
 }
 
 .comment__link:focus-visible,
-.comment__spoiler:focus-visible,
-.comment__replying:focus-visible {
+.comment__spoiler:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -560,32 +599,123 @@
   line-height: 20px;
 }
 
-.comment__replying {
-  display: block;
-  margin-top: 1px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-muted);
-  font: 12px/18px var(--font);
+/*
+ * Threads as on Reddit. A line runs down from the middle of the avatar, along the answers; each answer hooks onto it
+ * with a rounded elbow ending at its avatar, and the line stops at the last one. Sizes: avatar 28 px at the root, 24 px
+ * for answers, 10 px between avatar and text.
+ */
+.comment {
+  position: relative;
+  --avatar: 24px;
+  --pad-top: 0px;
+  --pad-bottom: 0px;
+  --line: color-mix(in srgb, var(--border) 85%, var(--text-muted) 15%);
+}
+
+.comment--root {
+  --avatar: 28px;
+  --pad-top: 14px;
+  --pad-bottom: 14px;
+}
+
+/* The line under the avatar; a wide, invisible hit area folds the branch like the minus does. */
+.thread__rail {
+  position: absolute;
+  top: calc(var(--pad-top) + var(--avatar) + 4px);
+  bottom: var(--pad-bottom);
+  left: calc(var(--avatar) / 2 - 6px);
+  width: 12px;
   cursor: pointer;
 }
 
-.comment__replying:hover {
-  color: var(--text);
+.thread__rail::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--line);
+  content: '';
 }
 
-/*
- * Answers hang off a line drawn down from the middle of the avatar above (28 px avatar, 10 px gap: the line sits
- * 24 px left of the text), and their own avatars line up with the text they answer.
- */
+.thread__rail:hover::before {
+  background: var(--text-muted);
+}
+
 .thread__replies {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 8px 0 0 -24px;
-  padding-left: 22px;
-  border-left: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
+  margin-top: 10px;
+  /* Distance from an answer's left edge back to its parent's line. */
+  --to-line: calc(var(--parent-avatar) / 2 + 10px);
+}
+
+.comment--root > .comment__main > .thread__replies {
+  --parent-avatar: 28px;
+  --parent-pad-bottom: 14px;
+}
+
+.comment--reply > .comment__main > .thread__replies {
+  --parent-avatar: 24px;
+  --parent-pad-bottom: 0px;
+}
+
+/* The elbow from the parent's line into this answer's avatar. */
+.thread__replies > .comment::after {
+  position: absolute;
+  top: -10px;
+  left: calc(-1 * var(--to-line) - 1px);
+  width: calc(var(--to-line) - 3px);
+  height: calc(var(--avatar) / 2 + 10px);
+  border-bottom: 2px solid var(--line);
+  border-left: 2px solid var(--line);
+  border-bottom-left-radius: 10px;
+  box-sizing: border-box;
+  content: '';
+  pointer-events: none;
+}
+
+/* Below the last answer the parent's line has nowhere to go: paint it over. */
+.thread__replies > .comment:last-child::before {
+  position: absolute;
+  top: calc(var(--avatar) / 2);
+  bottom: calc(-1 * var(--parent-pad-bottom) - 1px);
+  left: calc(-1 * var(--to-line) - 3px);
+  width: 6px;
+  background: var(--bg);
+  content: '';
+  pointer-events: none;
+}
+
+/* The fold: a small circle on the line, beside the actions, with minus or plus. */
+.thread__fold {
+  position: absolute;
+  left: calc(var(--avatar) / 2 - 9px);
+  z-index: 1;
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--text-muted);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.thread__fold:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.thread__fold:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .thread__status {
@@ -623,8 +753,4 @@
     width: auto;
   }
 
-  .thread__replies {
-    margin-left: -18px;
-    padding-left: 12px;
-  }
 }

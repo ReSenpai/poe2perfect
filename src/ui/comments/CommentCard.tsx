@@ -8,23 +8,26 @@ import { RichText } from '@/ui/rich-text/RichText';
 
 export const commentElementId = (id: string) => `comment-${id}`;
 
-/** One comment: who, when, what. Thread controls come in as children. */
+/** One comment: who, when, what. Thread controls and nested answers come in as children. */
 export function CommentCard({
   comment,
   now,
-  replyingTo,
-  onShowParent,
+  open = false,
   children,
 }: {
   comment: Comment;
   now: number;
-  /** Name of the comment this one answers, for answers below the first level of replies. */
-  replyingTo?: string;
-  onShowParent?: () => void;
+  /** Its answers are shown below it, along the thread line. */
+  open?: boolean;
   children?: ComponentChildren;
 }) {
   const { author } = comment;
-  const classes = ['comment', comment.depth === 0 ? 'comment--root' : 'comment--reply', author?.isBuildAuthor ? 'comment--by-author' : ''];
+  const classes = [
+    'comment',
+    comment.depth === 0 ? 'comment--root' : 'comment--reply',
+    author?.isBuildAuthor ? 'comment--by-author' : '',
+    open ? 'comment--open' : '',
+  ];
   return (
     <article class={classes.filter(Boolean).join(' ')} id={commentElementId(comment.id)} tabIndex={-1}>
       <Avatar comment={comment} />
@@ -39,11 +42,6 @@ export function CommentCard({
               </time>
             )}
           </header>
-        )}
-        {replyingTo && (
-          <button type="button" class="comment__replying" onClick={onShowParent}>
-            {`Replying to @${replyingTo}`}
-          </button>
         )}
         {comment.deleted ? (
           <p class="comment__unavailable">
