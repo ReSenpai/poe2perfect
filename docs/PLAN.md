@@ -421,7 +421,7 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
 - **Состав страницы.** 10 корней + все их ответы первого уровня: на всех 8 билдах сумма `replyCount` корней = числу
   пришедших `depth: 1`. Ответы на ответы (`depth: 2`) в список не входят.
 - **Сообщение:** `id`, `parentId`, `depth`, `accountId`, `content` (Lexical `{ root }`), `plainTextContent`,
-  `status` (`PUBLISHED` / `DELETED`), `createdAt`, `updatedAt` (≠ `createdAt` у отредактированных), `deletedAt`,
+  `status` (`PUBLISHED` / `DELETED`), `createdAt`, `updatedAt` (сдвигается от голосов — не дата правки), `deletedAt`,
   `deletedByModerator`, `isSpoiler`, `spoilerLabel`, `score`/`upvotes`/`downvotes`, `replyCount`,
   `profile { user { id, username, displayName }, avatar { iconUrl }, avatarFrame, title, commentator }`.
   Удалённое: `status: DELETED`, пустой текст, `profile: null`, `accountId: ""` — tombstone, ответы под ним живут.
@@ -451,10 +451,13 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
 - **C1. Исследование и синтетические фикстуры ✅** — результаты выше. `tests/fixtures/comments.ts`: сообщения,
   tombstone, payload, виджет, `withComments(doc)`, ответы GraphQL; `tests/comments-fixtures.test.ts` проверяет,
   что `scrubBuildDocument` их вырезает и разбор билда они не меняют.
-- **C2. Модель и разбор seed** (`lib/comments/model.ts`, `parse-comments.ts`). Тесты: нет виджета → `unavailable`
-  (не ноль), `isDisabled` → `disabled`, пустой список без продолжения → `empty`, корни + ответы → ветки в порядке
-  источника, ответы внутри ветки от старых к новым, tombstone, edited, spoiler, автор только по id, мусорный payload
-  не роняет разбор, `hasMore`/`cursor`. `build-loader` передаёт seed рядом с `Build`, не внутри `Variant`.
+- **C2. Модель и разбор seed ✅** (`lib/comments/model.ts`, `parse-comments.ts`). `parseCommentsSeed(doc)`:
+  нет виджета / пустой или ошибочный payload → `unavailable` (не ноль), `isDisabled` → `disabled`, иначе `ready`
+  с `resourceId`, `sort`, `canSort`, `total` и списком. `parseCommentsPayload(payload, authorId)` годится и для
+  страниц API (C3): корни в порядке сайта, ответы по родителю от старых к новым, дубли по id схлопываются, tombstone,
+  спойлер с подписью, автор по `doc.author.id`, аватар только https, мусорные записи пропускаются.
+  `LoadResult` несёт `comments` рядом с `build`. **Edited не показываем:** `updatedAt` сдвигается от голосов
+  (у всех 58 проголосованных из 247 комментариев), признака правки у сайта нет.
 - **C3. Источник и контроллер** (`source.ts`, `controller.ts`). `NgfCommentsQuery` для корней и
   `NgfCommentRepliesQuery` для ответов второго уровня и хвостов веток. Тесты: Load more добавляет страницу, дубли по id
   заменяются, ошибка страницы оставляет загруженное, `retryAfterSeconds`, повторный клик не шлёт второй запрос,
@@ -462,7 +465,7 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   Контент только в памяти, в storage не пишем.
 - **C4. Вкладка Comments (read-only).** `route.ts` (`comments`, `hasVariant: false`, вариант не сбрасывается),
   `Tabs` (MessageSquare, число — только подтверждённое), `ui/comments/` (CommentsPanel, CommentThread, CommentBody,
-  `comments.css`). Карточки по эскизу -2: аватар/инициалы, имя, Build author, время (полная дата в title), Edited,
+  `comments.css`). Карточки по эскизу -2: аватар/инициалы, имя, Build author, время (полная дата в title),
   View/Hide replies с `aria-expanded`, Show more/less для длинных, спойлер под кнопкой, `Comment unavailable`.
   Состояния: loading-скелетоны, empty, disabled, unavailable, error + Retry. Сверка в Chrome со скриншотами.
 - **C5. Переход на сайт.** `Reply on Mobalytics` / `Open on Mobalytics`: режим original в той же вкладке, прокрутка

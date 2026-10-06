@@ -1,12 +1,15 @@
 import { getBuildSlug } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
+import type { CommentsSeed } from '@/lib/comments/model';
+import { parseCommentsSeed } from '@/lib/comments/parse-comments';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
 import type { RawStaticData } from '@/lib/data/types';
 import type { FetchProgress, HtmlFetcher } from './fetch-html';
 
-export type LoadResult = { ok: true; build: Build } | { ok: false; message: string };
+/** `comments` is the discussion's first page from the same document; it never holds the build back. */
+export type LoadResult = { ok: true; build: Build; comments: CommentsSeed } | { ok: false; message: string };
 
 export interface BuildLoaderDeps {
   initialUrl: string;
@@ -63,6 +66,6 @@ export function createBuildLoader({
       return { ok: false, message: `The site's page has changed in a way the guide can't read yet. (${extracted.error.code})` };
     }
 
-    return { ok: true, build: parseBuild(extracted.doc, await loadStaticData()) };
+    return { ok: true, build: parseBuild(extracted.doc, await loadStaticData()), comments: parseCommentsSeed(extracted.doc) };
   };
 }

@@ -5,6 +5,9 @@ import { createPageController, type PageState } from '@/lib/page/controller';
 import { loadFixture } from '../../../tests/fixtures/load';
 import { App, ConnectedApp } from './App';
 
+/** The build page had no discussion to read; these tests are about the build. */
+const NO_COMMENTS = { status: 'unavailable' } as const;
+
 const URL_A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');
 const BUILD = parseBuild(fixture.build, fixture.staticData);
@@ -112,7 +115,7 @@ describe('ConnectedApp', () => {
   it('keeps the header collapsed across builds and reports the preference', async () => {
     const OTHER = { ...BUILD, id: 'other-build', title: 'Other Build' };
     const controller = createPageController({
-      load: async (url) => ({ ok: true, build: url.endsWith('build-b') ? OTHER : BUILD }),
+      load: async (url) => ({ ok: true, comments: NO_COMMENTS, build: url.endsWith('build-b') ? OTHER : BUILD }),
       initialMode: 'extension',
     });
     const onHeaderCollapsedChange = vi.fn();
@@ -130,7 +133,7 @@ describe('ConnectedApp', () => {
 
   it('opens a build on the tab it was last read at, and reports the tab under its build', async () => {
     window.location.hash = '';
-    const controller = createPageController({ load: async () => ({ ok: true, build: BUILD }), initialMode: 'extension' });
+    const controller = createPageController({ load: async () => ({ ok: true, comments: NO_COMMENTS, build: BUILD }), initialMode: 'extension' });
     const onLastTabChange = vi.fn();
     render(
       <ConnectedApp
@@ -154,7 +157,7 @@ describe('ConnectedApp', () => {
     window.location.hash = '';
     const OTHER = { ...BUILD, id: 'other-build', title: 'Other Build' };
     const controller = createPageController({
-      load: async (url) => ({ ok: true, build: url.endsWith('build-b') ? OTHER : BUILD }),
+      load: async (url) => ({ ok: true, comments: NO_COMMENTS, build: url.endsWith('build-b') ? OTHER : BUILD }),
       initialMode: 'extension',
     });
     render(
@@ -178,7 +181,7 @@ describe('ConnectedApp', () => {
   it('retries a failed build through the controller', async () => {
     let attempts = 0;
     const controller = createPageController({
-      load: async () => (++attempts === 1 ? { ok: false, message: 'HTTP 503' } : { ok: true, build: BUILD }),
+      load: async () => (++attempts === 1 ? { ok: false, message: 'HTTP 503' } : { ok: true, comments: NO_COMMENTS, build: BUILD }),
       initialMode: 'extension',
     });
     render(<ConnectedApp controller={controller} initialHeaderCollapsed={false} onHeaderCollapsedChange={vi.fn()} />);
@@ -191,7 +194,7 @@ describe('ConnectedApp', () => {
 
   it('keeps At a Glance collapsed across builds and reports the preference', async () => {
     window.location.hash = '#overview';
-    const controller = createPageController({ load: async () => ({ ok: true, build: BUILD }), initialMode: 'extension' });
+    const controller = createPageController({ load: async () => ({ ok: true, comments: NO_COMMENTS, build: BUILD }), initialMode: 'extension' });
     const onGlanceCollapsedChange = vi.fn();
     render(
       <ConnectedApp
@@ -211,7 +214,7 @@ describe('ConnectedApp', () => {
   });
 
   it('starts with the stored header preference', async () => {
-    const controller = createPageController({ load: async () => ({ ok: true, build: BUILD }), initialMode: 'extension' });
+    const controller = createPageController({ load: async () => ({ ok: true, comments: NO_COMMENTS, build: BUILD }), initialMode: 'extension' });
     render(<ConnectedApp controller={controller} initialHeaderCollapsed onHeaderCollapsedChange={vi.fn()} />);
 
     act(() => controller.handleUrl(URL_A));
@@ -220,7 +223,7 @@ describe('ConnectedApp', () => {
   });
 
   it('follows the controller state and switches modes through it', async () => {
-    const controller = createPageController({ load: async () => ({ ok: true, build: BUILD }), initialMode: 'extension' });
+    const controller = createPageController({ load: async () => ({ ok: true, comments: NO_COMMENTS, build: BUILD }), initialMode: 'extension' });
     render(<ConnectedApp controller={controller} initialHeaderCollapsed={false} onHeaderCollapsedChange={vi.fn()} />);
 
     act(() => controller.handleUrl(URL_A));

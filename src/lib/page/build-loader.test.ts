@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StaticDataResult } from '@/lib/data/static-data';
+import { commentsPayload, commentsWidget, rawComment } from '../../../tests/fixtures/comments';
 import { createBuildLoader } from './build-loader';
 
-function pageHtml(name: string) {
-  const doc = { id: name, data: { name, buildVariants: { values: [] } }, content: [] };
+function pageHtml(name: string, content: unknown[] = []) {
+  const doc = { id: name, data: { name, buildVariants: { values: [] } }, content, comments: { stats: { totalComments: content.length } } };
   const state = {
     poe2State: {
       apollo: {
@@ -55,6 +56,21 @@ describe('createBuildLoader', () => {
 
     expect(result).toMatchObject({ ok: true, build: { title: 'Build A', patch: '0.5.5', hasStaticData: true } });
     expect(deps.fetchHtml).not.toHaveBeenCalled();
+  });
+
+  it("hands over the page's first comments next to the build", async () => {
+    const widget = commentsWidget({ payload: commentsPayload({ comments: [rawComment({ id: 'r1' })] }) });
+    const { load } = setup({ initialDocument: parse(pageHtml('[0.5.5] Build A', [widget])) });
+
+    const result = await load(BUILD_A);
+
+    expect(result).toMatchObject({ ok: true, comments: { status: 'ready', total: 1, list: { rootIds: ['r1'] } } });
+  });
+
+  it('reports comments as unavailable when the page has none to read', async () => {
+    const { load } = setup();
+
+    expect(await load(BUILD_A)).toMatchObject({ ok: true, comments: { status: 'unavailable' } });
   });
 
   it('fetches the page when the current document holds no build, as for a signed-in user', async () => {

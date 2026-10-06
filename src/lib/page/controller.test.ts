@@ -3,6 +3,9 @@ import type { Build } from '@/lib/build/model';
 import type { LoadResult } from './build-loader';
 import { createPageController, isOverlayVisible, type PageState } from './controller';
 
+/** The build page had no discussion to read; these tests are about the build. */
+const NO_COMMENTS = { status: 'unavailable' } as const;
+
 const A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const B = 'https://mobalytics.gg/poe-2/builds/build-b';
 const LIST = 'https://mobalytics.gg/poe-2/builds';
@@ -69,7 +72,7 @@ describe('createPageController', () => {
     controller.handleUrl(A);
     expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' });
 
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'ready', build: build('Build A') });
   });
 
@@ -91,7 +94,7 @@ describe('createPageController', () => {
 
     expect(load).toHaveBeenCalledTimes(2);
     expect(controller.getState()).toMatchObject({ status: 'loading', slug: 'build-a' });
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     expect(controller.getState()).toMatchObject({ status: 'ready', build: { title: 'Build A' } });
   });
 
@@ -100,7 +103,7 @@ describe('createPageController', () => {
 
     controller.retry();
     controller.handleUrl(A);
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     controller.retry();
 
     expect(load).toHaveBeenCalledTimes(1);
@@ -118,7 +121,7 @@ describe('createPageController', () => {
     const { controller, load, settle } = setup();
 
     controller.handleUrl(A);
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     controller.handleUrl(`${A}?weaponSet=set2#skills`);
 
     expect(load).toHaveBeenCalledTimes(1);
@@ -130,8 +133,8 @@ describe('createPageController', () => {
 
     controller.handleUrl(A);
     controller.handleUrl(B);
-    await settle(B, { ok: true, build: build('Build B') });
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(B, { ok: true, comments: NO_COMMENTS, build: build('Build B') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
 
     expect(controller.getState()).toMatchObject({ slug: 'build-b', status: 'ready', build: { title: 'Build B' } });
   });
@@ -140,7 +143,7 @@ describe('createPageController', () => {
     const { controller, load, settle } = setup();
 
     controller.handleUrl(A);
-    await settle(A, { ok: true, build: build('Build A') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     controller.handleUrl(LIST);
     expect(controller.getState()).toEqual({ active: false, mode: 'extension' });
 
