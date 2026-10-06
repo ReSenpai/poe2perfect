@@ -21,8 +21,8 @@ import { panelElementId, tabElementId, Tabs } from './Tabs';
 const FILL_TABS: TabId[] = ['passives', 'atlas', 'progression', 'comments'];
 /** Tabs that scroll edge to edge and lay out their own margins, so the scrollbar sits at the window's right. */
 const FLUSH_TABS: TabId[] = ['comments'];
-/** Sections that make room for the comments panel beside them; the trees and the stage view need the whole width. */
-const DOCK_TABS: TabId[] = ['overview', 'skills', 'gear'];
+/** Sections that make room for the comments panel beside them, each giving up its side column. */
+const DOCK_TABS: TabId[] = ['overview', 'skills', 'gear', 'passives', 'atlas', 'progression'];
 /** Narrower than this, the panel would squeeze the section: the discussion opens as a tab instead. */
 const DOCK_MIN_WIDTH = '(min-width: 1180px)';
 
@@ -202,10 +202,10 @@ export function BuildView({
             {tab.hasVariant && !variant && <p class="panel-empty">{NO_VARIANTS}</p>}
             {route.tab === 'gear' && variant && <GearPanel variant={variant} entities={build.entities} besideComments={docked} />}
             {route.tab === 'skills' && variant && <SkillsPanel key={variant.id} variant={variant} entities={build.entities} besideComments={docked} />}
-            {route.tab === 'passives' && variant && <PassivesPanel variant={variant} variantIndex={build.variants.indexOf(variant)} entities={build.entities} />}
-            {route.tab === 'atlas' && variant && <AtlasPanel variant={variant} variantIndex={build.variants.indexOf(variant)} entities={build.entities} />}
+            {route.tab === 'passives' && variant && <PassivesPanel variant={variant} variantIndex={build.variants.indexOf(variant)} entities={build.entities} besideComments={docked} />}
+            {route.tab === 'atlas' && variant && <AtlasPanel variant={variant} variantIndex={build.variants.indexOf(variant)} entities={build.entities} besideComments={docked} />}
             {route.tab === 'progression' && variant && (
-              <ProgressionPanel build={build} variant={variant} onSelectVariant={selectVariant} onOpenTab={selectTab} />
+              <ProgressionPanel build={build} variant={variant} onSelectVariant={selectVariant} onOpenTab={selectTab} besideComments={docked} />
             )}
             {route.tab === 'comments' && (
               <CommentsPanel

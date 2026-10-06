@@ -450,15 +450,25 @@ describe('BuildView comments panel', () => {
     expect(aside()).toBeTruthy();
   });
 
-  it('opens the Comments tab instead where the trees need the whole width', () => {
-    renderView('#passives', BUILD, false, undefined, { comments: discussion() });
+  it('opens beside the trees and the stage view too, giving up their side columns', () => {
+    const { container } = renderView('#passives', BUILD, false, undefined, { comments: discussion() });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open comments' }));
+    open();
+    expect(aside()).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Passive tree' })).toBeTruthy();
+    expect(container.querySelector('.passives__side')).toBeNull();
 
-    expect(selectedTab()).toBe('Comments24');
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Passives' }));
-    expect(selectedTab()).toBe('Passives');
-    expect(aside()).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Atlas Tree' }));
+    expect(aside()).toBeTruthy();
+    expect(container.querySelector('.passives__side')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Progression' }));
+    expect(aside()).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: 'Stages' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Quest rewards' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close comments panel', expanded: true }));
+    expect(screen.getByRole('region', { name: 'Quest rewards' })).toBeTruthy();
   });
 
   it('offers no back button when the Comments tab was picked directly', () => {

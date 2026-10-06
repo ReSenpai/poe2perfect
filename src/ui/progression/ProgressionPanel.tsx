@@ -25,11 +25,14 @@ export function ProgressionPanel({
   variant,
   onSelectVariant,
   onOpenTab,
+  besideComments = false,
 }: {
   build: Build;
   variant: Variant;
   onSelectVariant: (variantId: string) => void;
   onOpenTab: (tab: TabId) => void;
+  /** The comments panel takes the quest rewards' column for the time being. */
+  besideComments?: boolean;
 }) {
   const renderEntity = useMemo(() => entityChipRenderer(build.entities), [build.entities]);
   const index = build.variants.indexOf(variant);
@@ -37,7 +40,7 @@ export function ProgressionPanel({
   const changes = useMemo(() => stageChanges(previous, variant), [previous, variant]);
 
   return (
-    <div class={build.questRewards.length > 0 ? 'progression' : 'progression progression--no-quests'}>
+    <div class={build.questRewards.length > 0 && !besideComments ? 'progression' : 'progression progression--no-quests'}>
       <nav class="card progression__stages" aria-label="Stages">
         <h2 class="card__title">Stages</h2>
         <ol class="stages">
@@ -76,7 +79,7 @@ export function ProgressionPanel({
         </div>
       </section>
 
-      {build.questRewards.length > 0 && <QuestRewards acts={build.questRewards} />}
+      {!besideComments && build.questRewards.length > 0 && <QuestRewards acts={build.questRewards} />}
     </div>
   );
 }

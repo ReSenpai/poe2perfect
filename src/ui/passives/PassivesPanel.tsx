@@ -30,12 +30,15 @@ export function PassivesPanel({
   entities,
   embedTree = embedIntoPage,
   treeFocus,
+  besideComments = false,
 }: {
   variant: Variant;
   variantIndex: number;
   entities: Record<string, EntityInfo>;
   embedTree?: EmbedTree;
   treeFocus?: TreeFocus;
+  /** The comments panel takes the side column (order and notes) for the time being; the tree gets the room. */
+  besideComments?: boolean;
 }) {
   const { passives, passiveNotes } = variant;
   const focus = useTreeFocus('passive-tree', treeFocus);
@@ -46,40 +49,42 @@ export function PassivesPanel({
   const points = [`${passives.nodeCount} points`, passives.ascendancyNodeCount > 0 ? `${passives.ascendancyNodeCount} ascendancy` : null].filter(Boolean).join(' · ');
 
   return (
-    <div class="passives">
+    <div class={besideComments ? 'passives passives--single' : 'passives'}>
       <SiteTree kind="passive-tree" variantIndex={variantIndex} embedTree={embedTree} />
-      <aside class="card passives__side">
-        <div class="passives__heading">
-          {passiveNotes ? (
-            <SideTabs label="Passives side panel" idPrefix="passives-side" keysText="Priority" keysLabel="Passive priority" view={side} onSelect={setSide} />
-          ) : (
-            <h2 class="card__title">Priority</h2>
-          )}
-          {!showNotes && <span class="passives__points">{points}</span>}
-        </div>
-        <div class="passives__lists" {...(passiveNotes ? { role: 'tabpanel', 'aria-labelledby': showNotes ? 'passives-side-notes' : 'passives-side-keys' } : {})}>
-          {showNotes ? (
-            <RichText value={passiveNotes} renderEntity={renderEntity} class="passives__notes" />
-          ) : (
-            <>
-              {passives.ascendancy.length > 0 && (
-                <div class="passives__group">
-                  <p class="passives__label">Ascendancy</p>
-                  <PassiveRows passives={passives.ascendancy} label="Ascendancy priority" numbered focus={focus} />
-                </div>
-              )}
-              <div class="passives__group">
-                {passives.ascendancy.length > 0 && <p class="passives__label">Passive Tree</p>}
-                {passives.keyPassives.length > 0 ? (
-                  <PassiveRows passives={passives.keyPassives} label="Passive priority" numbered focus={focus} />
-                ) : (
-                  <p class="passives__empty">The author hasn't set an order for the passives of this variant.</p>
+      {!besideComments && (
+        <aside class="card passives__side">
+          <div class="passives__heading">
+            {passiveNotes ? (
+              <SideTabs label="Passives side panel" idPrefix="passives-side" keysText="Priority" keysLabel="Passive priority" view={side} onSelect={setSide} />
+            ) : (
+              <h2 class="card__title">Priority</h2>
+            )}
+            {!showNotes && <span class="passives__points">{points}</span>}
+          </div>
+          <div class="passives__lists" {...(passiveNotes ? { role: 'tabpanel', 'aria-labelledby': showNotes ? 'passives-side-notes' : 'passives-side-keys' } : {})}>
+            {showNotes ? (
+              <RichText value={passiveNotes} renderEntity={renderEntity} class="passives__notes" />
+            ) : (
+              <>
+                {passives.ascendancy.length > 0 && (
+                  <div class="passives__group">
+                    <p class="passives__label">Ascendancy</p>
+                    <PassiveRows passives={passives.ascendancy} label="Ascendancy priority" numbered focus={focus} />
+                  </div>
                 )}
-              </div>
-            </>
-          )}
-        </div>
-      </aside>
+                <div class="passives__group">
+                  {passives.ascendancy.length > 0 && <p class="passives__label">Passive Tree</p>}
+                  {passives.keyPassives.length > 0 ? (
+                    <PassiveRows passives={passives.keyPassives} label="Passive priority" numbered focus={focus} />
+                  ) : (
+                    <p class="passives__empty">The author hasn't set an order for the passives of this variant.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

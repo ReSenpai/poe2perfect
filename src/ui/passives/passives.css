@@ -13,6 +13,11 @@
   min-height: 300px;
 }
 
+/* The comments panel takes the side column; the tree gets the room. */
+.passives--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1000px) {
   .passives {
     grid-template-columns: minmax(0, 1fr);
