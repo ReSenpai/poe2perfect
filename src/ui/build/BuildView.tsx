@@ -18,6 +18,8 @@ import { panelElementId, tabElementId, Tabs } from './Tabs';
 
 /** Tabs whose content fills the panel instead of scrolling it (the embedded site trees, the stage view). */
 const FILL_TABS: TabId[] = ['passives', 'atlas', 'progression', 'comments'];
+/** Tabs that scroll edge to edge and lay out their own margins, so the scrollbar sits at the window's right. */
+const FLUSH_TABS: TabId[] = ['comments'];
 
 export interface BuildViewProps {
   build: Build;
@@ -123,7 +125,9 @@ export function BuildView({
           </div>
         </div>
         <section
-          class={FILL_TABS.includes(route.tab) ? 'build-view__panel build-view__panel--fill' : 'build-view__panel'}
+          class={['build-view__panel', FILL_TABS.includes(route.tab) && 'build-view__panel--fill', FLUSH_TABS.includes(route.tab) && 'build-view__panel--flush']
+            .filter(Boolean)
+            .join(' ')}
           role="tabpanel"
           id={panelElementId(route.tab)}
           aria-labelledby={tabElementId(route.tab)}

@@ -193,6 +193,11 @@
   padding: 24px;
 }
 
+/* The tab lays out its own margins and scrolls edge to edge (the comments feed). */
+.build-view__panel--flush {
+  padding: 0;
+}
+
 .empty-state {
   max-width: 560px;
   padding: 16px;

@@ -7,9 +7,7 @@
   flex: 1;
   flex-direction: column;
   width: 100%;
-  max-width: 960px;
   min-height: 0;
-  margin: 0 auto;
 }
 
 /* One row at the top of the feed, scrolling away with it: the filter, then search, sort and the way to the site. */
@@ -145,14 +143,41 @@
   flex-basis: 100%;
 }
 
-/* The feed: its own scroll, so the bar stays put. */
+/*
+ * The feed scrolls edge to edge, so its scrollbar sits at the window's right, while what it holds reads as one column
+ * in the middle. The bar is wide and its thumb tall: readers drag it to get back to the top.
+ */
 .comments__list {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 8px 24px 0;
+  padding: 20px 24px 24px;
+}
+
+.comments__list > * {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 960px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.comments__list::-webkit-scrollbar {
+  width: 14px;
+}
+
+.comments__list::-webkit-scrollbar-thumb {
+  min-height: 48px;
+  border-width: 3px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .comments__list {
+    scrollbar-width: auto;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
 }
 
 .comments__error {

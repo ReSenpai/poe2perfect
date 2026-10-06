@@ -315,6 +315,12 @@ describe('BuildView tabs', () => {
     expect(screen.queryByRole('group', { name: 'Build variant' })).toBeNull();
   });
 
+  it('lets the comments run edge to edge, so their scrollbar sits at the right of the window', () => {
+    renderView('#comments');
+
+    expect(screen.getByRole('tabpanel').classList.contains('build-view__panel--flush')).toBe(true);
+  });
+
   it('opens the comments from the hash and says they are unavailable without a discussion to read', () => {
     renderView('#comments');
 
