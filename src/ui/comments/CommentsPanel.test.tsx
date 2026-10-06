@@ -558,27 +558,31 @@ describe('CommentsPanel', () => {
       expect(votes('FrostRunner').getByRole('button', { name: 'Downvote' }).getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('vote at once and settle on the counts the site sends back; a second click takes the vote back', async () => {
+    it("vote once the site has answered, then settle on its counts; a second click takes the vote back", async () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, score: 5 })]));
 
       fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Upvote' }));
-      expect(votes('FrostRunner').getByText('6')).toBeTruthy();
-      expect(votes('FrostRunner').getByRole('button', { name: 'Upvote' }).getAttribute('aria-pressed')).toBe('true');
-      expect(calls[0]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: 'up' } });
-      await settle(0, counts(9, 1));
+      await settle(0, ok([rawComment({ id: 'r1', author: frost, score: 5 })]));
+      expect(calls[1]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: 'up' } });
+      expect(votes('FrostRunner').getByText('5')).toBeTruthy();
+
+      await settle(1, counts(9, 1));
       expect(votes('FrostRunner').getByText('8')).toBeTruthy();
+      expect(votes('FrostRunner').getByRole('button', { name: 'Upvote' }).getAttribute('aria-pressed')).toBe('true');
 
       fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Upvote' }));
-      expect(calls[1]).toMatchObject({ input: { commentId: 'r1', value: null } });
+      expect(calls[2]).toMatchObject({ input: { commentId: 'r1', value: null } });
       expect(votes('FrostRunner').getByText('7')).toBeTruthy();
     });
 
-    it('put the vote back and ask to sign in when the visitor is signed out', async () => {
+    it('never flash a vote for a signed-out visitor, and ask to sign in', async () => {
       const open = vi.fn();
       const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, score: 5 })]), open);
 
       fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Downvote' }));
-      await settle(0, { ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
+      await settle(0, ok([rawComment({ id: 'r1', author: frost, score: 5 })]));
+      expect(votes('FrostRunner').getByText('5')).toBeTruthy();
+      await settle(1, { ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
 
       expect(votes('FrostRunner').getByText('5')).toBeTruthy();
       const alert = within(card('FrostRunner')).getByRole('alert');

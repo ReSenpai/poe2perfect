@@ -48,8 +48,11 @@ export interface CommentsController {
    * a new comment first, an answer at the end of its thread.
    */
   post(parentId: string | null, text: string): Promise<PostOutcome>;
-  /** Votes on a comment as the signed-in visitor (`null` takes the vote back), showing it at once. */
-  vote(id: string, value: Vote | null): Promise<PostOutcome>;
+  /**
+   * The reader pressed an arrow: votes that way as the signed-in visitor, or takes the vote back when it already is.
+   * Shown at once only when the reader is known to be signed in; otherwise once the site has taken it.
+   */
+  vote(id: string, press: Vote): Promise<PostOutcome>;
   /** Cancels everything; the reader left this build. */
   dispose(): void;
 }
@@ -90,6 +93,11 @@ export function createCommentsController({
   let disposed = false;
   const pending = new Set<AbortController>();
   const listeners = new Set<(state: CommentsState) => void>();
+  // The build page is read signed out, so its comments never carry the reader's own votes; they are looked up once.
+  const unknownVotes = new Set(seed.status === 'ready' ? Object.keys(seed.list.comments) : []);
+  let votesLookup: Promise<void> | null = null;
+  /** Whether the site took the reader's vote or comment (true) or asked them to sign in (false); null until then. */
+  let signedIn: boolean | null = null;
 
   const set = (next: CommentsState) => {
     state = next;
@@ -122,6 +130,30 @@ export function createCommentsController({
         const list = parseCommentsPayload(result.payload, authorId);
         apply(list ? { list } : { error: UNREADABLE });
       });
+  };
+
+  /** Replaces fields of one loaded comment. */
+  const patch = (id: string, next: Partial<Comment>) => {
+    const latest = ready();
+    const known = latest?.list.comments[id];
+    if (disposed || !latest || !known) return;
+    set({ ...latest, list: { ...latest.list, comments: { ...latest.list.comments, [id]: { ...known, ...next } } } });
+  };
+
+  /** Reads the page's first comments again as the reader sees them, for their own votes; once, failures included. */
+  const lookUpVotes = () => {
+    votesLookup ??= source
+      .roots({ resourceId: resourceId!, sort: seed.status === 'ready' ? seed.sort : 'NEW', cursor: null })
+      .catch((): SourceResult => ({ ok: false, error: UNREADABLE }))
+      .then((result) => {
+        unknownVotes.clear();
+        const seen = result.ok ? parseCommentsPayload(result.payload, authorId) : null;
+        for (const comment of Object.values(seen?.comments ?? {})) {
+          if (comment.viewerVote) signedIn = true;
+          patch(comment.id, { score: comment.score, viewerVote: comment.viewerVote });
+        }
+      });
+    return votesLookup;
   };
 
   const cancelPending = () => {
@@ -200,11 +232,13 @@ export function createCommentsController({
         (signal) => source.roots({ resourceId: resourceId!, sort, cursor: null }, signal),
         (outcome) => {
           const latest = ready()!;
-          set(
-            'list' in outcome
-              ? { ...latest, sort, list: outcome.list, more: IDLE, resort: IDLE, replies: {} }
-              : { ...latest, resort: failedLoad(outcome.error) },
-          );
+          if (!('list' in outcome)) {
+            set({ ...latest, resort: failedLoad(outcome.error) });
+            return;
+          }
+          // Read through the API with the reader's session, so the new list carries their votes.
+          unknownVotes.clear();
+          set({ ...latest, sort, list: outcome.list, more: IDLE, resort: IDLE, replies: {} });
         },
       );
     },
@@ -235,8 +269,10 @@ export function createCommentsController({
         .catch((error: unknown): SourceResult => ({ ok: false, error: { message: error instanceof Error ? error.message : String(error), retryAfterSeconds: null } }));
       if (!result.ok) {
         const { retryAt } = failedLoad(result.error);
+        if (result.error.message === 'FORBIDDEN') signedIn = false;
         return { ok: false, reason: result.error.message === 'FORBIDDEN' ? 'signed-out' : 'failed', message: result.error.message, retryAt };
       }
+      signedIn = true;
       const rejection = (result.payload as { rejectionReason?: unknown }).rejectionReason;
       if (typeof rejection === 'string' && rejection) return { ok: false, reason: 'rejected', message: rejection, retryAt: null };
       const comment = parseComment(result.payload, authorId);
@@ -264,31 +300,38 @@ export function createCommentsController({
       return { ok: true };
     },
 
-    async vote(id, value) {
-      const current = ready();
-      const comment = current?.list.comments[id];
-      if (disposed || !current || !comment || comment.deleted) return { ok: false, reason: 'failed', message: 'not available', retryAt: null };
-
-      const replace = (next: Partial<Comment>) => {
-        const latest = ready();
-        const known = latest?.list.comments[id];
-        if (disposed || !latest || !known) return;
-        set({ ...latest, list: { ...latest.list, comments: { ...latest.list.comments, [id]: { ...known, ...next } } } });
+    async vote(id, press) {
+      const unavailable: PostOutcome = { ok: false, reason: 'failed', message: 'not available', retryAt: null };
+      const usable = () => {
+        const comment = ready()?.list.comments[id];
+        return !disposed && comment && !comment.deleted ? comment : null;
       };
+      if (!usable()) return unavailable;
+      if (unknownVotes.has(id)) await lookUpVotes();
+      const comment = usable();
+      if (!comment) return unavailable;
+
+      const value = comment.viewerVote === press ? null : press;
       const weight = (vote: Vote | null) => (vote === 'up' ? 1 : vote === 'down' ? -1 : 0);
       const before = { score: comment.score, viewerVote: comment.viewerVote };
-      replace({ score: comment.score - weight(comment.viewerVote) + weight(value), viewerVote: value });
+      const shown = { score: comment.score - weight(comment.viewerVote) + weight(value), viewerVote: value };
+      // Shown before the answer only when the reader is known to be signed in, so a refused vote never flashes.
+      const eager = signedIn === true;
+      if (eager) patch(id, shown);
 
       const result = await source
         .vote({ commentId: id, value })
         .catch((error: unknown): SourceResult => ({ ok: false, error: { message: error instanceof Error ? error.message : String(error), retryAfterSeconds: null } }));
       if (!result.ok) {
-        replace(before);
+        if (eager) patch(id, before);
+        if (result.error.message === 'FORBIDDEN') signedIn = false;
         const { retryAt } = failedLoad(result.error);
         return { ok: false, reason: result.error.message === 'FORBIDDEN' ? 'signed-out' : 'failed', message: result.error.message, retryAt };
       }
+      signedIn = true;
       const { upvotes, downvotes } = result.payload as { upvotes?: unknown; downvotes?: unknown };
-      if (typeof upvotes === 'number' && typeof downvotes === 'number') replace({ score: upvotes - downvotes });
+      const score = typeof upvotes === 'number' && typeof downvotes === 'number' ? upvotes - downvotes : shown.score;
+      patch(id, { score, viewerVote: value });
       return { ok: true };
     },
 

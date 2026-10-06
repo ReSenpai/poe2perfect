@@ -749,25 +749,37 @@
   --branch: var(--thread-line-lit);
 }
 
-/* The elbow from the parent's line into this answer's avatar; its upright overlaps the line exactly. */
+/*
+ * The elbow from the parent's line into this answer's avatar: a touch heavier than the line, its upright centred on
+ * it. It ends at the avatar's middle; the curve starts `--elbow-radius` above that.
+ */
+.thread__replies > .comment {
+  --elbow-width: 1.5px;
+  --elbow-radius: 12px;
+  --elbow-bottom: calc(var(--avatar) / 2 + 0.75px);
+}
+
 .thread__replies > .comment::after {
   position: absolute;
   top: -12px;
-  left: calc(-1 * var(--to-line));
+  left: calc(-1 * var(--to-line) - 0.25px);
   box-sizing: border-box;
   width: calc(var(--to-line) - 4px);
-  height: calc(var(--avatar) / 2 + 12.5px);
-  border-bottom: 1px solid var(--branch);
-  border-left: 1px solid var(--branch);
-  border-bottom-left-radius: 12px;
+  height: calc(var(--elbow-bottom) + 12px);
+  border-bottom: var(--elbow-width) solid var(--branch);
+  border-left: var(--elbow-width) solid var(--branch);
+  border-bottom-left-radius: var(--elbow-radius);
   content: '';
   pointer-events: none;
 }
 
-/* Below the last answer the parent's line has nowhere to go: paint it over. */
+/*
+ * Below the last answer the parent's line has nowhere to go: paint it over from where the elbow starts to curve, so
+ * no straight tail shows beside the curve.
+ */
 .thread__replies > .comment:last-child::before {
   position: absolute;
-  top: calc(var(--avatar) / 2 + 1px);
+  top: calc(var(--elbow-bottom) - var(--elbow-radius));
   bottom: calc(-1 * var(--parent-pad-bottom) - 1px);
   left: calc(-1 * var(--to-line) - 2px);
   width: 5px;

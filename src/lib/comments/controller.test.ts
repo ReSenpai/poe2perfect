@@ -388,41 +388,83 @@ describe('createCommentsController', () => {
   describe('vote', () => {
     const voteSeed = () => readySeed([rawComment({ id: 'r1', score: 4, upvotes: 5, downvotes: 1 }), deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1' })]);
     const counts = (upvotes: number, downvotes: number): SourceResult => ({ ok: true, payload: { commentId: 'r1', upvotes, downvotes } });
+    /** The first page again, as the signed-in reader sees it. */
+    const firstPageSeen = (viewerVote: 'UPVOTE' | 'DOWNVOTE' | null, score = 4) => ok([rawComment({ id: 'r1', score, viewerVote: viewerVote as never })]);
 
-    it('shows the vote at once, then the counts the site sends back', async () => {
+    it("first learns the reader's own vote on the page's comments, which the page read signed out cannot tell", async () => {
       const { controller, calls, state } = setup(voteSeed());
 
       const voted = controller.vote('r1', 'up');
-      expect(ready(state()).list.comments.r1).toMatchObject({ score: 5, viewerVote: 'up' });
-      expect(calls[0]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: 'up' } });
+      expect(calls[0]).toMatchObject({ kind: 'roots', input: { sort: 'NEW', cursor: null } });
+      calls[0]!.resolve(firstPageSeen('UPVOTE', 5));
+      await flush();
 
-      calls[0]!.resolve(counts(9, 1));
+      // Already up: pressing up again takes it back.
+      expect(calls[1]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: null } });
+      calls[1]!.resolve(counts(4, 1));
       expect(await voted).toEqual({ ok: true });
-      expect(ready(state()).list.comments.r1).toMatchObject({ score: 8, viewerVote: 'up' });
-    });
-
-    it('moves a vote from up to down, and takes it back', async () => {
-      const { controller, calls, state } = setup(voteSeed());
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 3, viewerVote: null });
 
       void controller.vote('r1', 'up');
-      calls[0]!.resolve(counts(6, 1));
-      await flush();
-      void controller.vote('r1', 'down');
-      expect(ready(state()).list.comments.r1).toMatchObject({ score: 3, viewerVote: 'down' });
-
-      void controller.vote('r1', null);
-      expect(ready(state()).list.comments.r1).toMatchObject({ score: 4, viewerVote: null });
-      expect(calls[2]).toMatchObject({ input: { commentId: 'r1', value: null } });
+      expect(calls[2]).toMatchObject({ kind: 'vote', input: { value: 'up' } });
     });
 
-    it('puts the vote back when the site refuses it, saying when the visitor must sign in', async () => {
+    it('waits for the site before showing a first vote, then shows later ones at once', async () => {
+      const { controller, calls, state } = setup(voteSeed());
+
+      const voted = controller.vote('r1', 'up');
+      calls[0]!.resolve(firstPageSeen(null));
+      await flush();
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 4, viewerVote: null });
+
+      calls[1]!.resolve(counts(9, 1));
+      expect(await voted).toEqual({ ok: true });
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 8, viewerVote: 'up' });
+
+      // Signed in, as the site just showed: the next vote shows before the answer.
+      void controller.vote('r1', 'down');
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 6, viewerVote: 'down' });
+      expect(calls[2]).toMatchObject({ input: { value: 'down' } });
+
+      void controller.vote('r1', 'down');
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 7, viewerVote: null });
+      expect(calls[3]).toMatchObject({ input: { value: null } });
+    });
+
+    it('never shows a vote the site refuses, saying when the visitor must sign in', async () => {
       const { controller, calls, state } = setup(voteSeed());
 
       const voted = controller.vote('r1', 'down');
-      calls[0]!.resolve(fail('FORBIDDEN'));
+      calls[0]!.resolve(firstPageSeen(null));
+      await flush();
+      calls[1]!.resolve(fail('FORBIDDEN'));
 
       expect(await voted).toEqual({ ok: false, reason: 'signed-out', message: 'FORBIDDEN', retryAt: null });
       expect(ready(state()).list.comments.r1).toMatchObject({ score: 4, viewerVote: null });
+    });
+
+    it('learns the votes once, and still votes when that lookup fails', async () => {
+      const { controller, calls } = setup(voteSeed());
+
+      const voted = controller.vote('r1', 'up');
+      calls[0]!.resolve(fail('HTTP 500'));
+      await flush();
+      calls[1]!.resolve(counts(6, 1));
+      await voted;
+
+      void controller.vote('r1', 'up');
+      expect(calls.map((call) => call.kind)).toEqual(['roots', 'vote', 'vote']);
+    });
+
+    it('needs no lookup for comments that came from the API', async () => {
+      const { controller, calls } = setup(firstPage());
+      controller.loadMore();
+      calls[0]!.resolve(ok([rawComment({ id: 'r9', viewerVote: 'DOWNVOTE' as never })]));
+      await flush();
+
+      void controller.vote('r9', 'down');
+
+      expect(calls[1]).toMatchObject({ kind: 'vote', input: { commentId: 'r9', value: null } });
     });
 
     it('does not vote on a deleted comment', async () => {

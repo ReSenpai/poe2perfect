@@ -147,16 +147,20 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
 /** Up and down arrows around the score, as on Reddit; pressing the lit arrow again takes the vote back. */
 function Votes({ comment, controller, onSignIn }: { comment: Comment; controller: CommentsController; onSignIn?: () => void }) {
   const [failure, setFailure] = useState<Extract<PostOutcome, { ok: false }> | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const cast = async (vote: Vote) => {
+  const cast = async (press: Vote) => {
+    if (busy) return;
     setFailure(null);
-    const outcome = await controller.vote(comment.id, comment.viewerVote === vote ? null : vote);
+    setBusy(true);
+    const outcome = await controller.vote(comment.id, press);
+    setBusy(false);
     if (!outcome.ok) setFailure(outcome);
   };
 
   return (
     <>
-      <div class={`votes${comment.viewerVote ? ` votes--${comment.viewerVote}` : ''}`} role="group" aria-label="Votes">
+      <div class={`votes${comment.viewerVote ? ` votes--${comment.viewerVote}` : ''}`} role="group" aria-label="Votes" aria-busy={busy}>
         <button type="button" class="votes__button votes__button--up" aria-label="Upvote" title="Upvote" aria-pressed={comment.viewerVote === 'up'} onClick={() => void cast('up')}>
           <ArrowBigUp size={16} aria-hidden="true" />
         </button>
