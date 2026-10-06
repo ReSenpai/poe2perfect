@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/preact';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/preact';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'preact';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
@@ -335,5 +335,158 @@ describe('BuildView tabs', () => {
     fireEvent.keyDown(document, { key: '2' });
 
     expect(onRouteChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('BuildView comments panel', () => {
+  /** A window wide enough for the panel unless a test narrows it. */
+  let wide = true;
+  const queries: { listener: (() => void) | null }[] = [];
+  beforeEach(() => {
+    wide = true;
+    queries.length = 0;
+    vi.stubGlobal('matchMedia', () => {
+      const query = {
+        listener: null as (() => void) | null,
+        get matches() {
+          return wide;
+        },
+        addEventListener: (_: string, listener: () => void) => (query.listener = listener),
+        removeEventListener: () => (query.listener = null),
+      };
+      queries.push(query);
+      return query;
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const narrow = () =>
+    act(() => {
+      wide = false;
+      queries.forEach((query) => query.listener?.());
+    });
+
+  const discussion = () =>
+    createCommentsController({
+      seed: {
+        status: 'ready',
+        resourceId: resourceIdOf('doc-1'),
+        authorId: AUTHOR_ID,
+        sort: 'NEW',
+        canSort: true,
+        total: 24,
+        list: parseCommentsPayload(commentsPayload({ comments: [rawComment({ id: 'r1', text: 'Budget ring?' })] }), AUTHOR_ID)!,
+      },
+      source: { roots: () => new Promise(() => {}), replies: () => new Promise(() => {}), post: () => new Promise(() => {}), vote: () => new Promise(() => {}) },
+    });
+
+  const open = () => fireEvent.click(screen.getByRole('button', { name: 'Open comments panel' }));
+  const aside = () => screen.queryByRole('complementary', { name: 'Comments' });
+
+  it('opens the discussion beside Gear in place of Gear Priority, without leaving the tab', () => {
+    const { onRouteChange } = renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    expect(screen.getByRole('list', { name: 'Gear priority' })).toBeTruthy();
+
+    open();
+
+    expect(within(aside()!).getByText('Budget ring?')).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'Gear priority' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'Equipment' })).toBeTruthy();
+    expect(selectedTab()).toBe('Gear');
+    expect(onRouteChange).not.toHaveBeenCalled();
+
+    const toggle = screen.getByRole('button', { name: 'Close comments panel', expanded: true });
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(toggle);
+    expect(aside()).toBeNull();
+    expect(screen.getByRole('list', { name: 'Gear priority' })).toBeTruthy();
+  });
+
+  it('keeps the panel open across Overview and Skills, giving up their side columns but not the skill details', () => {
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    open();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Skills' }));
+    expect(aside()).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Skill details' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    expect(aside()).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'At a glance' })).toBeNull();
+  });
+
+  it('shows the counter and closes from its own header, handing focus back to the toggle', () => {
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    open();
+
+    expect(within(aside()!).getByRole('heading', { name: /Comments/ }).textContent).toContain('24');
+    fireEvent.click(within(aside()!).getByRole('button', { name: 'Close comments panel' }));
+
+    expect(aside()).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open comments panel' }));
+  });
+
+  it('closes on Escape from inside the panel', () => {
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    open();
+
+    fireEvent.keyDown(within(aside()!).getByRole('searchbox', { name: 'Search comments' }), { key: 'Escape' });
+
+    expect(aside()).toBeNull();
+  });
+
+  it('expands into the Comments tab with a way back to the section, panel and all', () => {
+    const { onRouteChange } = renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    open();
+
+    fireEvent.click(within(aside()!).getByRole('button', { name: 'Open in the Comments tab' }));
+
+    expect(selectedTab()).toBe('Comments24');
+    expect(onRouteChange).toHaveBeenLastCalledWith('#comments');
+    expect(aside()).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Gear' }));
+    expect(selectedTab()).toBe('Gear');
+    expect(aside()).toBeTruthy();
+  });
+
+  it('opens the Comments tab instead where the trees need the whole width', () => {
+    renderView('#passives', BUILD, false, undefined, { comments: discussion() });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open comments' }));
+
+    expect(selectedTab()).toBe('Comments24');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Passives' }));
+    expect(selectedTab()).toBe('Passives');
+    expect(aside()).toBeNull();
+  });
+
+  it('offers no back button when the Comments tab was picked directly', () => {
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Comments/ }));
+
+    expect(screen.queryByRole('button', { name: /^Back to/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /comments panel/ })).toBeNull();
+  });
+
+  it('moves the discussion into the Comments tab when the window gets too narrow for it', () => {
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+    open();
+
+    narrow();
+
+    expect(selectedTab()).toBe('Comments24');
+    expect(screen.getByRole('button', { name: 'Back to Gear' })).toBeTruthy();
+  });
+
+  it('opens the Comments tab from the toggle on a narrow window', () => {
+    wide = false;
+    renderView('#gear', BUILD, false, undefined, { comments: discussion() });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open comments' }));
+
+    expect(selectedTab()).toBe('Comments24');
+    expect(aside()).toBeNull();
   });
 });

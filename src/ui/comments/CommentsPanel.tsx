@@ -1,40 +1,48 @@
-import { ArrowUpRight, MessageSquare, Search, X } from 'lucide-preact';
+import { ArrowLeft, ArrowUpRight, Maximize2, MessageSquare, Search, X } from 'lucide-preact';
 import type { RefObject } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { hasMissingReplies, type CommentsController, type CommentsState, type LoadState } from '@/lib/comments/controller';
 import { filterThreads, type FilteredThreads } from '@/lib/comments/filter';
-import type { CommentsSort } from '@/lib/comments/model';
 import { CommentComposer } from './CommentComposer';
 import { CommentThread, isShown, OPEN_BELOW_DEPTH } from './CommentThread';
 import { SortMenu } from './SortMenu';
 import { useCommentsState } from './use-comments';
+import { type CommentsUi, useCommentsUi } from './use-comments-ui';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
 /** Name of the CSS highlight that marks search matches (styled with `::highlight()`). */
 const SEARCH_HIGHLIGHT = 'poe2perfect-comment-search';
 
-/** The build's discussion as a feed: one slim bar (filter, search, sort), then the threads, loading more on scroll. */
+/**
+ * The build's discussion as a feed: one slim bar (filter, search, sort), then the threads, loading more on scroll.
+ * As a tab it fills the panel; as a side panel beside a section it adds a header with the counter, Expand and Close.
+ */
 export function CommentsPanel({
   controller,
   now = Date.now,
   onOpenOriginal,
+  ui: sharedUi,
+  side,
+  back,
 }: {
   controller: CommentsController | null;
   now?: () => number;
   /** Shows the discussion on the site itself, in place of the guide. */
   onOpenOriginal?: () => void;
+  /** Reading state shared with the other place the discussion shows; the panel keeps its own without it. */
+  ui?: CommentsUi;
+  /** Shown beside a section: how to close the panel or open the discussion as a tab. */
+  side?: { onClose: () => void; onExpand: () => void };
+  /** The tab was opened from a section; the way back to it. */
+  back?: { label: string; onBack: () => void };
 }) {
   const state = useCommentsState(controller);
-  // Threads the reader opened or folded against the default; the rest follow their depth.
-  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [authorOnly, setAuthorOnly] = useState(false);
-  // The order asked for, shown while its first page loads.
-  const [wantedSort, setWantedSort] = useState<CommentsSort | null>(null);
+  const ownUi = useCommentsUi();
+  const { query, setQuery, authorOnly, setAuthorOnly, toggled, setToggled, replyingTo, setReplyingTo, wantedSort, setWantedSort } = sharedUi ?? ownUi;
   const root = useRef<HTMLDivElement>(null);
   const filtered = state.status === 'ready' ? filterThreads(state.list, { query, authorReplied: authorOnly }) : null;
+  const total = state.status === 'disabled' ? null : state.total;
 
   const searching = query.trim() !== '' || authorOnly;
   useSearchHighlight(root, query);
@@ -47,9 +55,17 @@ export function CommentsPanel({
 
   const sortShown = state.status === 'ready' && state.resort.status === 'loading' && wantedSort ? wantedSort : state.status === 'ready' ? state.sort : 'NEW';
 
+  const backButton = back && (
+    <button type="button" class="comments__back" onClick={back.onBack}>
+      <ArrowLeft size={14} aria-hidden="true" />
+      {back.label}
+    </button>
+  );
+
   // Filter, search and sort scroll away with the comments; the tab already names the discussion and counts it.
   const bar = state.status === 'ready' && (
     <header class="comments__bar">
+      {backButton}
       {state.canIdentifyAuthor && (
         <div class="comments__chips" role="group" aria-label="Filter comments">
           <button type="button" class="chip" aria-pressed={!authorOnly} onClick={() => setAuthorOnly(false)}>
@@ -60,45 +76,57 @@ export function CommentsPanel({
           </button>
         </div>
       )}
-        <div class="comments__tools">
-          <label class="comments__search">
-            <Search size={14} aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Search comments"
-              placeholder="Search"
-              value={query}
-              onInput={(event) => setQuery((event.target as HTMLInputElement).value)}
-            />
-            {query && (
-              <button type="button" class="comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
-                <X size={14} aria-hidden="true" />
-              </button>
-            )}
-          </label>
-          {state.canSort && controller && (
-            <SortMenu
-              value={sortShown}
-              onChange={(sort) => {
-                setWantedSort(sort);
-                controller.setSort(sort);
-              }}
-            />
-          )}
-          {onOpenOriginal && (
-            <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
-              <ArrowUpRight size={16} aria-hidden="true" />
+      <div class="comments__tools">
+        <label class="comments__search">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Search comments"
+            placeholder="Search"
+            value={query}
+            onInput={(event) => setQuery((event.target as HTMLInputElement).value)}
+          />
+          {query && (
+            <button type="button" class="comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
+              <X size={14} aria-hidden="true" />
             </button>
           )}
-        </div>
-      {state.resort.status === 'error' && (
-        <p class="comments__error" role="alert">{`Couldn't sort the comments (${state.resort.message}).`}</p>
-      )}
+        </label>
+        {state.canSort && controller && (
+          <SortMenu
+            value={sortShown}
+            onChange={(sort) => {
+              setWantedSort(sort);
+              controller.setSort(sort);
+            }}
+          />
+        )}
+        {onOpenOriginal && (
+          <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
+            <ArrowUpRight size={16} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {state.resort.status === 'error' && <p class="comments__error" role="alert">{`Couldn't sort the comments (${state.resort.message}).`}</p>}
     </header>
   );
 
   return (
-    <div class="comments" ref={root}>
+    <div class={side ? 'comments comments--side' : 'comments'} ref={root}>
+      {side && (
+        <div class="comments__head">
+          <h2 class="comments__title">
+            Comments
+            {total !== null && <span class="comments__count">{total}</span>}
+          </h2>
+          <button type="button" class="icon-button" aria-label="Open in the Comments tab" title="Open in the Comments tab" onClick={side.onExpand}>
+            <Maximize2 size={16} aria-hidden="true" />
+          </button>
+          <button type="button" class="icon-button" aria-label="Close comments panel" title="Close comments panel" onClick={side.onClose}>
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       {state.status === 'ready' ? (
         controller &&
         filtered && (
@@ -119,6 +147,7 @@ export function CommentsPanel({
       ) : (
         <div class="comments__list">
           <div class="comments__column">
+            {backButton}
             <Placeholder state={state} onRetry={() => controller?.retry()} onOpenOriginal={onOpenOriginal} />
           </div>
         </div>

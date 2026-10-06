@@ -193,6 +193,32 @@
   padding: 24px;
 }
 
+/* The section and, beside it, the comments panel, each scrolling on its own. */
+.build-view__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.build-view__body > .build-view__panel {
+  min-width: 0;
+}
+
+.build-view__aside {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: clamp(360px, 32vw, 480px);
+  min-height: 0;
+  border-left: 1px solid var(--border);
+}
+
+/* A tab-bar toggle that is on, e.g. the open comments panel. */
+.icon-button--on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 /* The tab lays out its own margins and scrolls edge to edge (the comments feed). */
 .build-view__panel--flush {
   padding: 0;
@@ -236,6 +262,11 @@
 
 .overview--glance-collapsed {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* The comments panel stands where At a Glance was. */
+.overview--no-glance {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 1000px) {

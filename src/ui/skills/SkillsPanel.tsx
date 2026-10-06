@@ -14,9 +14,12 @@ export function SkillsPanel({
   variant,
   entities,
   copy = copyText,
+  besideComments = false,
 }: {
   variant: Variant;
   entities: Record<string, EntityInfo>;
+  /** The comments panel takes the side column: the skill details move under the list instead of leaving. */
+  besideComments?: boolean;
   /** Injected in tests; a gem name goes to the clipboard, ready for the game's own search. */
   copy?: (text: string) => Promise<boolean>;
 }) {
@@ -34,7 +37,7 @@ export function SkillsPanel({
   return (
     <div class="skills">
       {skill ? (
-        <div class="skills__columns">
+        <div class={besideComments ? 'skills__columns skills__columns--stacked' : 'skills__columns'}>
           <div class="skills__main">
             <section class="card skills__list">
               <div class="skills__heading">

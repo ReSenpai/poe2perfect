@@ -47,6 +47,11 @@
   gap: 12px;
 }
 
+/* Beside the comments panel the skill details go under the list rather than away. */
+.skills__columns--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1000px) {
   .skills__columns {
     grid-template-columns: minmax(0, 1fr);

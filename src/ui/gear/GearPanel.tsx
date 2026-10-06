@@ -13,7 +13,16 @@ const EMPTY = "The author hasn't listed gear for this variant.";
 /** An item can grant a handful of skills; the rest are counted, so one item cannot stretch the whole grid. */
 const GRANTS_SHOWN = 2;
 
-export function GearPanel({ variant, entities }: { variant: Variant; entities: Record<string, EntityInfo> }) {
+export function GearPanel({
+  variant,
+  entities,
+  besideComments = false,
+}: {
+  variant: Variant;
+  entities: Record<string, EntityInfo>;
+  /** The comments panel takes Gear Priority's column for the time being. */
+  besideComments?: boolean;
+}) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
   const hasEquipment = variant.equipment.length > 0;
 
@@ -27,7 +36,7 @@ export function GearPanel({ variant, entities }: { variant: Variant; entities: R
   return (
     <div class="gear">
       {hasEquipment ? (
-        <div class="gear__columns">
+        <div class={besideComments ? 'gear__columns gear__columns--single' : 'gear__columns'}>
           <section class="card gear__slots" aria-label="Equipment">
             <div class="gear__armour">
               {armour.map((s) => (
@@ -40,7 +49,7 @@ export function GearPanel({ variant, entities }: { variant: Variant; entities: R
               ))}
             </div>
           </section>
-          {variant.itemPriority.length > 0 && <PriorityCard items={variant.itemPriority} equipment={variant.equipment} />}
+          {!besideComments && variant.itemPriority.length > 0 && <PriorityCard items={variant.itemPriority} equipment={variant.equipment} />}
         </div>
       ) : (
         <p class="panel-empty">{EMPTY}</p>

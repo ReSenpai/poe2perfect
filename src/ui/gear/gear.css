@@ -48,6 +48,11 @@
   gap: 12px;
 }
 
+/* Gear Priority steps aside for the comments panel. */
+.gear__columns--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1000px) {
   .gear__columns {
     grid-template-columns: minmax(0, 1fr);
