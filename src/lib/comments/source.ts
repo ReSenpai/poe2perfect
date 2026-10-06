@@ -1,3 +1,4 @@
+import { textToLexical } from './lexical';
 import type { CommentsSort } from './model';
 
 /** Why a page didn't come: short and technical (`HTTP 429`, the site's error code); the UI words it. */
@@ -16,10 +17,19 @@ export type SourceResult = { ok: true; payload: unknown } | { ok: false; error: 
 export interface CommentsSource {
   roots(input: { resourceId: string; sort: CommentsSort; cursor: string | null }, signal?: AbortSignal): Promise<SourceResult>;
   replies(input: { parentId: string; sort: CommentsSort; cursor: string | null }, signal?: AbortSignal): Promise<SourceResult>;
+  /**
+   * Publishes `text` as the signed-in visitor: on the build, or as an answer to `parentId`. The payload is the new raw
+   * comment with the site's `rejectionReason`. Only ever called for an explicit action of the reader.
+   */
+  post(input: { resourceId: string; parentId: string | null; text: string }): Promise<SourceResult>;
 }
 
 const PAGE_SIZE = 10;
 const ENDPOINT_PATH = '/api/poe-2/v1/graphql/query';
+
+const COMMENT_FIELDS = `
+  id parentId resourceId depth accountId content plainTextContent status createdAt isSpoiler spoilerLabel replyCount
+  profile { user { id username displayName } avatar { iconUrl } }`;
 
 const PAYLOAD_FIELDS = `
   resourceId
@@ -30,22 +40,37 @@ const PAYLOAD_FIELDS = `
     parentId
     sortBy
     limit
-    comments {
-      id parentId resourceId depth accountId content plainTextContent status createdAt isSpoiler spoilerLabel replyCount
-      profile { user { id username displayName } avatar { iconUrl } }
-    }
+    comments { ${COMMENT_FIELDS} }
   }`;
 
 const ROOTS_QUERY = `query NgfCommentsQuery($input: CommentsListInput!) { comments { comments(input: $input) { ${PAYLOAD_FIELDS} } } }`;
 const REPLIES_QUERY = `query NgfCommentRepliesQuery($input: CommentsRepliesInput!) { comments { replies(input: $input) { ${PAYLOAD_FIELDS} } } }`;
 
+const CREATE_FIELDS = `data { ${COMMENT_FIELDS} rejectionReason } error { code message retryAfterSeconds }`;
+const CREATE_COMMENT = `mutation NgfCreateCommentMutation($input: CommentsCreateCommentInput!) { comments { createComment(input: $input) { ${CREATE_FIELDS} } } }`;
+const CREATE_REPLY = `mutation NgfCreateReplyMutation($input: CommentsCreateReplyInput!) { comments { createReply(input: $input) { ${CREATE_FIELDS} } } }`;
+
+type Field = 'comments' | 'replies' | 'createComment' | 'createReply';
+
 const UNEXPECTED: CommentsError = { message: 'unexpected answer', retryAfterSeconds: null };
 
-/** `fetch` should ask as the page itself (see `pageFetch`); `origin` is the page's, so the request stays same-origin. */
-export function createCommentsSource({ fetch: fetchImpl, origin }: { fetch: typeof fetch; origin: string }): CommentsSource {
+/**
+ * `fetch` should ask as the page itself (see `pageFetch`); `origin` is the page's, so the request stays same-origin and
+ * carries the visitor's session, which is how the site knows who posts. `pageUrl` is the build page a new comment links
+ * back to.
+ */
+export function createCommentsSource({
+  fetch: fetchImpl,
+  origin,
+  pageUrl = () => origin,
+}: {
+  fetch: typeof fetch;
+  origin: string;
+  pageUrl?: () => string;
+}): CommentsSource {
   const endpoint = new URL(ENDPOINT_PATH, origin).href;
 
-  const ask = async (operationName: string, query: string, field: 'comments' | 'replies', input: object, signal?: AbortSignal): Promise<SourceResult> => {
+  const ask = async (operationName: string, query: string, field: Field, input: object, signal?: AbortSignal): Promise<SourceResult> => {
     let response: Response;
     try {
       response = await fetchImpl(endpoint, {
@@ -79,6 +104,10 @@ export function createCommentsSource({ fetch: fetchImpl, origin }: { fetch: type
       const message = typeof siteError.code === 'string' && siteError.code ? siteError.code : String(siteError.message ?? 'error');
       return { ok: false, error: { message, retryAfterSeconds: seconds(siteError.retryAfterSeconds) } };
     }
+    if (field === 'createComment' || field === 'createReply') {
+      const created = (payload as { data?: unknown }).data;
+      return created && typeof created === 'object' ? { ok: true, payload: created } : { ok: false, error: UNEXPECTED };
+    }
     return { ok: true, payload };
   };
 
@@ -92,6 +121,12 @@ export function createCommentsSource({ fetch: fetchImpl, origin }: { fetch: type
   return {
     roots: ({ resourceId, sort, cursor }, signal) => ask('NgfCommentsQuery', ROOTS_QUERY, 'comments', page({ resourceId }, sort, cursor), signal),
     replies: ({ parentId, sort, cursor }, signal) => ask('NgfCommentRepliesQuery', REPLIES_QUERY, 'replies', page({ parentId }, sort, cursor), signal),
+    post: ({ resourceId, parentId, text }) => {
+      const body = { content: textToLexical(text), sourceUrl: pageUrl() };
+      return parentId
+        ? ask('NgfCreateReplyMutation', CREATE_REPLY, 'createReply', { parentId, ...body })
+        : ask('NgfCreateCommentMutation', CREATE_COMMENT, 'createComment', { resourceId, ...body });
+    },
   };
 }
 

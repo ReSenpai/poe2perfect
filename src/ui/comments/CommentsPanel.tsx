@@ -2,13 +2,11 @@ import { ArrowUpRight, Layers, MessageSquare } from 'lucide-preact';
 import { useRef, useState } from 'preact/hooks';
 import type { CommentsController, CommentsState, LoadState } from '@/lib/comments/controller';
 import { commentElementId } from './CommentCard';
+import { CommentComposer } from './CommentComposer';
 import { CommentThread, isShown, OPEN_BELOW_DEPTH } from './CommentThread';
 import { useCommentsState } from './use-comments';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
-
-/** `reply` heads for the site's reply box, `open` just to its discussion. */
-export type OriginalIntent = 'open' | 'reply';
 
 /** The build's discussion as a tab: header, the threads in the site's order, and the way to more of them. */
 export function CommentsPanel({
@@ -19,11 +17,12 @@ export function CommentsPanel({
   controller: CommentsController | null;
   now?: () => number;
   /** Shows the discussion on the site itself, in place of the guide. */
-  onOpenOriginal?: (intent: OriginalIntent) => void;
+  onOpenOriginal?: () => void;
 }) {
   const state = useCommentsState(controller);
   // Threads the reader opened or folded against the default; the rest follow their depth.
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const total = state.status === 'disabled' ? null : state.total;
 
@@ -61,6 +60,9 @@ export function CommentsPanel({
             isOpen={isOpen}
             onToggle={toggle}
             onShowComment={showComment}
+            replyingTo={replyingTo}
+            onReply={setReplyingTo}
+            onSignIn={onOpenOriginal}
             onOpenOriginal={onOpenOriginal}
           />
         )
@@ -85,13 +87,24 @@ function ReadyList({
   isOpen: (id: string) => boolean;
   onToggle: (id: string) => void;
   onShowComment: (id: string) => void;
-  onOpenOriginal?: (intent: OriginalIntent) => void;
+  replyingTo: string | null;
+  onReply: (id: string | null) => void;
+  onSignIn?: () => void;
+  onOpenOriginal?: () => void;
 }) {
   const { page } = state.list;
   const rootIds = state.list.rootIds.filter((id) => isShown(state, id));
   return (
     <>
       <div class="comments__list">
+        <CommentComposer
+          label="Add a comment"
+          placeholder="Ask the author or share how the build went…"
+          submitLabel="Post"
+          onSubmit={(text) => controller.post(null, text)}
+          onSignIn={thread.onSignIn}
+          inline
+        />
         {rootIds.length === 0 && !page.hasMore ? (
           <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
         ) : (
@@ -111,7 +124,7 @@ function ReadyList({
               {state.more.status === 'loading' ? 'Loading…' : 'Load more comments'}
             </button>
           )}
-          {onOpenOriginal && <OriginalButton intent="reply" onOpen={onOpenOriginal} />}
+          {onOpenOriginal && <OriginalButton onOpen={onOpenOriginal} />}
         </footer>
       )}
     </>
@@ -125,7 +138,7 @@ function Placeholder({
 }: {
   state: Exclude<CommentsState, Ready>;
   onRetry: () => void;
-  onOpenOriginal?: (intent: OriginalIntent) => void;
+  onOpenOriginal?: () => void;
 }) {
   if (state.status === 'disabled') return <EmptyState title="Comments are disabled for this build" />;
   if (state.load.status === 'loading') {
@@ -145,7 +158,7 @@ function Placeholder({
             Try again
           </button>
         )}
-        {onOpenOriginal && <OriginalButton intent="open" onOpen={onOpenOriginal} />}
+        {onOpenOriginal && <OriginalButton onOpen={onOpenOriginal} />}
       </div>
     </EmptyState>
   );
@@ -163,10 +176,10 @@ function EmptyState({ title, text, children }: { title: string; text?: string; c
 }
 
 /** Switches to the site's own page in this tab, so the arrow points up-right rather than out of the browser. */
-function OriginalButton({ intent, onOpen }: { intent: OriginalIntent; onOpen: (intent: OriginalIntent) => void }) {
+function OriginalButton({ onOpen }: { onOpen: () => void }) {
   return (
-    <button type="button" class="button button--accent comments__original" onClick={() => onOpen(intent)}>
-      {intent === 'reply' ? 'Reply on Mobalytics' : 'Open on Mobalytics'}
+    <button type="button" class="button comments__original" onClick={onOpen}>
+      Open on Mobalytics
       <ArrowUpRight size={16} aria-hidden="true" />
     </button>
   );

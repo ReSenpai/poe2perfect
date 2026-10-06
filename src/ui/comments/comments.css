@@ -136,6 +136,89 @@
   margin: 0;
 }
 
+/* A box to write a comment, above the list, or an answer, right under the comment it answers. */
+.composer {
+  display: grid;
+  gap: 8px;
+}
+
+.comments__list > .composer {
+  margin-bottom: 4px;
+}
+
+.comment__main > .composer {
+  max-width: 90ch;
+  margin-top: 10px;
+}
+
+.composer--inline {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.composer--inline .composer__box {
+  min-height: 40px;
+  padding: 9px 12px;
+}
+
+.composer--inline .composer__bar {
+  min-height: 40px;
+}
+
+.composer--inline .composer__error {
+  grid-column: 1 / -1;
+}
+
+.composer__box {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/21px var(--font);
+  resize: vertical;
+}
+
+.composer__box::placeholder {
+  color: var(--text-disabled);
+}
+
+.composer__box:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.composer__bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.composer__bar .button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.composer__count {
+  margin-right: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.composer__error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 0;
+  color: var(--res-fire);
+  font-size: 13px;
+}
+
 /* One comment: avatar beside who/when/what. */
 .comment {
   display: grid;

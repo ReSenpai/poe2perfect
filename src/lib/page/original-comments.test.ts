@@ -33,21 +33,6 @@ describe('revealOriginalComments', () => {
     expect(document.activeElement).toBe(document.body);
   });
 
-  it("puts the cursor in the site's own reply box when asked to reply", async () => {
-    page(WIDGET);
-
-    await revealOriginalComments(document, { focusEditor: true });
-
-    expect(document.activeElement).toBe(document.querySelector('[data-testid="editor"]'));
-  });
-
-  it('leaves focus alone when the site shows no reply box, e.g. for a signed-out visitor', async () => {
-    page('<section data-testid="comment-widget-general"><button>Sign in</button></section>');
-
-    expect(await revealOriginalComments(document, { focusEditor: true })).toBe(true);
-    expect(document.activeElement).toBe(document.body);
-  });
-
   it('waits for the site to render its comments', async () => {
     const { scrolls } = page();
 

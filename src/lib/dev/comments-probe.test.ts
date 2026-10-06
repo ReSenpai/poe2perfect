@@ -5,6 +5,8 @@ import { parseCommentsPayload } from '@/lib/comments/parse-comments';
 import type { CommentsSource } from '@/lib/comments/source';
 import { probeComments } from './comments-probe';
 
+const NO_POST: CommentsSource['post'] = async () => ({ ok: false, error: { message: 'x', retryAfterSeconds: null } });
+
 const seed: CommentsSeed = {
   status: 'ready',
   resourceId: resourceIdOf('doc-1'),
@@ -21,6 +23,7 @@ const seed: CommentsSeed = {
 describe('probeComments', () => {
   it('loads one more page and one missing thread through the real source, reporting counts only', async () => {
     const source: CommentsSource = {
+      post: NO_POST,
       roots: async () => ({ ok: true, payload: commentsPayload({ comments: [rawComment({ id: 'r2', author: { id: AUTHOR_ID, name: 'A' } })] }) }),
       replies: async ({ parentId }) => ({ ok: true, payload: commentsPayload({ comments: [rawComment({ id: 'x1', parentId, depth: 2 })], parentId }) }),
     };
@@ -38,6 +41,7 @@ describe('probeComments', () => {
 
   it('reports errors by their technical reason', async () => {
     const source: CommentsSource = {
+      post: NO_POST,
       roots: async () => ({ ok: false, error: { message: 'HTTP 403', retryAfterSeconds: null } }),
       replies: async () => ({ ok: false, error: { message: 'HTTP 403', retryAfterSeconds: null } }),
     };
@@ -49,7 +53,7 @@ describe('probeComments', () => {
   });
 
   it('only reports the seed when there is nothing to load', async () => {
-    const source: CommentsSource = { roots: async () => ({ ok: false, error: { message: 'x', retryAfterSeconds: null } }), replies: async () => ({ ok: false, error: { message: 'x', retryAfterSeconds: null } }) };
+    const source: CommentsSource = { post: NO_POST, roots: async () => ({ ok: false, error: { message: 'x', retryAfterSeconds: null } }), replies: async () => ({ ok: false, error: { message: 'x', retryAfterSeconds: null } }) };
 
     expect(await probeComments({ status: 'disabled' }, source)).toEqual({ seed: 'disabled' });
   });

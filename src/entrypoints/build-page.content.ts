@@ -29,7 +29,7 @@ export default defineContentScript({
   matches: ['https://mobalytics.gg/*', 'https://www.mobalytics.gg/*'],
   runAt: 'document_idle',
   async main(ctx) {
-    const commentsSource = createCommentsSource({ fetch: pageFetch(), origin: location.origin });
+    const commentsSource = createCommentsSource({ fetch: pageFetch(), origin: location.origin, pageUrl: () => location.origin + location.pathname });
     const load = createBuildLoader({
       initialUrl: location.href,
       initialDocument: document,
@@ -73,7 +73,7 @@ export default defineContentScript({
             lastVariants,
             onVariantChange: (buildSlug, variant) =>
               void lastVariantsItem.getValue().then((remembered) => lastVariantsItem.setValue(rememberPerBuild(remembered, buildSlug, variant))),
-            onOriginalComments: (intent) => void revealOriginalComments(document, { focusEditor: intent === 'reply' }),
+            onOriginalComments: () => void revealOriginalComments(document),
           }).then((host) => {
             ctx.onInvalidated(guardFocus({ doc: document, host, isActive: () => isOverlayVisible(controller.getState()) }));
           }),

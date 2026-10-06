@@ -8,7 +8,7 @@ import type { CommentsSource, SourceResult } from './source';
 const RESOURCE = resourceIdOf('doc-1');
 
 interface Call {
-  kind: 'roots' | 'replies';
+  kind: 'roots' | 'replies' | 'post';
   input: Record<string, unknown>;
   signal: AbortSignal | undefined;
   resolve: (result: SourceResult) => void;
@@ -20,7 +20,7 @@ function fakeSource() {
     (kind: Call['kind']) =>
     (input: object, signal?: AbortSignal) =>
       new Promise<SourceResult>((resolve) => calls.push({ kind, input: input as Record<string, unknown>, signal, resolve }));
-  const source: CommentsSource = { roots: request('roots'), replies: request('replies') };
+  const source: CommentsSource = { roots: request('roots'), replies: request('replies'), post: request('post') };
   return { source, calls };
 }
 
@@ -313,6 +313,70 @@ describe('createCommentsController', () => {
 
       expect(state()).toMatchObject({ canRetry: false, load: { status: 'idle' } });
       expect(calls).toHaveLength(0);
+    });
+  });
+
+  describe('post', () => {
+    const created = (comment: ReturnType<typeof rawComment>, rejectionReason: string | null = null): SourceResult => ({
+      ok: true,
+      payload: { ...comment, rejectionReason },
+    });
+
+    it('publishes a new comment and shows it first, counting it in', async () => {
+      const { controller, calls, state } = setup(firstPage());
+
+      const posted = controller.post(null, '  Thanks for the guide!  ');
+      expect(calls[0]).toMatchObject({ kind: 'post', input: { resourceId: RESOURCE, parentId: null, text: 'Thanks for the guide!' } });
+      calls[0]!.resolve(created(rawComment({ id: 'mine', text: 'Thanks for the guide!', author: { id: 'acc-me', name: 'Me' } })));
+
+      expect(await posted).toEqual({ ok: true });
+      expect(ready(state()).list.rootIds).toEqual(['mine', 'r1', 'r2']);
+      expect(ready(state()).list.comments.mine!.plainText).toBe('Thanks for the guide!');
+      expect(ready(state()).total).toBe(13);
+    });
+
+    it('adds a reply at the end of its thread, counting it on the parent', async () => {
+      const { controller, calls, state } = setup(firstPage());
+
+      const posted = controller.post('r1', 'Agreed');
+      expect(calls[0]).toMatchObject({ input: { parentId: 'r1', text: 'Agreed' } });
+      calls[0]!.resolve(created(rawComment({ id: 'mine', parentId: 'r1', text: 'Agreed', author: { id: AUTHOR_ID, name: 'Author' } })));
+
+      expect(await posted).toEqual({ ok: true });
+      expect(ready(state()).list.replies.r1).toEqual(['a1', 'mine']);
+      expect(ready(state()).list.comments.r1!.replyCount).toBe(1);
+      expect(ready(state()).list.comments.mine!.author!.isBuildAuthor).toBe(true);
+    });
+
+    it('says when the visitor has to sign in on the site first', async () => {
+      const { controller, calls, state } = setup(firstPage());
+
+      const posted = controller.post(null, 'Hi');
+      calls[0]!.resolve(fail('FORBIDDEN'));
+
+      expect(await posted).toEqual({ ok: false, reason: 'signed-out', message: 'FORBIDDEN', retryAt: null });
+      expect(ready(state()).list.rootIds).toEqual(['r1', 'r2']);
+    });
+
+    it('passes on why the site turned a comment down, and when to try again', async () => {
+      const { controller, calls } = setup(firstPage());
+
+      const rejected = controller.post(null, 'spam');
+      calls[0]!.resolve(created(rawComment({ id: 'x' }), 'Looks like spam'));
+      expect(await rejected).toEqual({ ok: false, reason: 'rejected', message: 'Looks like spam', retryAt: null });
+
+      const limited = controller.post(null, 'again');
+      calls[1]!.resolve(fail('RATE_LIMITED', 20));
+      expect(await limited).toEqual({ ok: false, reason: 'failed', message: 'RATE_LIMITED', retryAt: 21_000 });
+    });
+
+    it('sends nothing for empty text or a discussion it cannot write to', async () => {
+      const { controller, calls } = setup(firstPage());
+      expect(await controller.post(null, '  \n ')).toMatchObject({ ok: false, reason: 'failed' });
+
+      const disabled = setup({ status: 'disabled' });
+      expect(await disabled.controller.post(null, 'Hi')).toMatchObject({ ok: false });
+      expect([...calls, ...disabled.calls]).toHaveLength(0);
     });
   });
 

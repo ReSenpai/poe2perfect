@@ -24,7 +24,7 @@ function renderApp(state: PageState) {
 }
 
 describe('App original comments', () => {
-  it("shows the site's own discussion in place of the guide, saying whether to reply", () => {
+  it("shows the site's own discussion in place of the guide", () => {
     const onModeChange = vi.fn();
     const onOriginalComments = vi.fn();
     render(
@@ -42,7 +42,7 @@ describe('App original comments', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open on Mobalytics' }));
 
     expect(onModeChange).toHaveBeenCalledWith('original');
-    expect(onOriginalComments).toHaveBeenCalledWith('open');
+    expect(onOriginalComments).toHaveBeenCalledOnce();
   });
 });
 

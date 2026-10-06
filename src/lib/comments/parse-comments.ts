@@ -88,7 +88,8 @@ function compareOldestFirst(a: Comment, b: Comment): number {
   return Date.parse(a.createdAt) - Date.parse(b.createdAt);
 }
 
-function parseComment(raw: unknown, authorId: string | null): Comment | null {
+/** One raw comment, e.g. the one the site sends back after posting; null when it isn't one. */
+export function parseComment(raw: unknown, authorId: string | null): Comment | null {
   if (!isObj(raw)) return null;
   const id = str(raw.id);
   if (!id) return null;

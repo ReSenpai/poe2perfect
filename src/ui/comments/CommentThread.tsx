@@ -1,7 +1,8 @@
 import { ChevronDown, ChevronUp } from 'lucide-preact';
 import { useEffect } from 'preact/hooks';
-import { hasMissingReplies, type CommentsController, type CommentsState } from '@/lib/comments/controller';
+import { hasMissingReplies, type CommentsController, type CommentsState, type PostOutcome } from '@/lib/comments/controller';
 import { CommentCard } from './CommentCard';
+import { CommentComposer } from './CommentComposer';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
@@ -17,6 +18,11 @@ export interface ThreadProps {
   onToggle: (id: string) => void;
   /** Brings a comment into view, e.g. the one a reply answers. */
   onShowComment: (id: string) => void;
+  /** The comment whose reply box is open, if any; one at a time. */
+  replyingTo: string | null;
+  onReply: (id: string | null) => void;
+  /** Where a signed-out visitor can sign in. */
+  onSignIn?: () => void;
 }
 
 const repliesLabel = (n: number) => (n === 1 ? 'View 1 reply' : n > 1 ? `View ${n} replies` : 'View replies');
@@ -41,10 +47,9 @@ export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: stri
 
   return (
     <CommentCard comment={root} now={now}>
-      <div class="comment__actions">
-        {hasReplies(state, rootId) && <RepliesToggle id={rootId} {...props} />}
+      <Actions id={rootId} toggle={hasReplies(state, rootId)} {...props}>
         {authorReplied && <span class="comment__author-replied">Author replied</span>}
-      </div>
+      </Actions>
       {isOpen(rootId) && hasReplies(state, rootId) && (
         <div class="thread__replies" id={repliesElementId(rootId)}>
           <Replies parentId={rootId} {...props} />
@@ -75,6 +80,8 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
     <>
       {ids.map((id) => {
         const reply = state.list.comments[id]!;
+        // Answers open by default fold with their root; deeper ones get their own toggle.
+        const toggle = hasReplies(state, id) && (reply.depth >= OPEN_BELOW_DEPTH || !isOpen(id));
         return [
           <CommentCard
             key={id}
@@ -83,12 +90,7 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
             replyingTo={parent.depth > 0 ? (parent.author?.name ?? 'deleted comment') : undefined}
             onShowParent={() => onShowComment(parentId)}
           >
-            {/* Answers open by default fold with their root; deeper ones get their own toggle. */}
-            {hasReplies(state, id) && (reply.depth >= OPEN_BELOW_DEPTH || !isOpen(id)) && (
-              <div class="comment__actions">
-                <RepliesToggle id={id} {...props} />
-              </div>
-            )}
+            <Actions id={id} toggle={toggle} {...props} />
           </CommentCard>,
           isOpen(id) && hasReplies(state, id) && <Replies key={`${id}-replies`} parentId={id} {...props} />,
         ];
@@ -111,6 +113,45 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
         <button type="button" class="comment__link thread__more" onClick={() => controller.loadReplies(parentId)}>
           Load more replies
         </button>
+      )}
+    </>
+  );
+}
+
+/** A comment's controls: its replies toggle, Reply, and the reply box once opened. */
+function Actions({ id, toggle, children, ...props }: ThreadProps & { id: string; toggle: boolean; children?: preact.ComponentChildren }) {
+  const { state, controller, isOpen, onToggle, replyingTo, onReply, onSignIn } = props;
+  const comment = state.list.comments[id]!;
+  const canReply = !comment.deleted;
+
+  const post = (text: string): Promise<PostOutcome> => controller.post(id, text);
+  const done = () => {
+    onReply(null);
+    if (!isOpen(id)) onToggle(id);
+  };
+
+  return (
+    <>
+      <div class="comment__actions">
+        {toggle && <RepliesToggle id={id} {...props} />}
+        {canReply && (
+          <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
+            Reply
+          </button>
+        )}
+        {children}
+      </div>
+      {canReply && replyingTo === id && (
+        <CommentComposer
+          label={`Reply to ${comment.author?.name ?? 'this comment'}`}
+          placeholder="Write a reply…"
+          submitLabel="Send reply"
+          onSubmit={post}
+          onDone={done}
+          onCancel={() => onReply(null)}
+          onSignIn={onSignIn}
+          autoFocus
+        />
       )}
     </>
   );

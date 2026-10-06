@@ -3,7 +3,6 @@ import { useEffect, useState } from 'preact/hooks';
 import type { PageController, PageMode, PageState } from '@/lib/page/controller';
 import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BuildView } from '@/ui/build/BuildView';
-import type { OriginalIntent } from '@/ui/comments/CommentsPanel';
 
 export interface AppProps {
   state: PageState;
@@ -20,7 +19,7 @@ export interface AppProps {
   lastVariant?: RememberedVariant | null;
   onVariantChange?: (variant: RememberedVariant) => void;
   /** Called once the site's page is in front, to bring its discussion into view. */
-  onOriginalComments?: (intent: OriginalIntent) => void;
+  onOriginalComments?: () => void;
 }
 
 export function App({
@@ -66,9 +65,9 @@ export function App({
           glanceCollapsed={glanceCollapsed}
           onGlanceCollapsedChange={onGlanceCollapsedChange}
           comments={state.comments}
-          onOriginalComments={(intent) => {
+          onOriginalComments={() => {
             onModeChange('original');
-            onOriginalComments?.(intent);
+            onOriginalComments?.();
           }}
         />
       </div>
@@ -137,7 +136,7 @@ export interface ConnectedAppProps {
   /** Persists the variant this build is now read at. */
   onVariantChange?: (buildSlug: string, variant: RememberedVariant) => void;
   /** Brings the site's discussion into view once its page is in front. */
-  onOriginalComments?: (intent: OriginalIntent) => void;
+  onOriginalComments?: () => void;
 }
 
 export function ConnectedApp({

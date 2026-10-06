@@ -10,13 +10,13 @@ import { CommentsPanel } from './CommentsPanel';
 const NOW = Date.parse('2026-10-06T12:00:00Z');
 const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 
-type Pending = { kind: 'roots' | 'replies'; input: Record<string, unknown>; resolve: (result: SourceResult) => void };
+type Pending = { kind: 'roots' | 'replies' | 'post'; input: Record<string, unknown>; resolve: (result: SourceResult) => void };
 
 function fakeSource() {
   const calls: Pending[] = [];
   const ask = (kind: Pending['kind']) => (input: object) =>
     new Promise<SourceResult>((resolve) => calls.push({ kind, input: input as Record<string, unknown>, resolve }));
-  const source: CommentsSource = { roots: ask('roots'), replies: ask('replies') };
+  const source: CommentsSource = { roots: ask('roots'), replies: ask('replies'), post: ask('post') };
   return { source, calls };
 }
 
@@ -37,7 +37,7 @@ function readySeed(comments: ReturnType<typeof rawComment>[], extra: Parameters<
   };
 }
 
-function renderPanel(seed: CommentsSeed, onOpenOriginal?: (intent: 'open' | 'reply') => void) {
+function renderPanel(seed: CommentsSeed, onOpenOriginal?: () => void) {
   const { source, calls } = fakeSource();
   const controller = createCommentsController({ seed, source, now: () => NOW });
   const view = render(<CommentsPanel controller={controller} now={() => NOW} onOpenOriginal={onOpenOriginal} />);
@@ -289,43 +289,124 @@ describe('CommentsPanel', () => {
   });
 
   describe('the original discussion', () => {
-    it("offers to reply on the site, below the comments", () => {
+    it('opens the discussion on the site from below the comments', () => {
       const open = vi.fn();
-      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]), open);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Reply on Mobalytics' }));
-
-      expect(open).toHaveBeenCalledWith('reply');
-    });
-
-    it('offers it next to Load more comments too', () => {
-      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), vi.fn());
+      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), open);
 
       const footer = screen.getByRole('button', { name: 'Load more comments' }).closest('footer')!;
-      expect(within(footer).getByRole('button', { name: 'Reply on Mobalytics' })).toBeTruthy();
+      fireEvent.click(within(footer).getByRole('button', { name: 'Open on Mobalytics' }));
+
+      expect(open).toHaveBeenCalledOnce();
     });
 
-    it('invites the first comment on the site when there is none', () => {
-      const open = vi.fn();
-      renderPanel(readySeed([], {}, 0), open);
-
-      fireEvent.click(screen.getByRole('button', { name: 'Reply on Mobalytics' }));
-      expect(open).toHaveBeenCalledWith('reply');
-    });
-
-    it('opens the discussion on the site when it could not be read here', () => {
+    it('opens it too when the comments could not be read here', () => {
       const open = vi.fn();
       renderPanel({ status: 'unavailable', resourceId: null, authorId: null, total: null }, open);
 
       fireEvent.click(screen.getByRole('button', { name: 'Open on Mobalytics' }));
-      expect(open).toHaveBeenCalledWith('open');
-      expect(screen.queryByRole('button', { name: 'Reply on Mobalytics' })).toBeNull();
+      expect(open).toHaveBeenCalledOnce();
     });
 
-    it('offers no reply when the author turned comments off', () => {
+    it('offers nothing when the author turned comments off', () => {
       renderPanel({ status: 'disabled' }, vi.fn());
 
       expect(screen.queryByRole('button', { name: /Mobalytics/ })).toBeNull();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+  });
+
+  describe('writing', () => {
+    const type = (box: HTMLElement, text: string) => fireEvent.input(box, { target: { value: text } });
+    const created = (comment: ReturnType<typeof rawComment>): SourceResult => ({ ok: true, payload: { ...comment, rejectionReason: null } });
+
+    it('posts a new comment from the box above the list and shows it first', async () => {
+      const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+      const box = screen.getByRole('textbox', { name: 'Add a comment' });
+
+      type(box, 'Thanks for the guide!');
+      fireEvent.click(screen.getByRole('button', { name: 'Post' }));
+
+      expect(calls[0]).toMatchObject({ kind: 'post', input: { parentId: null, text: 'Thanks for the guide!' } });
+      expect((screen.getByRole('button', { name: 'Posting…' }) as HTMLButtonElement).disabled).toBe(true);
+
+      await settle(0, created(rawComment({ id: 'mine', author: ashen, text: 'Thanks for the guide!' })));
+
+      expect((box as HTMLTextAreaElement).value).toBe('');
+      expect(screen.getAllByText(/FrostRunner|AshenExile/, { selector: '.comment__name' }).map((el) => el.textContent)).toEqual(['AshenExile', 'FrostRunner']);
+    });
+
+    it('posts with Ctrl+Enter and never sends an empty box', () => {
+      const { calls } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+      const box = screen.getByRole('textbox', { name: 'Add a comment' });
+
+      expect((screen.getByRole('button', { name: 'Post' }) as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.keyDown(box, { key: 'Enter', ctrlKey: true });
+      expect(calls).toHaveLength(0);
+
+      type(box, 'Hello');
+      fireEvent.keyDown(box, { key: 'Enter', ctrlKey: true });
+      expect(calls).toHaveLength(1);
+    });
+
+    it('keeps what was typed and asks to sign in on the site when the visitor is signed out', async () => {
+      const open = vi.fn();
+      const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]), open);
+      const box = screen.getByRole('textbox', { name: 'Add a comment' });
+
+      type(box, 'Hello');
+      fireEvent.click(screen.getByRole('button', { name: 'Post' }));
+      await settle(0, { ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
+
+      expect((box as HTMLTextAreaElement).value).toBe('Hello');
+      expect(screen.getByRole('alert').textContent).toContain('Sign in on Mobalytics to comment.');
+      fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Sign in on Mobalytics' }));
+      expect(open).toHaveBeenCalledOnce();
+    });
+
+    it("says why the site didn't take a comment", async () => {
+      const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+
+      type(screen.getByRole('textbox', { name: 'Add a comment' }), 'Hello');
+      fireEvent.click(screen.getByRole('button', { name: 'Post' }));
+      await settle(0, { ok: false, error: { message: 'HTTP 500', retryAfterSeconds: null } });
+
+      expect(screen.getByRole('alert').textContent).toBe("Couldn't post your comment (HTTP 500).");
+    });
+
+    it('answers a comment in a box right below it, then shows the answer in its thread', async () => {
+      const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, text: 'Budget ring?' })]));
+
+      fireEvent.click(within(card('FrostRunner')).getByRole('button', { name: 'Reply' }));
+      const box = screen.getByRole('textbox', { name: 'Reply to FrostRunner' });
+      expect(document.activeElement).toBe(box);
+
+      type(box, 'Start with a rare.');
+      fireEvent.click(within(card('FrostRunner')).getByRole('button', { name: 'Send reply' }));
+      expect(calls[0]).toMatchObject({ kind: 'post', input: { parentId: 'r1', text: 'Start with a rare.' } });
+      await settle(0, created(rawComment({ id: 'mine', parentId: 'r1', author: ashen, text: 'Start with a rare.' })));
+
+      expect(screen.queryByRole('textbox', { name: 'Reply to FrostRunner' })).toBeNull();
+      expect(screen.getByText('Start with a rare.')).toBeTruthy();
+    });
+
+    it('closes the reply box on Cancel or Escape', () => {
+      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+
+      fireEvent.click(within(card('FrostRunner')).getByRole('button', { name: 'Reply' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('textbox', { name: 'Reply to FrostRunner' })).toBeNull();
+
+      fireEvent.click(within(card('FrostRunner')).getByRole('button', { name: 'Reply' }));
+      fireEvent.keyDown(screen.getByRole('textbox', { name: 'Reply to FrostRunner' }), { key: 'Escape' });
+      expect(screen.queryByRole('textbox', { name: 'Reply to FrostRunner' })).toBeNull();
+    });
+
+    it('offers no reply to a deleted comment', () => {
+      renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1', author: ashen })]));
+
+      const replies = screen.getAllByRole('button', { name: 'Reply' });
+      expect(replies).toHaveLength(1);
+      expect(replies[0]!.closest('article')).toBe(card('AshenExile'));
     });
   });
 

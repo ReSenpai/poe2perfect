@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { commentsPayload, listResponse, rawComment, repliesResponse } from '../../../tests/fixtures/comments';
+import { textToLexical } from './lexical';
 import { createCommentsSource } from './source';
 
 const ORIGIN = 'https://mobalytics.gg';
@@ -103,5 +104,59 @@ describe('createCommentsSource', () => {
     const source = createCommentsSource({ fetch: fetchImpl, origin: ORIGIN });
 
     await expect(source.roots({ resourceId: 'x', sort: 'NEW', cursor: null }, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('createCommentsSource posting', () => {
+  const created = (comment: unknown, rejectionReason: string | null = null) => ({
+    data: { comments: { createComment: { data: { ...(comment as object), rejectionReason }, error: null } } },
+  });
+
+  function posting(respond: () => Response) {
+    const fetchImpl = vi.fn<typeof fetch>(async () => respond());
+    const source = createCommentsSource({ fetch: fetchImpl, origin: ORIGIN, pageUrl: () => 'https://mobalytics.gg/poe-2/builds/build-a' });
+    const body = () => JSON.parse(String(fetchImpl.mock.calls[0]![1]!.body)) as { operationName: string; query: string; variables: { input: Record<string, unknown> } };
+    return { fetchImpl, source, body };
+  }
+
+  it("posts a new comment on the build as the signed-in visitor, in the site's editor format", async () => {
+    const comment = rawComment({ id: 'new-1', text: 'Thanks!' });
+    const { source, body, fetchImpl } = posting(() => json(created(comment)));
+
+    const result = await source.post({ resourceId: 'Poe2:UG:doc-1', parentId: null, text: 'Thanks!' });
+
+    expect(result).toEqual({ ok: true, payload: { ...comment, rejectionReason: null } });
+    expect(fetchImpl.mock.calls[0]![1]).toMatchObject({ method: 'POST', credentials: 'same-origin' });
+    expect(body().operationName).toBe('NgfCreateCommentMutation');
+    expect(body().query).toContain('createComment(input: $input)');
+    expect(body().query).toContain('rejectionReason');
+    expect(body().variables.input).toEqual({
+      resourceId: 'Poe2:UG:doc-1',
+      content: textToLexical('Thanks!'),
+      sourceUrl: 'https://mobalytics.gg/poe-2/builds/build-a',
+    });
+  });
+
+  it('answers a comment with a reply', async () => {
+    const { source, body } = posting(() => json({ data: { comments: { createReply: { data: { ...rawComment({ id: 'r-1', parentId: 'c1' }), rejectionReason: null }, error: null } } } }));
+
+    const result = await source.post({ resourceId: 'Poe2:UG:doc-1', parentId: 'c1', text: 'Agreed' });
+
+    expect(result.ok).toBe(true);
+    expect(body().operationName).toBe('NgfCreateReplyMutation');
+    expect(body().query).toContain('createReply(input: $input)');
+    expect(body().variables.input).toEqual({ parentId: 'c1', content: textToLexical('Agreed'), sourceUrl: 'https://mobalytics.gg/poe-2/builds/build-a' });
+  });
+
+  it("passes on the site's refusal, e.g. for a visitor who isn't signed in", async () => {
+    const { source } = posting(() => json({ data: { comments: { createComment: { data: null, error: { code: 'FORBIDDEN', message: 'not authenticated', retryAfterSeconds: null } } } } }));
+
+    expect(await source.post({ resourceId: 'x', parentId: null, text: 'Hi' })).toEqual({ ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
+  });
+
+  it('reports an answer without the new comment as unexpected', async () => {
+    const { source } = posting(() => json({ data: { comments: { createComment: { data: null, error: null } } } }));
+
+    expect(await source.post({ resourceId: 'x', parentId: null, text: 'Hi' })).toEqual({ ok: false, error: { message: 'unexpected answer', retryAfterSeconds: null } });
   });
 });

@@ -10,7 +10,7 @@ import { AtlasPanel } from '@/ui/passives/AtlasPanel';
 import { PassivesPanel } from '@/ui/passives/PassivesPanel';
 import { ProgressionPanel } from '@/ui/progression/ProgressionPanel';
 import { SkillsPanel } from '@/ui/skills/SkillsPanel';
-import { CommentsPanel, type OriginalIntent } from '@/ui/comments/CommentsPanel';
+import { CommentsPanel } from '@/ui/comments/CommentsPanel';
 import { useCommentsState } from '@/ui/comments/use-comments';
 import { OverviewPanel } from './OverviewPanel';
 import { VariantPicker } from './VariantPicker';
@@ -41,7 +41,7 @@ export interface BuildViewProps {
   /** The build's discussion; without one the Comments tab says it is unavailable. */
   comments?: CommentsController | null;
   /** Shows the discussion on the site itself, in place of the guide. */
-  onOriginalComments?: (intent: OriginalIntent) => void;
+  onOriginalComments?: () => void;
 }
 
 const NO_VARIANTS = "The author hasn't added build variants yet.";

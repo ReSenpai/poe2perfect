@@ -1,5 +1,5 @@
 import type { CommentsList, CommentsPage, CommentsSeed, CommentsSort } from './model';
-import { mergeCommentLists, parseCommentsPayload } from './parse-comments';
+import { mergeCommentLists, parseComment, parseCommentsPayload } from './parse-comments';
 import { isAbort, type CommentsError, type CommentsSource, type SourceResult } from './source';
 
 /** A request's progress; after an error `retryAt` (epoch ms) is when the site said to ask again, if it did. */
@@ -30,6 +30,9 @@ export type CommentsState =
 
 type ReadyState = Extract<CommentsState, { status: 'ready' }>;
 
+/** How posting went: the site took it, wants the visitor signed in, turned it down, or failed. */
+export type PostOutcome = { ok: true } | { ok: false; reason: 'signed-out' | 'rejected' | 'failed'; message: string; retryAt: number | null };
+
 export interface CommentsController {
   getState(): CommentsState;
   subscribe(listener: (state: CommentsState) => void): () => void;
@@ -38,6 +41,11 @@ export interface CommentsController {
   setSort(sort: CommentsSort): void;
   /** Loads the first page through the API when the build page didn't carry it. */
   retry(): void;
+  /**
+   * Publishes `text` as the signed-in visitor, on the build (`parentId` null) or as an answer, and puts it into the list:
+   * a new comment first, an answer at the end of its thread.
+   */
+  post(parentId: string | null, text: string): Promise<PostOutcome>;
   /** Cancels everything; the reader left this build. */
   dispose(): void;
 }
@@ -88,7 +96,7 @@ export function createCommentsController({
 
   const canStart = (load: LoadState) => load.status === 'idle' || (load.status === 'error' && (load.retryAt === null || now() >= load.retryAt));
 
-  const failed = (error: CommentsError): LoadState => ({
+  const failedLoad = (error: CommentsError): Extract<LoadState, { status: 'error' }> => ({
     status: 'error',
     message: error.message,
     retryAt: error.retryAfterSeconds === null ? null : now() + error.retryAfterSeconds * 1000,
@@ -138,7 +146,7 @@ export function createCommentsController({
           set(
             'list' in outcome
               ? { ...latest, list: mergeCommentLists(latest.list, outcome.list, { rootsPage: true }), more: IDLE }
-              : { ...latest, more: failed(outcome.error) },
+              : { ...latest, more: failedLoad(outcome.error) },
           );
         },
       );
@@ -163,7 +171,7 @@ export function createCommentsController({
                   list: mergeCommentLists(latest.list, outcome.list, { rootsPage: false }),
                   replies: replies({ load: IDLE, page: outcome.list.page }),
                 }
-              : { ...latest, replies: replies({ load: failed(outcome.error), page: thread.page }) },
+              : { ...latest, replies: replies({ load: failedLoad(outcome.error), page: thread.page }) },
           );
         },
       );
@@ -191,7 +199,7 @@ export function createCommentsController({
           set(
             'list' in outcome
               ? { ...latest, sort, list: outcome.list, more: IDLE, resort: IDLE, replies: {} }
-              : { ...latest, resort: failed(outcome.error) },
+              : { ...latest, resort: failedLoad(outcome.error) },
           );
         },
       );
@@ -207,9 +215,49 @@ export function createCommentsController({
           set(
             'list' in outcome
               ? { status: 'ready', sort: 'NEW', canSort: true, total, list: outcome.list, more: IDLE, resort: IDLE, replies: {} }
-              : { status: 'unavailable', canRetry: true, total, load: failed(outcome.error) },
+              : { status: 'unavailable', canRetry: true, total, load: failedLoad(outcome.error) },
           ),
       );
+    },
+
+    async post(parentId, text) {
+      const body = text.trim();
+      const failed = (message: string): PostOutcome => ({ ok: false, reason: 'failed', message, retryAt: null });
+      if (disposed || !ready() || !resourceId) return failed('not available');
+      if (!body) return failed('empty');
+
+      const result = await source
+        .post({ resourceId, parentId, text: body })
+        .catch((error: unknown): SourceResult => ({ ok: false, error: { message: error instanceof Error ? error.message : String(error), retryAfterSeconds: null } }));
+      if (!result.ok) {
+        const { retryAt } = failedLoad(result.error);
+        return { ok: false, reason: result.error.message === 'FORBIDDEN' ? 'signed-out' : 'failed', message: result.error.message, retryAt };
+      }
+      const rejection = (result.payload as { rejectionReason?: unknown }).rejectionReason;
+      if (typeof rejection === 'string' && rejection) return { ok: false, reason: 'rejected', message: rejection, retryAt: null };
+      const comment = parseComment(result.payload, authorId);
+      if (!comment) return failed(UNREADABLE.message);
+
+      const latest = ready();
+      if (disposed || !latest) return { ok: true };
+      const parent = parentId ? latest.list.comments[parentId] : undefined;
+      const placed = { ...comment, parentId, depth: parent ? parent.depth + 1 : 0 };
+      const { list } = latest;
+      set({
+        ...latest,
+        total: latest.total === null ? null : latest.total + 1,
+        list: {
+          ...list,
+          comments: {
+            ...list.comments,
+            [placed.id]: placed,
+            ...(parent ? { [parent.id]: { ...parent, replyCount: parent.replyCount + 1 } } : {}),
+          },
+          rootIds: parent ? list.rootIds : [placed.id, ...list.rootIds.filter((id) => id !== placed.id)],
+          replies: parent ? { ...list.replies, [parent.id]: [...(list.replies[parent.id] ?? []).filter((id) => id !== placed.id), placed.id] } : list.replies,
+        },
+      });
+      return { ok: true };
     },
 
     dispose() {
