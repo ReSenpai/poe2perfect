@@ -1,7 +1,7 @@
 import { ArrowUpRight, MessageSquare, Search, X } from 'lucide-preact';
 import type { RefObject } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { CommentsController, CommentsState, LoadState } from '@/lib/comments/controller';
+import { hasMissingReplies, type CommentsController, type CommentsState, type LoadState } from '@/lib/comments/controller';
 import { filterThreads, type FilteredThreads } from '@/lib/comments/filter';
 import type { CommentsSort } from '@/lib/comments/model';
 import { commentElementId } from './CommentCard';
@@ -37,7 +37,9 @@ export function CommentsPanel({
   const root = useRef<HTMLDivElement>(null);
   const filtered = state.status === 'ready' ? filterThreads(state.list, { query, authorReplied: authorOnly }) : null;
 
+  const searching = query.trim() !== '' || authorOnly;
   useSearchHighlight(root, query);
+  useLoadHiddenReplies(state, controller, searching);
 
   const openByDefault = (id: string) => state.status === 'ready' && (state.list.comments[id]?.depth ?? 0) < OPEN_BELOW_DEPTH;
   // A search opens the way to its matches whatever the reader folded.
@@ -120,7 +122,7 @@ export function CommentsPanel({
             state={state}
             controller={controller}
             filtered={filtered}
-            searching={query.trim() !== '' || authorOnly}
+            searching={searching}
             now={now()}
             isOpen={isOpen}
             onToggle={toggle}
@@ -133,7 +135,9 @@ export function CommentsPanel({
         )
       ) : (
         <div class="comments__list">
-          <Placeholder state={state} onRetry={() => controller?.retry()} onOpenOriginal={onOpenOriginal} />
+          <div class="comments__column">
+            <Placeholder state={state} onRetry={() => controller?.retry()} onOpenOriginal={onOpenOriginal} />
+          </div>
         </div>
       )}
     </div>
@@ -173,48 +177,50 @@ function ReadyList({
 
   return (
     <div class="comments__list">
-      {bar}
-      <CommentComposer
-        label="Add a comment"
-        placeholder="Ask the author or share how the build went…"
-        submitLabel="Post"
-        onSubmit={(text) => controller.post(null, text)}
-        onSignIn={thread.onSignIn}
-        inline
-      />
-      {searching && page.hasMore && (
-        <p class="comments__scope-note">
-          {`Searching loaded comments only (${state.total !== null ? `${loaded} of ${state.total}` : `${loaded}`}).`}
-          <button type="button" class="comment__link" disabled={more.status === 'loading'} onClick={() => controller.loadMore()}>
-            {more.status === 'loading' ? 'Loading…' : 'Load more'}
-          </button>
-        </p>
-      )}
-      {rootIds.length === 0 &&
-        (searching ? (
-          <EmptyState title="No matches in loaded comments" text="Try other words, or clear the search." />
-        ) : (
-          !page.hasMore && <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
+      <div class="comments__column">
+        {bar}
+        <CommentComposer
+          label="Add a comment"
+          placeholder="Ask the author or share how the build went…"
+          submitLabel="Post"
+          onSubmit={(text) => controller.post(null, text)}
+          onSignIn={thread.onSignIn}
+          inline
+        />
+        {searching && page.hasMore && (
+          <p class="comments__scope-note">
+            {`Searching loaded comments only (${state.total !== null ? `${loaded} of ${state.total}` : `${loaded}`}).`}
+            <button type="button" class="comment__link" disabled={more.status === 'loading'} onClick={() => controller.loadMore()}>
+              {more.status === 'loading' ? 'Loading…' : 'Load more'}
+            </button>
+          </p>
+        )}
+        {rootIds.length === 0 &&
+          (searching ? (
+            <EmptyState title="No matches in loaded comments" text="Try other words, or clear the search." />
+          ) : (
+            !page.hasMore && <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
+          ))}
+        {rootIds.map((id) => (
+          <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
         ))}
-      {rootIds.map((id) => (
-        <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
-      ))}
-      {page.hasMore && !searching && more.status === 'idle' && <div ref={end} class="comments__end" aria-hidden="true" />}
-      {more.status === 'loading' && !searching && (
-        <p class="comments__more-status" role="status">
-          <span class="spinner spinner--small" aria-hidden="true" />
-          Loading more comments…
-        </p>
-      )}
-      {more.status === 'error' && (
-        <p class="comments__error" role="alert">
-          {`Couldn't load more comments (${more.message}).`}
-          {waitNote(more, thread.now)}
-          <button type="button" class="comment__link" onClick={() => controller.loadMore()}>
-            Try again
-          </button>
-        </p>
-      )}
+        {page.hasMore && !searching && more.status === 'idle' && <div ref={end} class="comments__end" aria-hidden="true" />}
+        {more.status === 'loading' && !searching && (
+          <p class="comments__more-status" role="status">
+            <span class="spinner spinner--small" aria-hidden="true" />
+            Loading more comments…
+          </p>
+        )}
+        {more.status === 'error' && (
+          <p class="comments__error" role="alert">
+            {`Couldn't load more comments (${more.message}).`}
+            {waitNote(more, thread.now)}
+            <button type="button" class="comment__link" onClick={() => controller.loadMore()}>
+              Try again
+            </button>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -296,6 +302,19 @@ function useWhenVisible(element: RefObject<HTMLElement>, onVisible: () => void) 
     observer.observe(target);
     return () => observer.disconnect();
   });
+}
+
+/**
+ * While a search or filter hides threads, their answers still load as they would if shown (down to the depth threads
+ * open by themselves), so answers the page left out can match. Each thread is asked for once.
+ */
+function useLoadHiddenReplies(state: CommentsState, controller: CommentsController | null, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || !controller || state.status !== 'ready' || state.resort.status === 'loading') return;
+    for (const comment of Object.values(state.list.comments)) {
+      if (comment.depth < OPEN_BELOW_DEPTH && !state.replies[comment.id] && hasMissingReplies(state, comment.id)) controller.loadReplies(comment.id);
+    }
+  }, [state, controller, enabled]);
 }
 
 /** Marks the query in the shown comments with the CSS Custom Highlight API, leaving the rendered text untouched. */

@@ -438,6 +438,37 @@ describe('CommentsPanel', () => {
       expect(screen.getByText('Which gem first?')).toBeTruthy();
     });
 
+    it("finds the author's answers deeper in threads it is not showing, as new pages come", async () => {
+      const { calls, settle } = renderPanel(
+        readySeed([rawComment({ id: 'r1', author: frost, text: 'Budget ring?' }), rawComment({ id: 'a1', parentId: 'r1', author })], { hasMore: true }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Author replied' }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await settle(0, ok([rawComment({ id: 'r2', author: ashen, text: 'Which gem first?', replyCount: 1 }), rawComment({ id: 'a2', parentId: 'r2', author: frost, replyCount: 1 })]));
+      expect(screen.queryByText('Which gem first?')).toBeNull();
+
+      expect(calls[1]).toMatchObject({ kind: 'replies', input: { parentId: 'a2' } });
+      await settle(1, ok([rawComment({ id: 'x1', parentId: 'a2', depth: 2, author, text: 'Gem answer' })], { parentId: 'a2' }));
+
+      expect(screen.getByText('Which gem first?')).toBeTruthy();
+      expect(screen.getByText('Gem answer')).toBeTruthy();
+    });
+
+    it('finds search words in answers the page left out too', async () => {
+      const { calls, settle } = renderPanel(
+        readySeed([rawComment({ id: 'r1', author: frost, text: 'Budget ring?' })], { hasMore: true }),
+      );
+      fireEvent.input(screen.getByRole('searchbox', { name: 'Search comments' }), { target: { value: 'flask' } });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      await settle(0, ok([rawComment({ id: 'r2', author: ashen, text: 'Which gem first?', replyCount: 1 }), rawComment({ id: 'a2', parentId: 'r2', author: frost, replyCount: 1 })]));
+      expect(calls[1]).toMatchObject({ kind: 'replies', input: { parentId: 'a2' } });
+
+      await settle(1, ok([rawComment({ id: 'x1', parentId: 'a2', depth: 2, author: ashen, text: 'Use a flask of mana' })], { parentId: 'a2' }));
+      expect(screen.getByText('Which gem first?')).toBeTruthy();
+    });
+
     it('is not offered when the build author cannot be told apart', () => {
       renderPanel({ ...readySeed([rawComment({ id: 'r1' })]), authorId: null } as CommentsSeed);
 

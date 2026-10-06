@@ -156,12 +156,15 @@
   padding: 20px 24px 24px;
 }
 
-.comments__list > * {
+/* Everything in the feed, in one centred column. */
+.comments__column {
+  display: flex;
   box-sizing: border-box;
+  flex: 1 0 auto;
+  flex-direction: column;
   width: 100%;
   max-width: 960px;
-  margin-right: auto;
-  margin-left: auto;
+  margin: 0 auto;
 }
 
 .comments__list::-webkit-scrollbar {
@@ -190,7 +193,7 @@
   font-size: 13px;
 }
 
-.comments__list > .comments__error {
+.comments__column > .comments__error {
   padding: 12px 0;
 }
 
@@ -277,7 +280,7 @@
   gap: 8px;
 }
 
-.comments__list > .composer {
+.comments__column > .composer {
   padding-bottom: 6px;
 }
 
