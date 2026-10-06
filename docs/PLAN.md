@@ -467,11 +467,17 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   Seed `unavailable` теперь несёт `resourceId`/`authorId`/`total`. Живая проверка в Chrome (dev-хук
   `poe2-build-guide:comments`): sample build — 10 → 18 корней, ответ второго уровня догружен; билд с ответами
   автора — 14 его сообщений распознано. Firefox — проверить руками.
-- **C4. Вкладка Comments (read-only).** `route.ts` (`comments`, `hasVariant: false`, вариант не сбрасывается),
-  `Tabs` (MessageSquare, число — только подтверждённое), `ui/comments/` (CommentsPanel, CommentThread, CommentBody,
-  `comments.css`). Карточки по эскизу -2: аватар/инициалы, имя, Build author, время (полная дата в title),
-  View/Hide replies с `aria-expanded`, Show more/less для длинных, спойлер под кнопкой, `Comment unavailable`.
-  Состояния: loading-скелетоны, empty, disabled, unavailable, error + Retry. Сверка в Chrome со скриншотами.
+- **C4. Вкладка Comments ✅** (`ui/comments/`: `CommentsPanel`, `CommentThread`, `CommentCard`, `use-comments`,
+  `comments.css`; `lib/comments/time.ts`). Вкладка последней, всегда видна, вариант не сбрасывает, `#comments`
+  с сайта её открывает; в табе — счётчик сайта. Контроллер комментариев создаёт `PageController` на каждый
+  загруженный билд и закрывает при уходе. Карточки по эскизу -2: аватар / инициалы, имя, Build author, «2 hours ago»
+  (полная дата в title), тело через `<RichText>` (в комментариях бывают чипы предметов) с запасным plain text,
+  складывание после ~8 строк, спойлер под кнопкой, `Comment unavailable`. Ответы: View N replies / Hide replies
+  (`aria-expanded`), недостающие догружаются при первом раскрытии, дальше — Load more replies; ответ на ответ —
+  на том же отступе с «Replying to @name» (кнопка к родителю); у ветки — Author replied. **Сюда же из C6:**
+  Load more comments и ошибки страниц (с «The site asked to wait N s.»). Состояния: No comments yet, disabled,
+  unavailable (+ Try again через API), Loading comments…. Проверено вживую: 10 → 20 корней, ответ автора с бейджем
+  и линией, второй уровень ответов.
 - **C5. Переход на сайт.** `Reply on Mobalytics` / `Open on Mobalytics`: режим original в той же вкладке, прокрутка
   к виджету сайта (поиск ≤ 5 с, observer снимается), page lock и focus guard не мешают; Open guide возвращает на
   Comments. Иконка ArrowUpRight (это смена режима, не внешняя ссылка). `Open thread` — только если найдём якорь ветки.
@@ -483,7 +489,7 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   UI: поле ответа под комментарием и внизу вкладки, только plain text, Ctrl+Enter; не вошёл → «Sign in on
   Mobalytics»; ошибка / `rejectionReason` / `retryAfterSeconds` показываются у поля, текст не теряется; после
   успеха ответ сразу в ветке (данные из ответа мутации). Отправка — только явным действием пользователя.
-- **C6. Навигация по обсуждению.** Load more comments в UI, сортировка (только реально поддержанные значения, смена
+- **C6. Навигация по обсуждению.** Сортировка (только реально поддержанные значения, смена
   сбрасывает cursor), локальный поиск с подсветкой текстовыми узлами и пометкой «Searching loaded comments only»
   при неполной загрузке, фильтр All / Author replied (скрыт, если автора не определить). Совпадение в ответе
   раскрывает его ветку; после очистки поиска раскрытие возвращается как было.

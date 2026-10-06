@@ -61,6 +61,7 @@ export function App({
           onVariantChange={onVariantChange}
           glanceCollapsed={glanceCollapsed}
           onGlanceCollapsedChange={onGlanceCollapsedChange}
+          comments={state.comments}
         />
       </div>
     );

@@ -1,6 +1,7 @@
 import { ChevronsDown, ChevronsUp, LogOut, TriangleAlert } from 'lucide-preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Build } from '@/lib/build/model';
+import type { CommentsController } from '@/lib/comments/controller';
 import { availableTabs, formatRoute, parseRoute, type RememberedVariant, type Route, type TabId } from '@/lib/ui/route';
 import { TooltipProvider } from '@/ui/tooltip/Tooltip';
 import { BuildHeader } from './BuildHeader';
@@ -9,12 +10,14 @@ import { AtlasPanel } from '@/ui/passives/AtlasPanel';
 import { PassivesPanel } from '@/ui/passives/PassivesPanel';
 import { ProgressionPanel } from '@/ui/progression/ProgressionPanel';
 import { SkillsPanel } from '@/ui/skills/SkillsPanel';
+import { CommentsPanel } from '@/ui/comments/CommentsPanel';
+import { useCommentsState } from '@/ui/comments/use-comments';
 import { OverviewPanel } from './OverviewPanel';
 import { VariantPicker } from './VariantPicker';
 import { panelElementId, tabElementId, Tabs } from './Tabs';
 
 /** Tabs whose content fills the panel instead of scrolling it (the embedded site trees, the stage view). */
-const FILL_TABS: TabId[] = ['passives', 'atlas', 'progression'];
+const FILL_TABS: TabId[] = ['passives', 'atlas', 'progression', 'comments'];
 
 export interface BuildViewProps {
   build: Build;
@@ -35,6 +38,8 @@ export interface BuildViewProps {
   onVariantChange?: (variant: RememberedVariant) => void;
   glanceCollapsed?: boolean;
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
+  /** The build's discussion; without one the Comments tab says it is unavailable. */
+  comments?: CommentsController | null;
 }
 
 const NO_VARIANTS = "The author hasn't added build variants yet.";
@@ -54,8 +59,11 @@ export function BuildView({
   onVariantChange,
   glanceCollapsed,
   onGlanceCollapsedChange,
+  comments = null,
 }: BuildViewProps) {
   const tabs = availableTabs(build);
+  const commentsState = useCommentsState(comments);
+  const commentsTotal = commentsState.status === 'disabled' ? null : commentsState.total;
   const [route, setRoute] = useState<Route>(() => parseRoute(initialHash, build, defaultTab, defaultVariant));
 
   useEffect(() => subscribeToHash?.((hash) => setRoute(parseRoute(hash, build))), [subscribeToHash, build]);
@@ -84,7 +92,7 @@ export function BuildView({
       <div class="build-view">
         {!headerCollapsed && <BuildHeader build={build} />}
         <div class="tab-bar">
-          <Tabs tabs={tabs} selected={route.tab} onSelect={selectTab} />
+          <Tabs tabs={tabs} selected={route.tab} onSelect={selectTab} counts={commentsTotal === null ? {} : { comments: commentsTotal }} />
           <div class="tab-bar__side">
             {!build.hasStaticData && (
               <span class="data-warning" title={DATA_WARNING}>
@@ -129,6 +137,7 @@ export function BuildView({
           {route.tab === 'progression' && variant && (
             <ProgressionPanel build={build} variant={variant} onSelectVariant={selectVariant} onOpenTab={selectTab} />
           )}
+          {route.tab === 'comments' && <CommentsPanel controller={comments} />}
         </section>
       </div>
     </TooltipProvider>

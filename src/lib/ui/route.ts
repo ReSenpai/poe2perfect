@@ -1,6 +1,6 @@
 import type { Build } from '@/lib/build/model';
 
-export type TabId = 'overview' | 'skills' | 'gear' | 'passives' | 'atlas' | 'progression';
+export type TabId = 'overview' | 'skills' | 'gear' | 'passives' | 'atlas' | 'progression' | 'comments';
 
 export interface Route {
   tab: TabId;
@@ -31,6 +31,8 @@ export const TABS: readonly { id: TabId; label: string; hasVariant: boolean }[] 
   { id: 'passives', label: 'Passives', hasVariant: true },
   { id: 'atlas', label: 'Atlas Tree', hasVariant: true },
   { id: 'progression', label: 'Progression', hasVariant: true },
+  // The discussion belongs to the whole guide; the site's own links to it end in #comments.
+  { id: 'comments', label: 'Comments', hasVariant: false },
 ];
 
 /** Tabs this build has content for: the atlas tree only appears when some variant has one. */

@@ -170,6 +170,17 @@
   color: var(--accent);
 }
 
+/* A number beside a tab's name, e.g. how many comments the guide has. */
+.tabs__count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs__tab[aria-selected='true'] .tabs__count {
+  color: inherit;
+  opacity: 0.8;
+}
+
 .tabs__tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

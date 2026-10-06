@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Build } from '@/lib/build/model';
+import type { CommentsController } from '@/lib/comments/controller';
+import type { CommentsSeed } from '@/lib/comments/model';
 import type { LoadResult } from './build-loader';
 import { createPageController, isOverlayVisible, type PageState } from './controller';
 
@@ -73,7 +75,7 @@ describe('createPageController', () => {
     expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' });
 
     await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
-    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'ready', build: build('Build A') });
+    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'ready', build: build('Build A'), comments: null });
   });
 
   it('shows a load failure', async () => {
@@ -178,6 +180,77 @@ describe('createPageController', () => {
 
     expect(listener).toHaveBeenCalledOnce();
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ status: 'loading', mode: 'original' }));
+  });
+});
+
+describe('createPageController comments', () => {
+  const fakeComments = (seed: CommentsSeed) => ({ seed, dispose: vi.fn() }) as unknown as CommentsController & { seed: CommentsSeed; dispose: ReturnType<typeof vi.fn> };
+
+  function withComments() {
+    const pending = new Map<string, ReturnType<typeof deferred>>();
+    const load = vi.fn((url: string) => {
+      const d = deferred();
+      pending.set(url, d);
+      return d.promise;
+    });
+    const createComments = vi.fn(fakeComments);
+    const controller = createPageController({ load, initialMode: 'extension', createComments });
+    const settle = async (url: string, result: LoadResult) => {
+      pending.get(url)!.resolve(result);
+      await vi.waitFor(() => expect(controller.getState()).not.toMatchObject({ status: 'loading', url }));
+    };
+    const comments = () => (controller.getState() as { comments?: ReturnType<typeof fakeComments> }).comments;
+    return { controller, createComments, settle, comments };
+  }
+
+  it("gives each loaded build its own discussion, started from the page's comments", async () => {
+    const { controller, createComments, settle, comments } = withComments();
+
+    controller.handleUrl(A);
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
+
+    expect(createComments).toHaveBeenCalledWith(NO_COMMENTS);
+    expect(comments()!.seed).toBe(NO_COMMENTS);
+  });
+
+  it('keeps the discussion while only the mode or hash changes', async () => {
+    const { controller, createComments, settle, comments } = withComments();
+    controller.handleUrl(A);
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
+    const first = comments();
+
+    controller.setMode('original');
+    controller.handleUrl(`${A}#comments`);
+
+    expect(comments()).toBe(first);
+    expect(first!.dispose).not.toHaveBeenCalled();
+    expect(createComments).toHaveBeenCalledOnce();
+  });
+
+  it('closes the discussion when the reader moves to another build or leaves build pages', async () => {
+    const { controller, settle, comments } = withComments();
+    controller.handleUrl(A);
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
+    const first = comments()!;
+
+    controller.handleUrl(B);
+    expect(first.dispose).toHaveBeenCalledOnce();
+
+    await settle(B, { ok: true, comments: NO_COMMENTS, build: build('Build B') });
+    const second = comments()!;
+    controller.handleUrl(LIST);
+    expect(second.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('never starts a discussion for a load that was superseded', async () => {
+    const { controller, createComments, settle } = withComments();
+
+    controller.handleUrl(A);
+    controller.handleUrl(B);
+    await settle(B, { ok: true, comments: NO_COMMENTS, build: build('Build B') });
+    await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
+
+    expect(createComments).toHaveBeenCalledOnce();
   });
 });
 

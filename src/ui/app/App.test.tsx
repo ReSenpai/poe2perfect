@@ -31,7 +31,7 @@ describe('App', () => {
   });
 
   it('offers to open the guide while the original page is shown', () => {
-    const { onModeChange } = renderApp({ ...base, mode: 'original', status: 'ready', build: BUILD });
+    const { onModeChange } = renderApp({ ...base, mode: 'original', status: 'ready', build: BUILD, comments: null });
 
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Open guide' }));
@@ -78,7 +78,7 @@ describe('App', () => {
 
   it('shows the loaded build with its tabs, opening the tab from the location hash', () => {
     window.location.hash = '#gear_act-2';
-    const { onModeChange } = renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD });
+    const { onModeChange } = renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD, comments: null });
 
     expect(screen.getByRole('heading', { level: 1, name: TITLE })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Gear' }).getAttribute('aria-selected')).toBe('true');
@@ -89,7 +89,7 @@ describe('App', () => {
 
   it('follows hash changes made outside the UI, e.g. back and forward', async () => {
     window.location.hash = '#gear_act-2';
-    renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD });
+    renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD, comments: null });
 
     act(() => {
       window.location.hash = '#passives_act-1';
@@ -102,7 +102,7 @@ describe('App', () => {
   it('writes the selected tab to the location hash without adding history entries', () => {
     window.location.hash = '';
     const historyLength = window.history.length;
-    renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD });
+    renderApp({ ...base, mode: 'extension', status: 'ready', build: BUILD, comments: null });
 
     fireEvent.click(screen.getByRole('tab', { name: 'Skills' }));
 

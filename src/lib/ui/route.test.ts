@@ -11,15 +11,19 @@ const BUILD = buildWith(['ACT 1', 'ACT 4 - Endgame', 'ENDGAME (FULL LIFE)', 'Gas
 
 describe('TABS', () => {
   it('lists the tabs in display order', () => {
-    expect(TABS.map((tab) => tab.id)).toEqual(['overview', 'skills', 'gear', 'passives', 'atlas', 'progression']);
-    expect(TABS.map((tab) => tab.label)).toEqual(['Overview', 'Skills', 'Gear', 'Passives', 'Atlas Tree', 'Progression']);
+    expect(TABS.map((tab) => tab.id)).toEqual(['overview', 'skills', 'gear', 'passives', 'atlas', 'progression', 'comments']);
+    expect(TABS.map((tab) => tab.label)).toEqual(['Overview', 'Skills', 'Gear', 'Passives', 'Atlas Tree', 'Progression', 'Comments']);
   });
 });
 
 describe('availableTabs', () => {
   it('shows the atlas tree only for builds with an atlas tree in some variant', () => {
     expect(availableTabs(buildWith(['ACT 1', 'Endgame'], 0, { atlas: true })).map((tab) => tab.id)).toContain('atlas');
-    expect(availableTabs(BUILD).map((tab) => tab.id)).toEqual(['overview', 'skills', 'gear', 'passives', 'progression']);
+    expect(availableTabs(BUILD).map((tab) => tab.id)).toEqual(['overview', 'skills', 'gear', 'passives', 'progression', 'comments']);
+  });
+
+  it('always offers the comments, which belong to the whole guide', () => {
+    expect(availableTabs(buildWith([])).map((tab) => tab.id)).toContain('comments');
   });
 
   it('opens the overview for an atlas hash on a build without an atlas tree', () => {
@@ -102,6 +106,14 @@ describe('parseRoute', () => {
     expect(parseRoute('#gear%5Fact-4-endgame', BUILD)).toEqual({ tab: 'gear', variantId: 'id-1' });
   });
 
+  it("opens the comments from the site's own #comments links, keeping the variant read last", () => {
+    expect(parseRoute('#comments', BUILD, 'overview', { id: 'id-2', title: 'ENDGAME (FULL LIFE)' })).toEqual({ tab: 'comments', variantId: 'id-2' });
+  });
+
+  it("opens the comments from the site's own #comments links, keeping the variant read last", () => {
+    expect(parseRoute('#comments', BUILD, 'overview', { id: 'id-2', title: 'ENDGAME (FULL LIFE)' })).toEqual({ tab: 'comments', variantId: 'id-2' });
+  });
+
   it('works for a build without variants', () => {
     expect(parseRoute('#gear_act-1', buildWith([]))).toEqual({ tab: 'gear', variantId: null });
   });
@@ -115,6 +127,8 @@ describe('formatRoute', () => {
 
   it('omits the variant for tabs that show the whole build', () => {
     expect(formatRoute({ tab: 'overview', variantId: 'id-3' }, BUILD)).toBe('#overview');
+    expect(formatRoute({ tab: 'comments', variantId: 'id-3' }, BUILD)).toBe('#comments');
+    expect(formatRoute({ tab: 'comments', variantId: 'id-3' }, BUILD)).toBe('#comments');
   });
 
   it('only produces hashes that are safe inside a CSS selector', () => {

@@ -1,6 +1,7 @@
 import { isBuildPageUrl } from '@/lib/build-url';
 import { indexedDbCandidates } from '@/lib/data/page-idb';
 import { readStaticData } from '@/lib/data/static-data';
+import { createCommentsController } from '@/lib/comments/controller';
 import { createCommentsSource } from '@/lib/comments/source';
 import { summarizeBuild } from '@/lib/dev/build-summary';
 import { probeComments } from '@/lib/dev/comments-probe';
@@ -27,6 +28,7 @@ export default defineContentScript({
   matches: ['https://mobalytics.gg/*', 'https://www.mobalytics.gg/*'],
   runAt: 'document_idle',
   async main(ctx) {
+    const commentsSource = createCommentsSource({ fetch: pageFetch(), origin: location.origin });
     const load = createBuildLoader({
       initialUrl: location.href,
       initialDocument: document,
@@ -37,6 +39,7 @@ export default defineContentScript({
       load,
       initialMode: await pageModeItem.getValue(),
       onModeChange: (mode) => void pageModeItem.setValue(mode),
+      createComments: (seed) => createCommentsController({ seed, source: commentsSource }),
     });
 
     controller.subscribe((state) => {
@@ -100,7 +103,7 @@ export default defineContentScript({
         listenForPageReport(document, { event: 'poe2-build-guide:comments', attribute: 'data-poe2-build-guide-comments' }, async () => {
           const result = await load(location.href);
           if (!result.ok) throw new Error(result.message);
-          return probeComments(result.comments, createCommentsSource({ fetch: pageFetch(), origin: location.origin }));
+          return probeComments(result.comments, commentsSource);
         }),
       );
       ctx.onInvalidated(

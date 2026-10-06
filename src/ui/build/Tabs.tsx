@@ -1,4 +1,4 @@
-import { FlaskConical, Info, type LucideIcon, MapIcon, Network, Shirt, Sparkles } from 'lucide-preact';
+import { FlaskConical, Info, type LucideIcon, MapIcon, MessageSquare, Network, Shirt, Sparkles } from 'lucide-preact';
 import { useRef } from 'preact/hooks';
 import { TABS, type TabId } from '@/lib/ui/route';
 
@@ -11,13 +11,24 @@ const ICONS: Record<TabId, LucideIcon> = {
   passives: Network,
   atlas: MapIcon,
   progression: FlaskConical,
+  comments: MessageSquare,
 };
 
 export const tabElementId = (tab: TabId) => `tab-${tab}`;
 export const panelElementId = (tab: TabId) => `panel-${tab}`;
 
-/** WAI-ARIA tabs: one tab stop, arrow keys move the selection. */
-export function Tabs({ tabs = TABS, selected, onSelect }: { tabs?: readonly Tab[]; selected: TabId; onSelect: (tab: TabId) => void }) {
+/** WAI-ARIA tabs: one tab stop, arrow keys move the selection. `counts` adds a number to a tab, e.g. the comments. */
+export function Tabs({
+  tabs = TABS,
+  selected,
+  onSelect,
+  counts = {},
+}: {
+  tabs?: readonly Tab[];
+  selected: TabId;
+  onSelect: (tab: TabId) => void;
+  counts?: Partial<Record<TabId, number>>;
+}) {
   const refs = useRef(new Map<TabId, HTMLButtonElement>());
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -53,6 +64,7 @@ export function Tabs({ tabs = TABS, selected, onSelect }: { tabs?: readonly Tab[
           >
             <Icon size={16} aria-hidden="true" />
             <span>{label}</span>
+            {counts[id] !== undefined && <span class="tabs__count">{counts[id]}</span>}
           </button>
         );
       })}

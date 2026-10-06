@@ -1,5 +1,7 @@
 import { getBuildSlug } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
+import type { CommentsController } from '@/lib/comments/controller';
+import type { CommentsSeed } from '@/lib/comments/model';
 import type { LoadResult } from './build-loader';
 import type { FetchProgress } from './fetch-html';
 
@@ -15,7 +17,7 @@ interface ActiveBase {
 export type PageState =
   | { active: false; mode: PageMode }
   | (ActiveBase & { status: 'loading'; progress?: FetchProgress })
-  | (ActiveBase & { status: 'ready'; build: Build })
+  | (ActiveBase & { status: 'ready'; build: Build; comments: CommentsController | null })
   | (ActiveBase & { status: 'error'; message: string });
 
 export interface PageController {
@@ -35,16 +37,23 @@ export function createPageController({
   load,
   initialMode,
   onModeChange,
+  createComments,
 }: {
   load: (url: string, onProgress: (progress: FetchProgress) => void) => Promise<LoadResult>;
   initialMode: PageMode;
   onModeChange?: (mode: PageMode) => void;
+  /** The discussion of a loaded build, started from its page's comments; closed when the reader leaves the build. */
+  createComments?: (seed: CommentsSeed) => CommentsController;
 }): PageController {
   let state: PageState = { active: false, mode: initialMode };
   let loadId = 0;
   const listeners = new Set<(state: PageState) => void>();
 
   const set = (next: PageState) => {
+    // A build's discussion lives as long as the build is shown.
+    if (state.active && state.status === 'ready' && state.comments && !(next.active && next.status === 'ready' && next.comments === state.comments)) {
+      state.comments.dispose();
+    }
     state = next;
     listeners.forEach((listener) => listener(state));
   };
@@ -61,7 +70,11 @@ export function createPageController({
       .then((result) => {
         if (id !== loadId || !state.active) return;
         const base = { active: true as const, mode: state.mode, url: state.url, slug };
-        set(result.ok ? { ...base, status: 'ready', build: result.build } : { ...base, status: 'error', message: result.message });
+        set(
+          result.ok
+            ? { ...base, status: 'ready', build: result.build, comments: createComments?.(result.comments) ?? null }
+            : { ...base, status: 'error', message: result.message },
+        );
       });
   };
 

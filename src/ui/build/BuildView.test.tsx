@@ -5,6 +5,9 @@ import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import { loadFixture, textNodes } from '../../../tests/fixtures/load';
 import type { TabId } from '@/lib/ui/route';
+import { AUTHOR_ID, commentsPayload, rawComment, resourceIdOf } from '../../../tests/fixtures/comments';
+import { createCommentsController } from '@/lib/comments/controller';
+import { parseCommentsPayload } from '@/lib/comments/parse-comments';
 import { BuildView } from './BuildView';
 
 const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');
@@ -116,7 +119,7 @@ describe('BuildView tabs', () => {
   it('lists the tabs and opens the overview by default', () => {
     renderView();
 
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Skills', 'Gear', 'Passives', 'Atlas Tree', 'Progression']);
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Overview', 'Skills', 'Gear', 'Passives', 'Atlas Tree', 'Progression', 'Comments']);
     expect(selectedTab()).toBe('Overview');
     expect(screen.getByRole('tabpanel', { name: 'Overview' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: 'Build Overview' })).toBeTruthy();
@@ -171,10 +174,10 @@ describe('BuildView tabs', () => {
     renderView();
 
     fireEvent.keyDown(screen.getByRole('tab', { name: 'Overview' }), { key: 'ArrowLeft' });
-    expect(selectedTab()).toBe('Progression');
-    expect(document.activeElement?.textContent).toBe('Progression');
+    expect(selectedTab()).toBe('Comments');
+    expect(document.activeElement?.textContent).toBe('Comments');
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Progression' }), { key: 'ArrowRight' });
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Comments' }), { key: 'ArrowRight' });
     expect(selectedTab()).toBe('Overview');
   });
 
@@ -262,7 +265,7 @@ describe('BuildView tabs', () => {
   it('keeps only the selected tab focusable', () => {
     renderView('#skills');
 
-    expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('tabindex'))).toEqual(['-1', '0', '-1', '-1', '-1', '-1']);
+    expect(screen.getAllByRole('tab').map((tab) => tab.getAttribute('tabindex'))).toEqual(['-1', '0', '-1', '-1', '-1', '-1', '-1']);
   });
 
   it('switches tabs with number keys', () => {
@@ -285,6 +288,38 @@ describe('BuildView tabs', () => {
 
     expect(selectedTab()).toBe('Overview');
     input.remove();
+  });
+
+  it('shows the comments last, with the counter the site shows, and opens the discussion without a variant', () => {
+    const comments = createCommentsController({
+      seed: {
+        status: 'ready',
+        resourceId: resourceIdOf('doc-1'),
+        authorId: AUTHOR_ID,
+        sort: 'NEW',
+        canSort: true,
+        total: 24,
+        list: parseCommentsPayload(commentsPayload({ comments: [rawComment({ id: 'r1', text: 'Budget ring?' })] }), AUTHOR_ID)!,
+      },
+      source: { roots: () => new Promise(() => {}), replies: () => new Promise(() => {}) },
+    });
+    const { onRouteChange } = renderView('#gear', BUILD, false, undefined, { comments });
+
+    const tab = screen.getAllByRole('tab').at(-1)!;
+    expect(tab.textContent).toBe('Comments24');
+    fireEvent.click(tab);
+
+    expect(onRouteChange).toHaveBeenLastCalledWith('#comments');
+    expect(screen.getByRole('tabpanel', { name: /Comments/ })).toBeTruthy();
+    expect(screen.getByText('Budget ring?')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Build variant' })).toBeNull();
+  });
+
+  it('opens the comments from the hash and says they are unavailable without a discussion to read', () => {
+    renderView('#comments');
+
+    expect(selectedTab()).toBe('Comments');
+    expect(screen.getByText('Comments are unavailable here')).toBeTruthy();
   });
 
   it('stops listening to number keys when unmounted', () => {
