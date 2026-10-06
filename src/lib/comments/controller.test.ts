@@ -66,6 +66,11 @@ describe('createCommentsController', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('knows whether the build author can be told apart, so an Author replied filter makes sense', () => {
+    expect(ready(setup(firstPage()).state()).canIdentifyAuthor).toBe(true);
+    expect(ready(setup({ ...firstPage(), authorId: null } as CommentsSeed).state()).canIdentifyAuthor).toBe(false);
+  });
+
   it('passes on disabled comments as they are', () => {
     expect(setup({ status: 'disabled' }).state()).toEqual({ status: 'disabled' });
   });

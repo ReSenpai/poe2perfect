@@ -18,6 +18,8 @@ export type CommentsState =
       status: 'ready';
       sort: CommentsSort;
       canSort: boolean;
+      /** The guide author's account is known, so their answers can be found. */
+      canIdentifyAuthor: boolean;
       total: number | null;
       list: CommentsList;
       /** Next page of roots. */
@@ -214,7 +216,7 @@ export function createCommentsController({
         (outcome) =>
           set(
             'list' in outcome
-              ? { status: 'ready', sort: 'NEW', canSort: true, total, list: outcome.list, more: IDLE, resort: IDLE, replies: {} }
+              ? { status: 'ready', sort: 'NEW', canSort: true, canIdentifyAuthor: authorId !== null, total, list: outcome.list, more: IDLE, resort: IDLE, replies: {} }
               : { status: 'unavailable', canRetry: true, total, load: failedLoad(outcome.error) },
           ),
       );
@@ -275,6 +277,16 @@ function initialState(seed: CommentsSeed): CommentsState {
     case 'unavailable':
       return { status: 'unavailable', canRetry: seed.resourceId !== null, total: seed.total, load: IDLE };
     case 'ready':
-      return { status: 'ready', sort: seed.sort, canSort: seed.canSort, total: seed.total, list: seed.list, more: IDLE, resort: IDLE, replies: {} };
+      return {
+        status: 'ready',
+        sort: seed.sort,
+        canSort: seed.canSort,
+        canIdentifyAuthor: seed.authorId !== null,
+        total: seed.total,
+        list: seed.list,
+        more: IDLE,
+        resort: IDLE,
+        replies: {},
+      };
   }
 }

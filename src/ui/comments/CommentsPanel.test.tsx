@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/preact';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AUTHOR_ID, commentsPayload, deletedComment, rawComment, resourceIdOf } from '../../../tests/fixtures/comments';
 import { createCommentsController } from '@/lib/comments/controller';
 import type { CommentsSeed } from '@/lib/comments/model';
@@ -53,6 +53,33 @@ function renderPanel(seed: CommentsSeed, onOpenOriginal?: () => void) {
 const frost = { id: 'acc-frost', name: 'FrostRunner', avatarUrl: 'https://cdn.example/frost.png' };
 const author = { id: AUTHOR_ID, name: 'MisoxShiru' };
 const ashen = { id: 'acc-ashen', name: 'AshenExile' };
+
+/** IntersectionObserver stand-in: `reachEnd()` reports the end of the list as visible. */
+const observers: { callback: IntersectionObserverCallback; active: boolean }[] = [];
+class FakeObserver {
+  private readonly entry: { callback: IntersectionObserverCallback; active: boolean };
+  constructor(callback: IntersectionObserverCallback) {
+    this.entry = { callback, active: true };
+    observers.push(this.entry);
+  }
+  observe() {}
+  disconnect() {
+    this.entry.active = false;
+  }
+}
+const reachEnd = () =>
+  act(() => {
+    for (const { callback, active } of [...observers]) if (active) callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver);
+  });
+
+beforeEach(() => {
+  observers.length = 0;
+  vi.stubGlobal('IntersectionObserver', FakeObserver);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const card = (name: string) => screen.getByText(name, { selector: '.comment__name' }).closest('article')!;
 
@@ -125,7 +152,7 @@ describe('CommentsPanel', () => {
   it('offers no replies on a comment that has none', () => {
     renderPanel(readySeed([deletedComment({ id: 'd1' }), rawComment({ id: 'r1', author: frost })]));
 
-    expect(screen.queryByRole('button', { name: /repl/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /View|Hide replies/ })).toBeNull();
   });
 
   it('hides a spoiler until the reader asks for it', () => {
@@ -253,38 +280,166 @@ describe('CommentsPanel', () => {
   });
 
   describe('more comments', () => {
-    it('loads the next page on request and stops offering it at the end', async () => {
+    it('load by themselves when the end of the list comes into view, until there are no more', async () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true, cursor: 'c2' }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Load more comments' }));
+      expect(screen.queryByRole('button', { name: /Load more/ })).toBeNull();
+      await reachEnd();
       expect(calls[0]).toMatchObject({ kind: 'roots', input: { cursor: 'c2' } });
-      expect((screen.getByRole('button', { name: 'Loading…' }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByRole('status').textContent).toContain('Loading more comments…');
+
+      await reachEnd();
+      expect(calls).toHaveLength(1);
 
       await settle(0, ok([rawComment({ id: 'r2', author: ashen })]));
-
       expect(card('AshenExile')).toBeTruthy();
-      expect(screen.queryByRole('button', { name: /Load more comments|Loading/ })).toBeNull();
+
+      await reachEnd();
+      expect(calls).toHaveLength(1);
     });
 
-    it('keeps the comments read so far when a page fails', async () => {
+    it('keep the comments read so far when a page fails, and wait for the reader to try again', async () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Load more comments' }));
+      await reachEnd();
       await settle(0, { ok: false, error: { message: 'HTTP 503', retryAfterSeconds: null } });
 
       expect(screen.getByRole('alert').textContent).toContain("Couldn't load more comments (HTTP 503).");
       expect(card('FrostRunner')).toBeTruthy();
-      fireEvent.click(screen.getByRole('button', { name: 'Load more comments' }));
+      await reachEnd();
+      expect(calls).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
       expect(calls).toHaveLength(2);
     });
 
-    it('says when the site asked to wait before trying again', async () => {
+    it('say when the site asked to wait before trying again', async () => {
       const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }));
 
-      fireEvent.click(screen.getByRole('button', { name: 'Load more comments' }));
+      await reachEnd();
       await settle(0, { ok: false, error: { message: 'RATE_LIMITED', retryAfterSeconds: 30 } });
 
       expect(screen.getByRole('alert').textContent).toContain('The site asked to wait 30 s.');
+    });
+  });
+
+  describe('sorting', () => {
+    it('loads the first page in the order picked, showing the pick while it comes', async () => {
+      const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+      const select = screen.getByRole('combobox', { name: 'Sort comments' }) as HTMLSelectElement;
+
+      expect([...select.options].map((o) => o.textContent)).toEqual(['Newest first', 'Oldest first', 'Top']);
+      expect(select.value).toBe('NEW');
+      fireEvent.change(select, { target: { value: 'OLD' } });
+
+      expect(calls[0]).toMatchObject({ kind: 'roots', input: { sort: 'OLD', cursor: null } });
+      expect(select.value).toBe('OLD');
+
+      await settle(0, ok([rawComment({ id: 'old', author: ashen })], { sortBy: 'OLD' }));
+      expect(card('AshenExile')).toBeTruthy();
+      expect(screen.queryByText('FrostRunner')).toBeNull();
+    });
+
+    it('goes back to the order shown when the new one fails', async () => {
+      const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
+      const select = screen.getByRole('combobox', { name: 'Sort comments' }) as HTMLSelectElement;
+
+      fireEvent.change(select, { target: { value: 'TOP' } });
+      await settle(0, { ok: false, error: { message: 'HTTP 502', retryAfterSeconds: null } });
+
+      expect(screen.getByRole('alert').textContent).toBe("Couldn't sort the comments (HTTP 502).");
+      expect(select.value).toBe('NEW');
+    });
+
+    it('is not offered when the site does not sort this discussion', () => {
+      renderPanel({ ...readySeed([rawComment({ id: 'r1' })]), canSort: false } as CommentsSeed);
+
+      expect(screen.queryByRole('combobox', { name: 'Sort comments' })).toBeNull();
+    });
+  });
+
+  describe('search', () => {
+    const discussion = (extra: Parameters<typeof commentsPayload>[0] = {}) =>
+      readySeed(
+        [
+          rawComment({ id: 'r1', author: frost, text: 'Budget ring for maps?' }),
+          rawComment({ id: 'a1', parentId: 'r1', author, text: 'Start with a rare ring.' }),
+          rawComment({ id: 'r2', author: ashen, text: 'Which gem first?' }),
+        ],
+        extra,
+      );
+    const search = (text: string) => fireEvent.input(screen.getByRole('searchbox', { name: 'Search comments' }), { target: { value: text } });
+
+    it('keeps only the threads that mention the words, answers included', () => {
+      renderPanel(discussion());
+
+      search('rare');
+
+      expect(screen.getByText('Start with a rare ring.')).toBeTruthy();
+      expect(screen.queryByText('Which gem first?')).toBeNull();
+    });
+
+    it('opens a folded thread to show the answer that matches', () => {
+      renderPanel(discussion());
+      fireEvent.click(screen.getByRole('button', { name: 'Hide replies' }));
+      expect(screen.queryByText('Start with a rare ring.')).toBeNull();
+
+      search('rare');
+
+      expect(screen.getByText('Start with a rare ring.')).toBeTruthy();
+    });
+
+    it('says it only searched what is loaded and offers to load more instead of loading by itself', async () => {
+      const { calls } = renderPanel(discussion({ hasMore: true }));
+
+      search('gem');
+      expect(screen.getByText(/Searching loaded comments only/)).toBeTruthy();
+      await reachEnd();
+      expect(calls).toHaveLength(0);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+      expect(calls).toHaveLength(1);
+    });
+
+    it('says when nothing matches, with a way back to every comment', () => {
+      renderPanel(discussion());
+
+      search('flask');
+      expect(screen.getByText('No matches in loaded comments')).toBeTruthy();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+      expect(screen.getByText('Which gem first?')).toBeTruthy();
+      expect((screen.getByRole('searchbox', { name: 'Search comments' }) as HTMLInputElement).value).toBe('');
+    });
+  });
+
+  describe('Author replied', () => {
+    it('keeps the threads the build author answered in', () => {
+      renderPanel(
+        readySeed([
+          rawComment({ id: 'r1', author: frost, text: 'Budget ring?' }),
+          rawComment({ id: 'a1', parentId: 'r1', author }),
+          rawComment({ id: 'r2', author: ashen, text: 'Which gem first?' }),
+        ]),
+      );
+      const all = screen.getByRole('button', { name: 'All comments' });
+      const replied = screen.getByRole('button', { name: 'Author replied' });
+      expect(all.getAttribute('aria-pressed')).toBe('true');
+
+      fireEvent.click(replied);
+
+      expect(replied.getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByText('Budget ring?')).toBeTruthy();
+      expect(screen.queryByText('Which gem first?')).toBeNull();
+
+      fireEvent.click(all);
+      expect(screen.getByText('Which gem first?')).toBeTruthy();
+    });
+
+    it('is not offered when the build author cannot be told apart', () => {
+      renderPanel({ ...readySeed([rawComment({ id: 'r1' })]), authorId: null } as CommentsSeed);
+
+      expect(screen.queryByRole('button', { name: 'Author replied' })).toBeNull();
     });
   });
 
@@ -293,7 +448,7 @@ describe('CommentsPanel', () => {
       const open = vi.fn();
       renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), open);
 
-      const footer = screen.getByRole('button', { name: 'Load more comments' }).closest('footer')!;
+      const footer = document.querySelector('footer')!;
       fireEvent.click(within(footer).getByRole('button', { name: 'Open on Mobalytics' }));
 
       expect(open).toHaveBeenCalledOnce();
