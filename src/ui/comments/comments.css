@@ -600,16 +600,18 @@
 }
 
 /*
- * Threads as on Reddit. A line runs down from the middle of the avatar, along the answers; each answer hooks onto it
- * with a rounded elbow ending at its avatar, and the line stops at the last one. Sizes: avatar 28 px at the root, 24 px
- * for answers, 10 px between avatar and text.
+ * Threads as on Reddit. A 1 px line runs down from the middle of the avatar along the answers; each answer hooks onto
+ * it with a rounded elbow whose upright lies exactly on that line, and the line ends at the last answer. Pointing at a
+ * line (or its fold) lights up that line and the elbows to its own answers, not the lines further in.
+ * Sizes: avatar 28 px at the root, 24 px for answers, 10 px between avatar and text.
  */
 .comment {
   position: relative;
   --avatar: 24px;
   --pad-top: 0px;
   --pad-bottom: 0px;
-  --line: color-mix(in srgb, var(--border) 85%, var(--text-muted) 15%);
+  /* This comment's own line; every comment sets it, so a lit line never lights the ones further in. */
+  --rail: var(--thread-line);
 }
 
 .comment--root {
@@ -618,13 +620,18 @@
   --pad-bottom: 14px;
 }
 
-/* The line under the avatar; a wide, invisible hit area folds the branch like the minus does. */
+.comments__column {
+  --thread-line: color-mix(in srgb, var(--border) 70%, var(--text-muted) 30%);
+  --thread-line-lit: var(--text);
+}
+
+/* The line under the avatar, inside a wide invisible strip that folds the branch like the minus does. */
 .thread__rail {
   position: absolute;
   top: calc(var(--pad-top) + var(--avatar) + 4px);
   bottom: var(--pad-bottom);
   left: calc(var(--avatar) / 2 - 6px);
-  width: 12px;
+  width: 13px;
   cursor: pointer;
 }
 
@@ -632,15 +639,10 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 5px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--line);
+  left: 6px;
+  width: 1px;
+  background: var(--rail);
   content: '';
-}
-
-.thread__rail:hover::before {
-  background: var(--text-muted);
 }
 
 .thread__replies {
@@ -648,7 +650,9 @@
   flex-direction: column;
   gap: 12px;
   margin-top: 10px;
-  /* Distance from an answer's left edge back to its parent's line. */
+  /* Each set of answers draws its own elbows; lines further in keep their own colour. */
+  --branch: var(--thread-line);
+  /* From an answer's left edge back to its parent's line. */
   --to-line: calc(var(--parent-avatar) / 2 + 10px);
 }
 
@@ -662,17 +666,26 @@
   --parent-pad-bottom: 0px;
 }
 
-/* The elbow from the parent's line into this answer's avatar. */
+/* Pointing at a line or its fold lights that line and its elbows. */
+.comment:has(> .comment__main > .thread__rail:hover, > .comment__main > .comment__actions > .thread__fold:hover) {
+  --rail: var(--thread-line-lit);
+}
+
+.comment:has(> .comment__main > .thread__rail:hover, > .comment__main > .comment__actions > .thread__fold:hover) > .comment__main > .thread__replies {
+  --branch: var(--thread-line-lit);
+}
+
+/* The elbow from the parent's line into this answer's avatar; its upright overlaps the line exactly. */
 .thread__replies > .comment::after {
   position: absolute;
-  top: -10px;
-  left: calc(-1 * var(--to-line) - 1px);
-  width: calc(var(--to-line) - 3px);
-  height: calc(var(--avatar) / 2 + 10px);
-  border-bottom: 2px solid var(--line);
-  border-left: 2px solid var(--line);
-  border-bottom-left-radius: 10px;
+  top: -12px;
+  left: calc(-1 * var(--to-line));
   box-sizing: border-box;
+  width: calc(var(--to-line) - 4px);
+  height: calc(var(--avatar) / 2 + 12.5px);
+  border-bottom: 1px solid var(--branch);
+  border-left: 1px solid var(--branch);
+  border-bottom-left-radius: 12px;
   content: '';
   pointer-events: none;
 }
@@ -680,10 +693,10 @@
 /* Below the last answer the parent's line has nowhere to go: paint it over. */
 .thread__replies > .comment:last-child::before {
   position: absolute;
-  top: calc(var(--avatar) / 2);
+  top: calc(var(--avatar) / 2 + 1px);
   bottom: calc(-1 * var(--parent-pad-bottom) - 1px);
-  left: calc(-1 * var(--to-line) - 3px);
-  width: 6px;
+  left: calc(-1 * var(--to-line) - 2px);
+  width: 5px;
   background: var(--bg);
   content: '';
   pointer-events: none;
@@ -692,16 +705,16 @@
 /* The fold: a small circle on the line, beside the actions, with minus or plus. */
 .thread__fold {
   position: absolute;
-  left: calc(var(--avatar) / 2 - 9px);
+  left: calc(var(--avatar) / 2 - 8px);
   z-index: 1;
   display: inline-flex;
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   padding: 0;
-  border: 1px solid var(--text-muted);
+  border: 1px solid var(--rail);
   border-radius: 50%;
   background: var(--bg);
   color: var(--text-muted);
@@ -711,6 +724,10 @@
 .thread__fold:hover {
   border-color: var(--text);
   color: var(--text);
+}
+
+.thread__fold[aria-expanded='false'] {
+  border-color: var(--text-muted);
 }
 
 .thread__fold:focus-visible {
