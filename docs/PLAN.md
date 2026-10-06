@@ -401,6 +401,97 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   после ревью, unlisted — сразу, а номер версии у дополнения уникален, поэтому код уходит под четвёртым числом
   (`FIREFOX_BUILD=1` → `1.3.0.1`) и `.xpi` прикладывается к релизу этой версии.
 
+## Комментарии (план, 06.10.2026)
+
+Спецификация: [reference/poe2perfect_comments_design.md](../reference/poe2perfect_comments_design.md), эскизы —
+`reference/Комментарии к билду …-2.png` (вкладка) и `reference/Снаряжение и комментарии …-1.png` (Gear + панель).
+Одна модель данных, два представления: вкладка Comments (сначала) и боковая панель (потом). Ответ — прямо из
+расширения (шаг C5a), Open on Mobalytics остаётся.
+
+### Данные (живая проверка, 8 билдов каталога)
+- **Seed в документе.** Виджет `NgfDocumentCmWidgetCommentsV1` лежит в `doc.content[]` (не в `data.widgets`).
+  `data.isDisabled`, `data.payload`: `resourceId`, `commentId` (пустой), `error`, `page { hasMoreItems, nextCursor }`,
+  `data { parentId: null, sortBy: "NEW", limit: 10, comments[] }`; `data.commentsUiCapabilities`:
+  `loadingBehaviour: "SHOW_MORE"`, `sorting { enabled, defaultSortingOption: "NEW" }`. Тот же payload лежит
+  в запросе state `["ngf-comments", resourceId, "NEW", null]`. Signed-out HTML (наш `credentials: 'omit'`) seed
+  содержит; у вошедшего пользователя state пустой (~500 байт).
+- **`resourceId` = `"Poe2:UG:" + doc.id`.**
+- **Счётчик сайта:** `doc.comments.stats.totalComments` (сайт показывает его в шапке гайда). Считает сообщения всех
+  уровней, точная семантика с удалёнными не сходится (sample: 30 при 26 + 3 опубликованных). Показываем как сайт.
+- **Состав страницы.** 10 корней + все их ответы первого уровня: на всех 8 билдах сумма `replyCount` корней = числу
+  пришедших `depth: 1`. Ответы на ответы (`depth: 2`) в список не входят.
+- **Сообщение:** `id`, `parentId`, `depth`, `accountId`, `content` (Lexical `{ root }`), `plainTextContent`,
+  `status` (`PUBLISHED` / `DELETED`), `createdAt`, `updatedAt` (≠ `createdAt` у отредактированных), `deletedAt`,
+  `deletedByModerator`, `isSpoiler`, `spoilerLabel`, `score`/`upvotes`/`downvotes`, `replyCount`,
+  `profile { user { id, username, displayName }, avatar { iconUrl }, avatarFrame, title, commentator }`.
+  Удалённое: `status: DELETED`, пустой текст, `profile: null`, `accountId: ""` — tombstone, ответы под ним живут.
+  `avatar` у обычных пользователей часто `null` → инициалы.
+- **Тело:** узлы `paragraph`, `text` (с `format`), `linebreak`, `autolink` — всё уже понимает наш
+  `toRichBlocks` (ссылки через `safeHref`) → рендерим `<RichText>`, `plainTextContent` — запасной вариант.
+- **Автор билда:** `doc.author.id` (есть в preloaded state и в фикстурах) = `author.user.id` из GraphQL =
+  `accountId` его комментариев — сверено на двух билдах с ответами автора (7 и 4 совпадения). Не по имени.
+- **API** (`POST /api/poe-2/v1/graphql/query`, без cookie отвечает 200; схемы input сервер печатает в ошибке валидации):
+  - `NgfCommentsQuery` → `comments.comments(input: CommentsListInput { resourceId!, sortBy!, limit!, cursor })`;
+  - `NgfCommentRepliesQuery` → `comments.replies(input: CommentsRepliesInput { parentId!, sortBy!, limit!, cursor })` —
+    так грузятся ответы любой глубины (проверено для `depth: 2`) и продолжение длинных веток;
+  - `CommentsSortBy`: `NEW`, `OLD`, `TOP` (остальные значения — ошибка схемы);
+  - ответ — `CommentsPayload` (как seed), `error { code, message, retryAfterSeconds }`;
+  - запись: `NgfCreateCommentMutation(CommentsCreateCommentInput { resourceId!, content: Map!, sourceUrl })` и
+    `NgfCreateReplyMutation(CommentsCreateReplyInput { parentId!, content: Map!, sourceUrl })`, в ответе комментарий +
+    `rejectionReason`; запросы сайт шлёт с `Authorization: Bearer` (`getToken`). Есть ещё Delete и Vote — не берём.
+- **Якорь `#comments`.** Каталог сайта ведёт на `/poe-2/builds/<slug>#comments` — у нас это откроет вкладку
+  Comments, что и нужно. Community-билды (`/poe-2/profile/…`) расширение не обслуживает — вне объёма.
+- **Защита сайта.** Частые запросы HTML без cookie начинают получать 403 (GraphQL при этом отвечал) — лишний раз
+  страницу ради комментариев не перезапрашиваем, seed берём из уже загруженного документа.
+- **Не проверено:** билд с `isDisabled: true` и билд без комментариев (в каталоге таких не нашлось) — разбираем
+  оборонительно, тесты на синтетике; запрос из контент-скрипта (Chrome — обычный `fetch`, Firefox — `content.fetch`)
+  проверяем вживую в C3.
+
+### Шаги
+- **C1. Исследование и синтетические фикстуры ✅** — результаты выше. `tests/fixtures/comments.ts`: сообщения,
+  tombstone, payload, виджет, `withComments(doc)`, ответы GraphQL; `tests/comments-fixtures.test.ts` проверяет,
+  что `scrubBuildDocument` их вырезает и разбор билда они не меняют.
+- **C2. Модель и разбор seed** (`lib/comments/model.ts`, `parse-comments.ts`). Тесты: нет виджета → `unavailable`
+  (не ноль), `isDisabled` → `disabled`, пустой список без продолжения → `empty`, корни + ответы → ветки в порядке
+  источника, ответы внутри ветки от старых к новым, tombstone, edited, spoiler, автор только по id, мусорный payload
+  не роняет разбор, `hasMore`/`cursor`. `build-loader` передаёт seed рядом с `Build`, не внутри `Variant`.
+- **C3. Источник и контроллер** (`source.ts`, `controller.ts`). `NgfCommentsQuery` для корней и
+  `NgfCommentRepliesQuery` для ответов второго уровня и хвостов веток. Тесты: Load more добавляет страницу, дубли по id
+  заменяются, ошибка страницы оставляет загруженное, `retryAfterSeconds`, повторный клик не шлёт второй запрос,
+  смена билда / сортировки отменяет старый запрос (AbortController + generation), без бесконечных повторов.
+  Контент только в памяти, в storage не пишем.
+- **C4. Вкладка Comments (read-only).** `route.ts` (`comments`, `hasVariant: false`, вариант не сбрасывается),
+  `Tabs` (MessageSquare, число — только подтверждённое), `ui/comments/` (CommentsPanel, CommentThread, CommentBody,
+  `comments.css`). Карточки по эскизу -2: аватар/инициалы, имя, Build author, время (полная дата в title), Edited,
+  View/Hide replies с `aria-expanded`, Show more/less для длинных, спойлер под кнопкой, `Comment unavailable`.
+  Состояния: loading-скелетоны, empty, disabled, unavailable, error + Retry. Сверка в Chrome со скриншотами.
+- **C5. Переход на сайт.** `Reply on Mobalytics` / `Open on Mobalytics`: режим original в той же вкладке, прокрутка
+  к виджету сайта (поиск ≤ 5 с, observer снимается), page lock и focus guard не мешают; Open guide возвращает на
+  Comments. Иконка ArrowUpRight (это смена режима, не внешняя ссылка). `Open thread` — только если найдём якорь ветки.
+- **C5a. Reply из расширения** (Open on Mobalytics остаётся). Мутации и их input известны (см. «Данные»):
+  новый комментарий — `NgfCreateCommentMutation { resourceId, content }`, ответ — `NgfCreateReplyMutation
+  { parentId, content }`, `content` — Lexical `{ root }` (из plain text: абзац на строку). Осталось выяснить,
+  откуда сайт берёт Bearer-токен и доступен ли он контент-скрипту (иначе — вызов из MAIN world): пользователь сам
+  публикует тестовый ответ, мы смотрим запрос. Токен не логируем и не храним.
+  UI: поле ответа под комментарием и внизу вкладки, только plain text, Ctrl+Enter; не вошёл → «Sign in on
+  Mobalytics»; ошибка / `rejectionReason` / `retryAfterSeconds` показываются у поля, текст не теряется; после
+  успеха ответ сразу в ветке (данные из ответа мутации). Отправка — только явным действием пользователя.
+- **C6. Навигация по обсуждению.** Load more comments в UI, сортировка (только реально поддержанные значения, смена
+  сбрасывает cursor), локальный поиск с подсветкой текстовыми узлами и пометкой «Searching loaded comments only»
+  при неполной загрузке, фильтр All / Author replied (скрыт, если автора не определить). Совпадение в ответе
+  раскрывает его ветку; после очистки поиска раскрытие возвращается как было.
+- **C7. Боковая панель.** Кнопка в правой части tab bar (`Open/Close comments panel`, `aria-expanded`), ≥ 1180 px,
+  ширина `clamp(360px, 32vw, 480px)`, `aside` со своей прокруткой; тот же контроллер и состояние (поиск, ветки).
+  Сначала Gear (панель вместо Gear Priority через явный layout-prop, предметы в две колонки), затем Skills и Overview.
+  Passives / Atlas Tree / Progression в первой версии ведут на вкладку Comments — деревья не ужимаем.
+  Expand → вкладка + Back to <раздел>; X и Escape закрывают, фокус возвращается на кнопку; уже 1180 px — переход
+  на вкладку. Сверка с эскизом -1.
+- **C8. Проверка и выпуск.** Firefox, клавиатура, длинные ветки, переключение билдов, 1280×720 / 1920×1080 / 125 %,
+  README и CHANGELOG.
+
+Упрощения против спецификации (сознательно): без отдельной таблицы capabilities сверх реально найденных флагов,
+без Refresh и восстановления якоря чтения при смене ширины в первой версии, вложенность — два уровня, как у сайта.
+
 ## Будущие фичи
 
 ### Резисты и ES (beta)
