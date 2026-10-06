@@ -518,9 +518,14 @@
   white-space: pre-line;
 }
 
+.comment__name--deleted {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .comment__unavailable {
   margin: 0;
-  padding-top: 3px;
+  padding-top: 2px;
   color: var(--text-disabled);
   font: italic 14px/22px var(--font-reading);
 }
@@ -545,6 +550,8 @@
   flex-wrap: wrap;
   gap: 2px 14px;
   align-items: center;
+  /* Room for the fold on the line even when nothing else is in the row (a deleted comment's). */
+  min-height: 24px;
   margin-top: 4px;
 }
 

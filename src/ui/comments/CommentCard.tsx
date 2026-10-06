@@ -32,17 +32,20 @@ export function CommentCard({
     <article class={classes.filter(Boolean).join(' ')} id={commentElementId(comment.id)} tabIndex={-1}>
       <Avatar comment={comment} />
       <div class="comment__main">
-        {!comment.deleted && (
-          <header class="comment__meta">
+        <header class="comment__meta">
+          {comment.deleted ? (
+            // As the site heads it: no name or avatar survive the deletion.
+            <span class="comment__name comment__name--deleted">[deleted]</span>
+          ) : (
             <span class="comment__name">{author?.name ?? 'Unknown user'}</span>
-            {author?.isBuildAuthor && <span class="comment__badge">Build author</span>}
-            {comment.createdAt && (
-              <time class="comment__time" dateTime={comment.createdAt} title={fullDate(comment.createdAt)}>
-                {relativeTime(comment.createdAt, now)}
-              </time>
-            )}
-          </header>
-        )}
+          )}
+          {author?.isBuildAuthor && <span class="comment__badge">Build author</span>}
+          {comment.createdAt && (
+            <time class="comment__time" dateTime={comment.createdAt} title={fullDate(comment.createdAt)}>
+              {relativeTime(comment.createdAt, now)}
+            </time>
+          )}
+        </header>
         {comment.deleted ? (
           <p class="comment__unavailable">
             {comment.deleted === 'moderator' ? 'This comment was removed by a moderator.' : 'This comment was deleted by its author.'}

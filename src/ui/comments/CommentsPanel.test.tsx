@@ -132,6 +132,13 @@ describe('CommentsPanel', () => {
     expect(screen.getByText('Still here')).toBeTruthy();
   });
 
+  it('heads a deleted comment as the site does, with [deleted] and its time', () => {
+    renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1, createdAt: hoursAgo(3) }), rawComment({ id: 'a1', parentId: 'd1', author: ashen })]));
+
+    const deleted = screen.getByText('[deleted]', { selector: '.comment__name' }).closest('article')!;
+    expect(within(deleted).getAllByText('3 hours ago')).toHaveLength(1);
+  });
+
   it('says when a moderator removed a comment', () => {
     renderPanel(readySeed([deletedComment({ id: 'm1', replyCount: 1, deletedByModerator: true }), rawComment({ id: 'a1', parentId: 'm1', author: ashen })]));
 
