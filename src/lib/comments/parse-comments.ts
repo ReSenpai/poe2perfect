@@ -93,7 +93,7 @@ function parseComment(raw: unknown, authorId: string | null): Comment | null {
   const id = str(raw.id);
   if (!id) return null;
   const parentId = str(raw.parentId);
-  const deleted = raw.status === 'DELETED';
+  const deleted = raw.status === 'DELETED' ? (raw.deletedByModerator === true ? 'moderator' : 'author') : null;
   const createdAt = str(raw.createdAt);
 
   return {

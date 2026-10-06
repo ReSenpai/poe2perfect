@@ -472,8 +472,10 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
   с сайта её открывает; в табе — счётчик сайта. Контроллер комментариев создаёт `PageController` на каждый
   загруженный билд и закрывает при уходе. Карточки по эскизу -2: аватар / инициалы, имя, Build author, «2 hours ago»
   (полная дата в title), тело через `<RichText>` (в комментариях бывают чипы предметов) с запасным plain text,
-  складывание после ~8 строк, спойлер под кнопкой, `Comment unavailable`. Ответы: View N replies / Hide replies
-  (`aria-expanded`), недостающие догружаются при первом раскрытии, дальше — Load more replies; ответ на ответ —
+  складывание после ~8 строк, спойлер под кнопкой. Удалённые — как у сайта: без ответов не показываются, с ответами —
+  «This comment was deleted by its author.» / «…removed by a moderator.». Ветки открыты сами до третьего уровня
+  ответов (по замечанию пользователя), глубже — View N replies; свернуть можно у корня (Hide replies). Недостающие
+  ответы открытых веток догружаются сами, дальше — Load more replies; ответ на ответ —
   на том же отступе с «Replying to @name» (кнопка к родителю); у ветки — Author replied. **Сюда же из C6:**
   Load more comments и ошибки страниц (с «The site asked to wait N s.»). Состояния: No comments yet, disabled,
   unavailable (+ Try again через API), Loading comments…. Проверено вживую: 10 → 20 корней, ответ автора с бейджем

@@ -108,7 +108,7 @@ describe('parseCommentsPayload', () => {
       body: lexicalBody('Line one', 'Line two'),
       plainText: 'Line one\nLine two',
       createdAt: '2026-09-20T10:00:00.000Z',
-      deleted: false,
+      deleted: null,
       spoiler: null,
       replyCount: 2,
     });
@@ -132,8 +132,14 @@ describe('parseCommentsPayload', () => {
   it('keeps a deleted comment in place as a tombstone, with its replies', () => {
     const list = parse([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'r', parentId: 'd1' })]);
 
-    expect(list.comments.d1).toMatchObject({ deleted: true, author: null, body: null, plainText: '' });
+    expect(list.comments.d1).toMatchObject({ deleted: 'author', author: null, body: null, plainText: '' });
     expect(list.replies.d1).toEqual(['r']);
+  });
+
+  it('tells a comment removed by a moderator from one its author deleted', () => {
+    const list = parse([deletedComment({ id: 'm1', deletedByModerator: true })]);
+
+    expect(list.comments.m1!.deleted).toBe('moderator');
   });
 
   it('hides a spoiler behind its label, falling back to a generic one', () => {

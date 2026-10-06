@@ -27,8 +27,8 @@ export interface Comment {
   plainText: string;
   /** ISO date; null when the site's value is unreadable. The site has no "edited" date (`updatedAt` moves on votes). */
   createdAt: string | null;
-  /** The site keeps deleted comments in place (with their replies) but drops the text and the author. */
-  deleted: boolean;
+  /** Who deleted it, if anyone. The site drops the text and the author but keeps the comment for its replies. */
+  deleted: 'author' | 'moderator' | null;
   /** Label to show instead of the text until the reader asks for it; null when it is not a spoiler. */
   spoiler: string | null;
   replyCount: number;

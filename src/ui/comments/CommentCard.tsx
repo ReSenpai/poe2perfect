@@ -45,7 +45,13 @@ export function CommentCard({
             {`Replying to @${replyingTo}`}
           </button>
         )}
-        {comment.deleted ? <p class="comment__unavailable">Comment unavailable</p> : <CommentBody comment={comment} />}
+        {comment.deleted ? (
+          <p class="comment__unavailable">
+            {comment.deleted === 'moderator' ? 'This comment was removed by a moderator.' : 'This comment was deleted by its author.'}
+          </p>
+        ) : (
+          <CommentBody comment={comment} />
+        )}
         {children}
       </div>
     </article>

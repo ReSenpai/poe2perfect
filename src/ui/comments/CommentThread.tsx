@@ -1,15 +1,19 @@
 import { ChevronDown, ChevronUp } from 'lucide-preact';
+import { useEffect } from 'preact/hooks';
 import { hasMissingReplies, type CommentsController, type CommentsState } from '@/lib/comments/controller';
 import { CommentCard } from './CommentCard';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
+/** Comments above this depth show their answers from the start, so a thread reads down to its third level of answers. */
+export const OPEN_BELOW_DEPTH = 3;
+
 export interface ThreadProps {
   state: Ready;
   controller: CommentsController;
   now: number;
-  /** Comments whose replies are open; shared by every thread of the panel. */
-  expanded: ReadonlySet<string>;
+  /** Whether a comment's answers are shown: open by depth unless the reader toggled it. Shared by every thread. */
+  isOpen: (id: string) => boolean;
   onToggle: (id: string) => void;
   /** Brings a comment into view, e.g. the one a reply answers. */
   onShowComment: (id: string) => void;
@@ -18,14 +22,21 @@ export interface ThreadProps {
 const repliesLabel = (n: number) => (n === 1 ? 'View 1 reply' : n > 1 ? `View ${n} replies` : 'View replies');
 const repliesElementId = (id: string) => `comment-replies-${id}`;
 
+const hasReplies = (state: Ready, id: string) => (state.list.comments[id]?.replyCount ?? 0) > 0 || (state.list.replies[id]?.length ?? 0) > 0;
+
+/** Whether to show a comment: the site leaves out deleted ones nobody answered. */
+export const isShown = (state: Ready, id: string) => {
+  const comment = state.list.comments[id];
+  return Boolean(comment) && (!comment!.deleted || hasReplies(state, id));
+};
+
 /**
  * A root comment with its replies. Every answer sits one step in, in reading order; an answer to a reply follows that
  * reply and says whom it answers, so the thread never turns into a staircase.
  */
 export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: string }) {
-  const { state, now, expanded } = props;
+  const { state, now, isOpen } = props;
   const root = state.list.comments[rootId]!;
-  const open = expanded.has(rootId);
   const authorReplied = descendants(state, rootId).some((id) => state.list.comments[id]?.author?.isBuildAuthor);
 
   return (
@@ -34,7 +45,7 @@ export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: stri
         {hasReplies(state, rootId) && <RepliesToggle id={rootId} {...props} />}
         {authorReplied && <span class="comment__author-replied">Author replied</span>}
       </div>
-      {open && (
+      {isOpen(rootId) && hasReplies(state, rootId) && (
         <div class="thread__replies" id={repliesElementId(rootId)}>
           <Replies parentId={rootId} {...props} />
         </div>
@@ -43,34 +54,43 @@ export function CommentThread({ rootId, ...props }: ThreadProps & { rootId: stri
   );
 }
 
-/** The loaded answers to `parentId`, each followed by its own open answers, then how loading them is going. */
+/**
+ * The loaded answers to `parentId`, each followed by its own open answers, then how loading them is going. Answers the
+ * page left out are asked for as soon as they are shown; further pages wait for "Load more replies".
+ */
 function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
-  const { state, controller, now, expanded, onShowComment } = props;
+  const { state, controller, now, isOpen, onShowComment } = props;
   const parent = state.list.comments[parentId]!;
-  const ids = state.list.replies[parentId] ?? [];
-  const load = state.replies[parentId]?.load ?? { status: 'idle' };
-  const queried = Boolean(state.replies[parentId]?.page);
+  const ids = (state.list.replies[parentId] ?? []).filter((id) => isShown(state, id));
+  const thread = state.replies[parentId];
+  const load = thread?.load ?? { status: 'idle' };
+  const queried = Boolean(thread?.page);
+  const missing = hasMissingReplies(state, parentId);
+
+  useEffect(() => {
+    if (!queried && load.status === 'idle' && missing) controller.loadReplies(parentId);
+  }, [controller, parentId, queried, load.status, missing]);
 
   return (
     <>
       {ids.map((id) => {
         const reply = state.list.comments[id]!;
-        const answersReply = parent.depth > 0;
         return [
           <CommentCard
             key={id}
             comment={reply}
             now={now}
-            replyingTo={answersReply ? (parent.author?.name ?? 'deleted comment') : undefined}
+            replyingTo={parent.depth > 0 ? (parent.author?.name ?? 'deleted comment') : undefined}
             onShowParent={() => onShowComment(parentId)}
           >
-            {hasReplies(state, id) && (
+            {/* Answers open by default fold with their root; deeper ones get their own toggle. */}
+            {hasReplies(state, id) && (reply.depth >= OPEN_BELOW_DEPTH || !isOpen(id)) && (
               <div class="comment__actions">
                 <RepliesToggle id={id} {...props} />
               </div>
             )}
           </CommentCard>,
-          expanded.has(id) && <Replies key={`${id}-replies`} parentId={id} {...props} />,
+          isOpen(id) && hasReplies(state, id) && <Replies key={`${id}-replies`} parentId={id} {...props} />,
         ];
       })}
       {load.status === 'loading' && (
@@ -87,7 +107,7 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
           </button>
         </p>
       )}
-      {load.status === 'idle' && queried && hasMissingReplies(state, parentId) && (
+      {load.status === 'idle' && queried && missing && (
         <button type="button" class="comment__link thread__more" onClick={() => controller.loadReplies(parentId)}>
           Load more replies
         </button>
@@ -96,27 +116,25 @@ function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
   );
 }
 
-function RepliesToggle({ id, state, controller, expanded, onToggle }: ThreadProps & { id: string }) {
+function RepliesToggle({ id, state, isOpen, onToggle }: ThreadProps & { id: string }) {
   const comment = state.list.comments[id]!;
   const loaded = state.list.replies[id]?.length ?? 0;
-  const open = expanded.has(id);
+  const open = isOpen(id);
   const Chevron = open ? ChevronUp : ChevronDown;
 
-  const toggle = () => {
-    // The first opening fetches what the page didn't include; later pages wait for "Load more replies".
-    if (!open && !state.replies[id]?.page && hasMissingReplies(state, id)) controller.loadReplies(id);
-    onToggle(id);
-  };
-
   return (
-    <button type="button" class="comment__link" aria-expanded={open} aria-controls={comment.depth === 0 ? repliesElementId(id) : undefined} onClick={toggle}>
+    <button
+      type="button"
+      class="comment__link"
+      aria-expanded={open}
+      aria-controls={comment.depth === 0 && open ? repliesElementId(id) : undefined}
+      onClick={() => onToggle(id)}
+    >
       <span>{open ? 'Hide replies' : repliesLabel(Math.max(comment.replyCount, loaded))}</span>
       <Chevron size={14} aria-hidden="true" />
     </button>
   );
 }
-
-const hasReplies = (state: Ready, id: string) => (state.list.comments[id]?.replyCount ?? 0) > 0 || (state.list.replies[id]?.length ?? 0) > 0;
 
 /** Every loaded comment below `id`. */
 function descendants(state: Ready, id: string): string[] {

@@ -96,11 +96,30 @@ describe('CommentsPanel', () => {
     expect(within(card('AshenExile')).getByText('A', { selector: '.comment__avatar' })).toBeTruthy();
   });
 
-  it('keeps a deleted comment as a placeholder with its replies', () => {
-    renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1', author: ashen })]));
+  it('keeps a deleted comment that has answers as a placeholder, as the site does', () => {
+    renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1', author: ashen, text: 'Still here' })]));
 
-    expect(screen.getByText('Comment unavailable')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'View 1 reply' })).toBeTruthy();
+    expect(screen.getByText('This comment was deleted by its author.')).toBeTruthy();
+    expect(screen.getByText('Still here')).toBeTruthy();
+  });
+
+  it('says when a moderator removed a comment', () => {
+    renderPanel(readySeed([deletedComment({ id: 'm1', replyCount: 1, deletedByModerator: true }), rawComment({ id: 'a1', parentId: 'm1', author: ashen })]));
+
+    expect(screen.getByText('This comment was removed by a moderator.')).toBeTruthy();
+  });
+
+  it('leaves out deleted comments nobody answered, as the site does', () => {
+    const { container } = renderPanel(
+      readySeed([
+        deletedComment({ id: 'd1' }),
+        rawComment({ id: 'r1', author: frost, replyCount: 1 }),
+        deletedComment({ id: 'd2', parentId: 'r1', depth: 1 }),
+      ]),
+    );
+
+    expect(screen.queryByText(/was deleted/)).toBeNull();
+    expect(container.querySelectorAll('article')).toHaveLength(1);
   });
 
   it('offers no replies on a comment that has none', () => {
@@ -131,33 +150,33 @@ describe('CommentsPanel', () => {
         rawComment({ id: 'a2', parentId: 'r1', author: frost, text: 'Thanks!', createdAt: hoursAgo(0.5) }),
       ]);
 
-    it('are folded under their comment until opened, oldest first', () => {
+    it('are open from the start, oldest first, and can be folded away', () => {
       renderPanel(thread());
 
-      const toggle = screen.getByRole('button', { name: 'View 2 replies' });
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      expect(screen.queryByText('Start with a rare.')).toBeNull();
+      const toggle = screen.getByRole('button', { name: 'Hide replies' });
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      const region = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+      expect(within(region).getAllByText(/Start with a rare\.|Thanks!/).map((el) => el.textContent)).toEqual(['Start with a rare.', 'Thanks!']);
 
       fireEvent.click(toggle);
 
-      expect(toggle.getAttribute('aria-expanded')).toBe('true');
-      expect(toggle.textContent).toContain('Hide replies');
-      const region = document.getElementById(toggle.getAttribute('aria-controls')!)!;
-      expect(within(region).getAllByText(/Start with a rare\.|Thanks!/).map((el) => el.textContent)).toEqual(['Start with a rare.', 'Thanks!']);
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(toggle.textContent).toContain('View 2 replies');
+      expect(screen.queryByText('Start with a rare.')).toBeNull();
     });
 
     it("say when the build author answered in the thread", () => {
       renderPanel(thread());
 
-      expect(within(card('FrostRunner')).getByText('Author replied')).toBeTruthy();
+      const root = screen.getAllByText('FrostRunner', { selector: '.comment__name' })[0]!.closest('article')!;
+      expect(within(root).getByText('Author replied')).toBeTruthy();
     });
 
-    it('load the ones the page did not include when opened, and only once', async () => {
+    it('load the ones the page did not include by themselves, and only once', async () => {
       const { calls, settle } = renderPanel(
         readySeed([rawComment({ id: 'r1', author: frost, replyCount: 3 }), rawComment({ id: 'a1', parentId: 'r1', author: ashen, text: 'First', createdAt: hoursAgo(3) })]),
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'View 3 replies' }));
       expect(screen.getByText('First')).toBeTruthy();
       expect(calls).toEqual([expect.objectContaining({ kind: 'replies', input: expect.objectContaining({ parentId: 'r1' }) })]);
       expect(screen.getByText('Loading replies…')).toBeTruthy();
@@ -176,7 +195,6 @@ describe('CommentsPanel', () => {
     it('show a failed load inside the thread with a way to try again', async () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, replyCount: 1 })]));
 
-      fireEvent.click(screen.getByRole('button', { name: 'View 1 reply' }));
       await settle(0, { ok: false, error: { message: 'HTTP 500', retryAfterSeconds: null } });
 
       expect(screen.getByText("Couldn't load replies (HTTP 500).")).toBeTruthy();
@@ -189,8 +207,6 @@ describe('CommentsPanel', () => {
         readySeed([rawComment({ id: 'r1', author: frost, replyCount: 1 }), rawComment({ id: 'a1', parentId: 'r1', author, replyCount: 1, text: 'Use a rare.' })]),
       );
 
-      fireEvent.click(screen.getByRole('button', { name: 'View 1 reply' }));
-      fireEvent.click(within(card('MisoxShiru')).getByRole('button', { name: 'View 1 reply' }));
       expect(calls[0]).toMatchObject({ kind: 'replies', input: { parentId: 'a1' } });
 
       await settle(0, ok([rawComment({ id: 'x1', parentId: 'a1', depth: 2, author: ashen, text: 'Which rare?' })], { parentId: 'a1' }));
@@ -199,6 +215,40 @@ describe('CommentsPanel', () => {
       expect(within(answer).getByText('Which rare?')).toBeTruthy();
       expect(within(answer).getByText('Replying to @MisoxShiru')).toBeTruthy();
       expect(answer.parentElement).toBe(card('MisoxShiru').parentElement);
+    });
+  });
+
+  describe('deep threads', () => {
+    it('open by themselves down to the third level of answers and fold deeper ones', async () => {
+      const { calls, settle } = renderPanel(
+        readySeed([
+          rawComment({ id: 'r1', author: frost, replyCount: 1 }),
+          rawComment({ id: 'a1', parentId: 'r1', author: ashen, replyCount: 1, text: 'Level one' }),
+        ]),
+      );
+
+      await settle(0, ok([rawComment({ id: 'b1', parentId: 'a1', depth: 2, author: frost, replyCount: 1, text: 'Level two' })], { parentId: 'a1' }));
+      expect(calls[1]).toMatchObject({ input: { parentId: 'b1' } });
+      await settle(1, ok([rawComment({ id: 'c1', parentId: 'b1', depth: 3, author: ashen, replyCount: 2, text: 'Level three' })], { parentId: 'b1' }));
+
+      expect(screen.getByText('Level three')).toBeTruthy();
+      expect(calls).toHaveLength(2);
+      const deeper = within(screen.getByText('Level three').closest('article')!).getByRole('button', { name: 'View 2 replies' });
+      expect(deeper.getAttribute('aria-expanded')).toBe('false');
+
+      fireEvent.click(deeper);
+      expect(calls[2]).toMatchObject({ input: { parentId: 'c1' } });
+      expect(deeper.textContent).toContain('Hide replies');
+    });
+
+    it('fold from the root only, keeping open answers free of toggles', async () => {
+      const { settle } = renderPanel(
+        readySeed([rawComment({ id: 'r1', author: frost, replyCount: 1 }), rawComment({ id: 'a1', parentId: 'r1', author: ashen, replyCount: 1 })]),
+      );
+      await settle(0, ok([rawComment({ id: 'b1', parentId: 'a1', depth: 2, author: frost, text: 'Level two' })], { parentId: 'a1' }));
+
+      expect(screen.getAllByRole('button', { name: /Hide replies|View/ })).toHaveLength(1);
+      expect(screen.getByText('Level two')).toBeTruthy();
     });
   });
 
