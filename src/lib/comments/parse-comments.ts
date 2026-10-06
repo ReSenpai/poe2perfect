@@ -108,6 +108,8 @@ export function parseComment(raw: unknown, authorId: string | null): Comment | n
     deleted,
     spoiler: raw.isSpoiler === true ? (str(raw.spoilerLabel) ?? 'Spoiler') : null,
     replyCount: count(raw.replyCount) ?? 0,
+    score: typeof raw.score === 'number' && Number.isInteger(raw.score) ? raw.score : 0,
+    viewerVote: raw.viewerVote === 'UPVOTE' ? 'up' : raw.viewerVote === 'DOWNVOTE' ? 'down' : null,
   };
 }
 

@@ -1,6 +1,7 @@
-import { Minus, Plus } from 'lucide-preact';
-import { useEffect } from 'preact/hooks';
+import { ArrowBigDown, ArrowBigUp, Minus, Plus } from 'lucide-preact';
+import { useEffect, useState } from 'preact/hooks';
 import { hasMissingReplies, type CommentsController, type CommentsState, type PostOutcome } from '@/lib/comments/controller';
+import type { Comment, Vote } from '@/lib/comments/model';
 import { CommentCard } from './CommentCard';
 import { CommentComposer } from './CommentComposer';
 
@@ -119,6 +120,7 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
     <>
       <div class="comment__actions">
         {hasReplies(state, id) && <Fold id={id} {...props} />}
+        {!comment.deleted && <Votes comment={comment} controller={controller} onSignIn={onSignIn} />}
         {canReply && (
           <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
             Reply
@@ -137,6 +139,48 @@ function Actions({ id, children, ...props }: ThreadProps & { id: string; childre
           onSignIn={onSignIn}
           autoFocus
         />
+      )}
+    </>
+  );
+}
+
+/** Up and down arrows around the score, as on Reddit; pressing the lit arrow again takes the vote back. */
+function Votes({ comment, controller, onSignIn }: { comment: Comment; controller: CommentsController; onSignIn?: () => void }) {
+  const [failure, setFailure] = useState<Extract<PostOutcome, { ok: false }> | null>(null);
+
+  const cast = async (vote: Vote) => {
+    setFailure(null);
+    const outcome = await controller.vote(comment.id, comment.viewerVote === vote ? null : vote);
+    if (!outcome.ok) setFailure(outcome);
+  };
+
+  return (
+    <>
+      <div class={`votes${comment.viewerVote ? ` votes--${comment.viewerVote}` : ''}`} role="group" aria-label="Votes">
+        <button type="button" class="votes__button votes__button--up" aria-label="Upvote" title="Upvote" aria-pressed={comment.viewerVote === 'up'} onClick={() => void cast('up')}>
+          <ArrowBigUp size={16} aria-hidden="true" />
+        </button>
+        <span class="votes__score">{comment.score}</span>
+        <button
+          type="button"
+          class="votes__button votes__button--down"
+          aria-label="Downvote"
+          title="Downvote"
+          aria-pressed={comment.viewerVote === 'down'}
+          onClick={() => void cast('down')}
+        >
+          <ArrowBigDown size={16} aria-hidden="true" />
+        </button>
+      </div>
+      {failure && (
+        <p class="comment__vote-error" role="alert">
+          {failure.reason === 'signed-out' ? 'Sign in on Mobalytics to vote.' : `Couldn't vote (${failure.message}).`}
+          {failure.reason === 'signed-out' && onSignIn && (
+            <button type="button" class="comment__link" onClick={onSignIn}>
+              Sign in on Mobalytics
+            </button>
+          )}
+        </p>
       )}
     </>
   );

@@ -160,3 +160,44 @@ describe('createCommentsSource posting', () => {
     expect(await source.post({ resourceId: 'x', parentId: null, text: 'Hi' })).toEqual({ ok: false, error: { message: 'unexpected answer', retryAfterSeconds: null } });
   });
 });
+
+describe('createCommentsSource voting', () => {
+  function voting(respond: () => Response) {
+    const fetchImpl = vi.fn<typeof fetch>(async () => respond());
+    const source = createCommentsSource({ fetch: fetchImpl, origin: ORIGIN });
+    const body = () => JSON.parse(String(fetchImpl.mock.calls[0]![1]!.body)) as { operationName: string; query: string; variables: { input: Record<string, unknown> } };
+    return { source, body };
+  }
+  const counts = { commentId: 'c1', upvotes: 7, downvotes: 1 };
+
+  it('casts an up or down vote as the signed-in visitor and passes on the new counts', async () => {
+    const { source, body } = voting(() => json({ data: { comments: { vote: { data: counts, error: null } } } }));
+
+    expect(await source.vote({ commentId: 'c1', value: 'down' })).toEqual({ ok: true, payload: counts });
+    expect(body().operationName).toBe('NgfCommentVoteMutation');
+    expect(body().query).toContain('vote(input: $input)');
+    expect(body().variables.input).toEqual({ commentId: 'c1', value: 'DOWNVOTE' });
+  });
+
+  it('takes a vote back', async () => {
+    const { source, body } = voting(() => json({ data: { comments: { deleteVote: { data: counts, error: null } } } }));
+
+    expect(await source.vote({ commentId: 'c1', value: null })).toEqual({ ok: true, payload: counts });
+    expect(body().operationName).toBe('NgfCommentDeleteVoteMutation');
+    expect(body().variables.input).toEqual({ commentId: 'c1' });
+  });
+
+  it('passes on a refusal, e.g. for a visitor who is not signed in', async () => {
+    const { source } = voting(() => json({ data: { comments: { vote: { data: null, error: { code: 'FORBIDDEN', message: 'not authenticated', retryAfterSeconds: null } } } } }));
+
+    expect(await source.vote({ commentId: 'c1', value: 'up' })).toEqual({ ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
+  });
+
+  it('asks for every comment\'s score and the reader\'s own vote', async () => {
+    const { source, body } = voting(() => json(listResponse(commentsPayload())));
+    await source.roots({ resourceId: 'x', sort: 'NEW', cursor: null });
+
+    expect(body().query).toContain('score');
+    expect(body().query).toContain('viewerVote');
+  });
+});

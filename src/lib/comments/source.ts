@@ -1,5 +1,5 @@
 import { textToLexical } from './lexical';
-import type { CommentsSort } from './model';
+import type { CommentsSort, Vote } from './model';
 
 /** Why a page didn't come: short and technical (`HTTP 429`, the site's error code); the UI words it. */
 export interface CommentsError {
@@ -22,6 +22,8 @@ export interface CommentsSource {
    * comment with the site's `rejectionReason`. Only ever called for an explicit action of the reader.
    */
   post(input: { resourceId: string; parentId: string | null; text: string }): Promise<SourceResult>;
+  /** Votes as the signed-in visitor (`null` takes the vote back); the payload holds the new `upvotes` and `downvotes`. */
+  vote(input: { commentId: string; value: Vote | null }): Promise<SourceResult>;
 }
 
 const PAGE_SIZE = 10;
@@ -29,6 +31,7 @@ const ENDPOINT_PATH = '/api/poe-2/v1/graphql/query';
 
 const COMMENT_FIELDS = `
   id parentId resourceId depth accountId content plainTextContent status createdAt isSpoiler spoilerLabel replyCount
+  score viewerVote
   profile { user { id username displayName } avatar { iconUrl } }`;
 
 const PAYLOAD_FIELDS = `
@@ -50,7 +53,13 @@ const CREATE_FIELDS = `data { ${COMMENT_FIELDS} rejectionReason } error { code m
 const CREATE_COMMENT = `mutation NgfCreateCommentMutation($input: CommentsCreateCommentInput!) { comments { createComment(input: $input) { ${CREATE_FIELDS} } } }`;
 const CREATE_REPLY = `mutation NgfCreateReplyMutation($input: CommentsCreateReplyInput!) { comments { createReply(input: $input) { ${CREATE_FIELDS} } } }`;
 
-type Field = 'comments' | 'replies' | 'createComment' | 'createReply';
+const VOTE_FIELDS = `data { commentId upvotes downvotes } error { code message retryAfterSeconds }`;
+const VOTE = `mutation NgfCommentVoteMutation($input: CommentsVoteInput!) { comments { vote(input: $input) { ${VOTE_FIELDS} } } }`;
+const DELETE_VOTE = `mutation NgfCommentDeleteVoteMutation($input: CommentsDeleteVoteInput!) { comments { deleteVote(input: $input) { ${VOTE_FIELDS} } } }`;
+
+type Field = 'comments' | 'replies' | 'createComment' | 'createReply' | 'vote' | 'deleteVote';
+/** Fields whose answer wraps its result in `data`. */
+const UNWRAPPED: Field[] = ['createComment', 'createReply', 'vote', 'deleteVote'];
 
 const UNEXPECTED: CommentsError = { message: 'unexpected answer', retryAfterSeconds: null };
 
@@ -104,7 +113,7 @@ export function createCommentsSource({
       const message = typeof siteError.code === 'string' && siteError.code ? siteError.code : String(siteError.message ?? 'error');
       return { ok: false, error: { message, retryAfterSeconds: seconds(siteError.retryAfterSeconds) } };
     }
-    if (field === 'createComment' || field === 'createReply') {
+    if (UNWRAPPED.includes(field)) {
       const created = (payload as { data?: unknown }).data;
       return created && typeof created === 'object' ? { ok: true, payload: created } : { ok: false, error: UNEXPECTED };
     }
@@ -127,6 +136,10 @@ export function createCommentsSource({
         ? ask('NgfCreateReplyMutation', CREATE_REPLY, 'createReply', { parentId, ...body })
         : ask('NgfCreateCommentMutation', CREATE_COMMENT, 'createComment', { resourceId, ...body });
     },
+    vote: ({ commentId, value }) =>
+      value
+        ? ask('NgfCommentVoteMutation', VOTE, 'vote', { commentId, value: value === 'up' ? 'UPVOTE' : 'DOWNVOTE' })
+        : ask('NgfCommentDeleteVoteMutation', DELETE_VOTE, 'deleteVote', { commentId }),
   };
 }
 

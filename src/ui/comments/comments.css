@@ -548,6 +548,80 @@
   margin-top: 4px;
 }
 
+/* Votes as on Reddit: arrows around the score; an upvote lights orange, a downvote blue, the arrow filled. */
+.votes {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  margin-left: -4px;
+  color: var(--text-muted);
+}
+
+.votes__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.votes__button--up:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.votes__button--down:hover {
+  background: color-mix(in srgb, var(--rarity-magic) 14%, transparent);
+  color: var(--rarity-magic);
+}
+
+.votes__button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.votes__button[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+
+.votes__button--up[aria-pressed='true'],
+.votes--up .votes__score {
+  color: var(--accent);
+}
+
+.votes__button--down[aria-pressed='true'],
+.votes--down .votes__score {
+  color: var(--rarity-magic);
+}
+
+.votes__score {
+  min-width: 14px;
+  font: 600 12px/20px var(--font);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.comment__vote-error {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 0;
+  color: var(--res-fire);
+  font-size: 12px;
+}
+
+.comment__vote-error .comment__link {
+  color: var(--accent);
+}
+
 /* Quiet text buttons, grey until hovered; the ones that recover from a failure stand out. */
 .comment__link {
   display: inline-flex;

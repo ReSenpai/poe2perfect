@@ -10,13 +10,13 @@ import { CommentsPanel } from './CommentsPanel';
 const NOW = Date.parse('2026-10-06T12:00:00Z');
 const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000).toISOString();
 
-type Pending = { kind: 'roots' | 'replies' | 'post'; input: Record<string, unknown>; resolve: (result: SourceResult) => void };
+type Pending = { kind: 'roots' | 'replies' | 'post' | 'vote'; input: Record<string, unknown>; resolve: (result: SourceResult) => void };
 
 function fakeSource() {
   const calls: Pending[] = [];
   const ask = (kind: Pending['kind']) => (input: object) =>
     new Promise<SourceResult>((resolve) => calls.push({ kind, input: input as Record<string, unknown>, resolve }));
-  const source: CommentsSource = { roots: ask('roots'), replies: ask('replies'), post: ask('post') };
+  const source: CommentsSource = { roots: ask('roots'), replies: ask('replies'), post: ask('post'), vote: ask('vote') };
   return { source, calls };
 }
 
@@ -543,6 +543,54 @@ describe('CommentsPanel', () => {
 
       expect(screen.queryByRole('button', { name: /Mobalytics/ })).toBeNull();
       expect(screen.queryByRole('textbox')).toBeNull();
+    });
+  });
+
+  describe('votes', () => {
+    const counts = (upvotes: number, downvotes: number): SourceResult => ({ ok: true, payload: { commentId: 'r1', upvotes, downvotes } });
+    const votes = (name: string) => within(within(card(name)).getByRole('group', { name: 'Votes' }));
+
+    it('show the score between up and down arrows', () => {
+      renderPanel(readySeed([rawComment({ id: 'r1', author: frost, score: 5 })]));
+
+      expect(votes('FrostRunner').getByText('5')).toBeTruthy();
+      expect(votes('FrostRunner').getByRole('button', { name: 'Upvote' }).getAttribute('aria-pressed')).toBe('false');
+      expect(votes('FrostRunner').getByRole('button', { name: 'Downvote' }).getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('vote at once and settle on the counts the site sends back; a second click takes the vote back', async () => {
+      const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, score: 5 })]));
+
+      fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Upvote' }));
+      expect(votes('FrostRunner').getByText('6')).toBeTruthy();
+      expect(votes('FrostRunner').getByRole('button', { name: 'Upvote' }).getAttribute('aria-pressed')).toBe('true');
+      expect(calls[0]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: 'up' } });
+      await settle(0, counts(9, 1));
+      expect(votes('FrostRunner').getByText('8')).toBeTruthy();
+
+      fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Upvote' }));
+      expect(calls[1]).toMatchObject({ input: { commentId: 'r1', value: null } });
+      expect(votes('FrostRunner').getByText('7')).toBeTruthy();
+    });
+
+    it('put the vote back and ask to sign in when the visitor is signed out', async () => {
+      const open = vi.fn();
+      const { settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost, score: 5 })]), open);
+
+      fireEvent.click(votes('FrostRunner').getByRole('button', { name: 'Downvote' }));
+      await settle(0, { ok: false, error: { message: 'FORBIDDEN', retryAfterSeconds: null } });
+
+      expect(votes('FrostRunner').getByText('5')).toBeTruthy();
+      const alert = within(card('FrostRunner')).getByRole('alert');
+      expect(alert.textContent).toContain('Sign in on Mobalytics to vote.');
+      fireEvent.click(within(alert).getByRole('button', { name: 'Sign in on Mobalytics' }));
+      expect(open).toHaveBeenCalledOnce();
+    });
+
+    it('are not offered on a deleted comment', () => {
+      renderPanel(readySeed([deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1', author: ashen })]));
+
+      expect(screen.getAllByRole('group', { name: 'Votes' })).toHaveLength(1);
     });
   });
 

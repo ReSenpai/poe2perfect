@@ -1,4 +1,4 @@
-import type { CommentsList, CommentsPage, CommentsSeed, CommentsSort } from './model';
+import type { Comment, CommentsList, CommentsPage, CommentsSeed, CommentsSort, Vote } from './model';
 import { mergeCommentLists, parseComment, parseCommentsPayload } from './parse-comments';
 import { isAbort, type CommentsError, type CommentsSource, type SourceResult } from './source';
 
@@ -48,6 +48,8 @@ export interface CommentsController {
    * a new comment first, an answer at the end of its thread.
    */
   post(parentId: string | null, text: string): Promise<PostOutcome>;
+  /** Votes on a comment as the signed-in visitor (`null` takes the vote back), showing it at once. */
+  vote(id: string, value: Vote | null): Promise<PostOutcome>;
   /** Cancels everything; the reader left this build. */
   dispose(): void;
 }
@@ -259,6 +261,34 @@ export function createCommentsController({
           replies: parent ? { ...list.replies, [parent.id]: [...(list.replies[parent.id] ?? []).filter((id) => id !== placed.id), placed.id] } : list.replies,
         },
       });
+      return { ok: true };
+    },
+
+    async vote(id, value) {
+      const current = ready();
+      const comment = current?.list.comments[id];
+      if (disposed || !current || !comment || comment.deleted) return { ok: false, reason: 'failed', message: 'not available', retryAt: null };
+
+      const replace = (next: Partial<Comment>) => {
+        const latest = ready();
+        const known = latest?.list.comments[id];
+        if (disposed || !latest || !known) return;
+        set({ ...latest, list: { ...latest.list, comments: { ...latest.list.comments, [id]: { ...known, ...next } } } });
+      };
+      const weight = (vote: Vote | null) => (vote === 'up' ? 1 : vote === 'down' ? -1 : 0);
+      const before = { score: comment.score, viewerVote: comment.viewerVote };
+      replace({ score: comment.score - weight(comment.viewerVote) + weight(value), viewerVote: value });
+
+      const result = await source
+        .vote({ commentId: id, value })
+        .catch((error: unknown): SourceResult => ({ ok: false, error: { message: error instanceof Error ? error.message : String(error), retryAfterSeconds: null } }));
+      if (!result.ok) {
+        replace(before);
+        const { retryAt } = failedLoad(result.error);
+        return { ok: false, reason: result.error.message === 'FORBIDDEN' ? 'signed-out' : 'failed', message: result.error.message, retryAt };
+      }
+      const { upvotes, downvotes } = result.payload as { upvotes?: unknown; downvotes?: unknown };
+      if (typeof upvotes === 'number' && typeof downvotes === 'number') replace({ score: upvotes - downvotes });
       return { ok: true };
     },
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AUTHOR_ID, commentsPayload, rawComment, resourceIdOf } from '../../../tests/fixtures/comments';
+import { AUTHOR_ID, commentsPayload, deletedComment, rawComment, resourceIdOf } from '../../../tests/fixtures/comments';
 import { createCommentsController, hasMissingReplies, type CommentsState } from './controller';
 import type { CommentsSeed } from './model';
 import { parseCommentsPayload } from './parse-comments';
@@ -8,7 +8,7 @@ import type { CommentsSource, SourceResult } from './source';
 const RESOURCE = resourceIdOf('doc-1');
 
 interface Call {
-  kind: 'roots' | 'replies' | 'post';
+  kind: 'roots' | 'replies' | 'post' | 'vote';
   input: Record<string, unknown>;
   signal: AbortSignal | undefined;
   resolve: (result: SourceResult) => void;
@@ -20,7 +20,7 @@ function fakeSource() {
     (kind: Call['kind']) =>
     (input: object, signal?: AbortSignal) =>
       new Promise<SourceResult>((resolve) => calls.push({ kind, input: input as Record<string, unknown>, signal, resolve }));
-  const source: CommentsSource = { roots: request('roots'), replies: request('replies'), post: request('post') };
+  const source: CommentsSource = { roots: request('roots'), replies: request('replies'), post: request('post'), vote: request('vote') };
   return { source, calls };
 }
 
@@ -382,6 +382,54 @@ describe('createCommentsController', () => {
       const disabled = setup({ status: 'disabled' });
       expect(await disabled.controller.post(null, 'Hi')).toMatchObject({ ok: false });
       expect([...calls, ...disabled.calls]).toHaveLength(0);
+    });
+  });
+
+  describe('vote', () => {
+    const voteSeed = () => readySeed([rawComment({ id: 'r1', score: 4, upvotes: 5, downvotes: 1 }), deletedComment({ id: 'd1', replyCount: 1 }), rawComment({ id: 'a1', parentId: 'd1' })]);
+    const counts = (upvotes: number, downvotes: number): SourceResult => ({ ok: true, payload: { commentId: 'r1', upvotes, downvotes } });
+
+    it('shows the vote at once, then the counts the site sends back', async () => {
+      const { controller, calls, state } = setup(voteSeed());
+
+      const voted = controller.vote('r1', 'up');
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 5, viewerVote: 'up' });
+      expect(calls[0]).toMatchObject({ kind: 'vote', input: { commentId: 'r1', value: 'up' } });
+
+      calls[0]!.resolve(counts(9, 1));
+      expect(await voted).toEqual({ ok: true });
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 8, viewerVote: 'up' });
+    });
+
+    it('moves a vote from up to down, and takes it back', async () => {
+      const { controller, calls, state } = setup(voteSeed());
+
+      void controller.vote('r1', 'up');
+      calls[0]!.resolve(counts(6, 1));
+      await flush();
+      void controller.vote('r1', 'down');
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 3, viewerVote: 'down' });
+
+      void controller.vote('r1', null);
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 4, viewerVote: null });
+      expect(calls[2]).toMatchObject({ input: { commentId: 'r1', value: null } });
+    });
+
+    it('puts the vote back when the site refuses it, saying when the visitor must sign in', async () => {
+      const { controller, calls, state } = setup(voteSeed());
+
+      const voted = controller.vote('r1', 'down');
+      calls[0]!.resolve(fail('FORBIDDEN'));
+
+      expect(await voted).toEqual({ ok: false, reason: 'signed-out', message: 'FORBIDDEN', retryAt: null });
+      expect(ready(state()).list.comments.r1).toMatchObject({ score: 4, viewerVote: null });
+    });
+
+    it('does not vote on a deleted comment', async () => {
+      const { controller, calls } = setup(voteSeed());
+
+      expect(await controller.vote('d1', 'up')).toMatchObject({ ok: false });
+      expect(calls).toHaveLength(0);
     });
   });
 

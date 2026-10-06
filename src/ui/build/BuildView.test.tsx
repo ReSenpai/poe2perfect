@@ -301,7 +301,7 @@ describe('BuildView tabs', () => {
         total: 24,
         list: parseCommentsPayload(commentsPayload({ comments: [rawComment({ id: 'r1', text: 'Budget ring?' })] }), AUTHOR_ID)!,
       },
-      source: { roots: () => new Promise(() => {}), replies: () => new Promise(() => {}), post: () => new Promise(() => {}) },
+      source: { roots: () => new Promise(() => {}), replies: () => new Promise(() => {}), post: () => new Promise(() => {}), vote: () => new Promise(() => {}) },
     });
     const { onRouteChange } = renderView('#gear', BUILD, false, undefined, { comments });
 

@@ -111,7 +111,21 @@ describe('parseCommentsPayload', () => {
       deleted: null,
       spoiler: null,
       replyCount: 2,
+      score: 0,
+      viewerVote: null,
     });
+  });
+
+  it("keeps the score and the reader's own vote", () => {
+    const list = parse([
+      rawComment({ id: 'up', score: 5, upvotes: 6, downvotes: 1, viewerVote: 'UPVOTE' as never }),
+      rawComment({ id: 'down', score: -2, viewerVote: 'DOWNVOTE' as never }),
+      rawComment({ id: 'none' }),
+    ]);
+
+    expect(list.comments.up).toMatchObject({ score: 5, viewerVote: 'up' });
+    expect(list.comments.down).toMatchObject({ score: -2, viewerVote: 'down' });
+    expect(list.comments.none).toMatchObject({ score: 0, viewerVote: null });
   });
 
   it('marks the build author only by account id, never by a matching name', () => {

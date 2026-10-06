@@ -6,6 +6,9 @@ import type { RichText } from '@/lib/build/model';
 export const COMMENT_SORTS = ['NEW', 'OLD', 'TOP'] as const;
 export type CommentsSort = (typeof COMMENT_SORTS)[number];
 
+/** A reader's vote on a comment. */
+export type Vote = 'up' | 'down';
+
 export interface CommentAuthor {
   /** Account id; empty when the site leaves it out. */
   id: string;
@@ -32,6 +35,10 @@ export interface Comment {
   /** Label to show instead of the text until the reader asks for it; null when it is not a spoiler. */
   spoiler: string | null;
   replyCount: number;
+  /** Upvotes minus downvotes. */
+  score: number;
+  /** The reader's own vote, as far as the site said (the build page itself is read signed out, so it never says). */
+  viewerVote: Vote | null;
 }
 
 export interface CommentsPage {
