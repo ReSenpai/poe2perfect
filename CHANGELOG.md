@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Comments
+- A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under
+  the comment they answer along a thread line, as on Reddit, and open by themselves three levels deep. A minus on the
+  line folds a branch; a folded one says how many replies wait there. The build author is marked in words, deleted
+  comments with answers stay as "[deleted]", spoilers wait behind a button, and long comments fold after a few lines.
+- More comments load as you scroll. Search the loaded comments (matches are highlighted and their threads open),
+  sort by newest, oldest or top, or keep only the threads the build author answered in.
+- Write a comment, reply to any comment and vote, right from the guide, as your own Mobalytics account. Nothing is
+  sent until you press the button; a signed-out visitor is pointed to signing in on the site.
+- Read the comments beside any other tab: the comment icon in the tab bar opens them as a side panel, which takes the
+  place of that tab's side column (gear priority, the passive order, the quest rewards…) for as long as it is open.
+  On a narrow window, or from the panel's own button, they open as the Comments tab, with a way back.
+- Comment text is set in Noto Sans, a calmer face for long reading; the rest of the guide keeps Inter.
+
 ## 1.3.0
 
 ### Firefox

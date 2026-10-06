@@ -16,7 +16,10 @@ Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 
 ## What does it do?
 
-- **Tabs instead of one long page.** Overview, Skills, Gear, Passives, Atlas Tree and Progression, each on one screen.
+- **Tabs instead of one long page.** Overview, Skills, Gear, Passives, Atlas Tree, Progression and Comments, each on
+  one screen.
+- **The build's comments as a thread feed**, beside any tab or on their own: search, sort, see where the author
+  answered, and write, reply or vote as your own Mobalytics account.
 - **Game-style tooltips** for items, gems, passives, runes and anything the author mentions in the text.
 - **Straight to the game.** Click a gem to copy its name for the in-game search; open any item on the official
   trade site with its filters already set.
@@ -65,9 +68,16 @@ points and new nodes — with the campaign quest rewards beside it.
 
 ![Progression: what each stage changes, with the quest rewards beside it](docs/images/progression.jpg)
 
+### Comments
+
+The build's discussion from the original page, read like a thread: answers nest under the comment they answer, the
+author's replies stand out, and more comments load as you scroll. Search them, sort them, keep only the threads the
+author answered in, and write, reply or vote right there as your own Mobalytics account. The comment icon in the tab
+bar opens the same feed as a side panel next to whatever tab you are reading.
+
 ### And also
 
-- **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–6 switch tabs.
+- **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–7 switch tabs.
 - **Picks up where you left off**: each build reopens on the tab and act you were reading. A build you open for the
   first time starts on Overview.
 - **The original is one click away**, and the header collapses to leave the build more room.
@@ -95,7 +105,8 @@ Support is voluntary. It does not unlock features, access to the extension or an
 ## Privacy and permissions
 
 The extension runs only on mobalytics.gg, sends nothing anywhere else and keeps its display preferences in your
-browser. See [PRIVACY.md](PRIVACY.md).
+browser. Comments, replies and votes you post from the guide go to mobalytics.gg as your own account, only when you
+press the button. See [PRIVACY.md](PRIVACY.md).
 
 - Permission: `storage` only (local display preferences: guide or original page, collapsed panels, and the tab and
   variant last read in each of the last 30 builds).
