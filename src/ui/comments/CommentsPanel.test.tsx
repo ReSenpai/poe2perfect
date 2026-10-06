@@ -84,12 +84,13 @@ afterEach(() => {
 const card = (name: string) => screen.getByText(name, { selector: '.comment__name' }).closest('article')!;
 
 describe('CommentsPanel', () => {
-  it("names the discussion, the site's counter and that it covers every variant", () => {
+  it("names the discussion and the site's counter in one compact bar, the rest in its tooltip", () => {
     renderPanel(readySeed([rawComment({ id: 'r1' })]));
 
-    expect(screen.getByRole('heading', { level: 2, name: /Comments/ }).textContent).toContain('24');
-    expect(screen.getByText('Discussion from the original build page')).toBeTruthy();
-    expect(screen.getByText('All build variants')).toBeTruthy();
+    const heading = screen.getByRole('heading', { level: 2, name: /Comments/ });
+    expect(heading.textContent).toContain('24');
+    expect(heading.getAttribute('title')).toBe('Discussion from the original build page, for all build variants');
+    expect(screen.queryByText('Discussion from the original build page')).toBeNull();
   });
 
   it('shows each root comment with its author, time and text, in the order the site sent them', () => {
@@ -328,7 +329,7 @@ describe('CommentsPanel', () => {
       const { calls, settle } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })]));
       const select = screen.getByRole('combobox', { name: 'Sort comments' }) as HTMLSelectElement;
 
-      expect([...select.options].map((o) => o.textContent)).toEqual(['Newest first', 'Oldest first', 'Top']);
+      expect([...select.options].map((o) => o.textContent)).toEqual(['Newest', 'Oldest', 'Top']);
       expect(select.value).toBe('NEW');
       fireEvent.change(select, { target: { value: 'OLD' } });
 
@@ -444,14 +445,15 @@ describe('CommentsPanel', () => {
   });
 
   describe('the original discussion', () => {
-    it('opens the discussion on the site from below the comments', () => {
+    it('opens the discussion on the site from a quiet button in the bar, leaving the list the whole height', () => {
       const open = vi.fn();
-      renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), open);
+      const { container } = renderPanel(readySeed([rawComment({ id: 'r1', author: frost })], { hasMore: true }), open);
 
-      const footer = document.querySelector('footer')!;
-      fireEvent.click(within(footer).getByRole('button', { name: 'Open on Mobalytics' }));
+      const header = container.querySelector('header')!;
+      fireEvent.click(within(header).getByRole('button', { name: 'Open on Mobalytics' }));
 
       expect(open).toHaveBeenCalledOnce();
+      expect(container.querySelector('footer')).toBeNull();
     });
 
     it('opens it too when the comments could not be read here', () => {

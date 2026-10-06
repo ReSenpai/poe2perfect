@@ -1,4 +1,4 @@
-import { ArrowUpRight, Layers, MessageSquare, Search, X } from 'lucide-preact';
+import { ArrowUpRight, MessageSquare, Search, X } from 'lucide-preact';
 import type { RefObject } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CommentsController, CommentsState, LoadState } from '@/lib/comments/controller';
@@ -11,11 +11,11 @@ import { useCommentsState } from './use-comments';
 
 type Ready = Extract<CommentsState, { status: 'ready' }>;
 
-const SORT_LABELS: Record<CommentsSort, string> = { NEW: 'Newest first', OLD: 'Oldest first', TOP: 'Top' };
+const SORT_LABELS: Record<CommentsSort, string> = { NEW: 'Newest', OLD: 'Oldest', TOP: 'Top' };
 /** Name of the CSS highlight that marks search matches (styled with `::highlight()`). */
 const SEARCH_HIGHLIGHT = 'poe2perfect-comment-search';
 
-/** The build's discussion as a tab: header with search, sort and filter, the threads, and more as the reader scrolls. */
+/** The build's discussion as a feed: one slim bar (filter, search, sort), then the threads, loading more on scroll. */
 export function CommentsPanel({
   controller,
   now = Date.now,
@@ -55,28 +55,35 @@ export function CommentsPanel({
 
   return (
     <div class="comments" ref={root}>
-      <header class="comments__header">
-        <div class="comments__heading">
-          <h2 class="comments__title">
-            Comments
-            {total !== null && <span class="comments__count">{total}</span>}
-          </h2>
-          <p class="comments__subtitle">Discussion from the original build page</p>
-        </div>
+      <header class="comments__bar">
+        <h2 class="comments__title" title="Discussion from the original build page, for all build variants">
+          Comments
+          {total !== null && <span class="comments__count">{total}</span>}
+        </h2>
+        {state.status === 'ready' && state.canIdentifyAuthor && (
+          <div class="comments__chips" role="group" aria-label="Filter comments">
+            <button type="button" class="chip" aria-pressed={!authorOnly} onClick={() => setAuthorOnly(false)}>
+              All comments
+            </button>
+            <button type="button" class="chip" aria-pressed={authorOnly} onClick={() => setAuthorOnly(true)}>
+              Author replied
+            </button>
+          </div>
+        )}
         {state.status === 'ready' && (
           <div class="comments__tools">
             <label class="comments__search">
-              <Search size={16} aria-hidden="true" />
+              <Search size={14} aria-hidden="true" />
               <input
                 type="search"
                 aria-label="Search comments"
-                placeholder="Search comments…"
+                placeholder="Search"
                 value={query}
                 onInput={(event) => setQuery((event.target as HTMLInputElement).value)}
               />
               {query && (
-                <button type="button" class="icon-button comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
-                  <X size={16} aria-hidden="true" />
+                <button type="button" class="comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
+                  <X size={14} aria-hidden="true" />
                 </button>
               )}
             </label>
@@ -98,24 +105,13 @@ export function CommentsPanel({
                 ))}
               </select>
             )}
+            {onOpenOriginal && (
+              <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </button>
+            )}
           </div>
         )}
-        <div class="comments__filters">
-          {state.status === 'ready' && state.canIdentifyAuthor && (
-            <div class="comments__chips" role="group" aria-label="Filter comments">
-              <button type="button" class="chip" aria-pressed={!authorOnly} onClick={() => setAuthorOnly(false)}>
-                All comments
-              </button>
-              <button type="button" class="chip" aria-pressed={authorOnly} onClick={() => setAuthorOnly(true)}>
-                Author replied
-              </button>
-            </div>
-          )}
-          <span class="comments__scope">
-            <Layers size={14} aria-hidden="true" />
-            All build variants
-          </span>
-        </div>
         {state.status === 'ready' && state.resort.status === 'error' && (
           <p class="comments__error" role="alert">{`Couldn't sort the comments (${state.resort.message}).`}</p>
         )}
@@ -135,7 +131,6 @@ export function CommentsPanel({
             replyingTo={replyingTo}
             onReply={setReplyingTo}
             onSignIn={onOpenOriginal}
-            onOpenOriginal={onOpenOriginal}
           />
         )
       ) : (
@@ -152,7 +147,6 @@ function ReadyList({
   controller,
   filtered,
   searching,
-  onOpenOriginal,
   ...thread
 }: {
   state: Ready;
@@ -167,7 +161,6 @@ function ReadyList({
   replyingTo: string | null;
   onReply: (id: string | null) => void;
   onSignIn?: () => void;
-  onOpenOriginal?: () => void;
 }) {
   const { page } = state.list;
   const { more } = state;
@@ -178,56 +171,49 @@ function ReadyList({
   useWhenVisible(end, () => controller.loadMore());
 
   return (
-    <>
-      <div class="comments__list">
-        <CommentComposer
-          label="Add a comment"
-          placeholder="Ask the author or share how the build went…"
-          submitLabel="Post"
-          onSubmit={(text) => controller.post(null, text)}
-          onSignIn={thread.onSignIn}
-          inline
-        />
-        {searching && page.hasMore && (
-          <p class="comments__scope-note">
-            {`Searching loaded comments only (${state.total !== null ? `${loaded} of ${state.total}` : `${loaded}`}).`}
-            <button type="button" class="comment__link" disabled={more.status === 'loading'} onClick={() => controller.loadMore()}>
-              {more.status === 'loading' ? 'Loading…' : 'Load more'}
-            </button>
-          </p>
-        )}
-        {rootIds.length === 0 &&
-          (searching ? (
-            <EmptyState title="No matches in loaded comments" text="Try other words, or clear the search." />
-          ) : (
-            !page.hasMore && <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
-          ))}
-        {rootIds.map((id) => (
-          <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
-        ))}
-        {page.hasMore && !searching && more.status === 'idle' && <div ref={end} class="comments__end" aria-hidden="true" />}
-        {more.status === 'loading' && !searching && (
-          <p class="comments__more-status" role="status">
-            <span class="spinner spinner--small" aria-hidden="true" />
-            Loading more comments…
-          </p>
-        )}
-        {more.status === 'error' && (
-          <p class="comments__error" role="alert">
-            {`Couldn't load more comments (${more.message}).`}
-            {waitNote(more, thread.now)}
-            <button type="button" class="comment__link" onClick={() => controller.loadMore()}>
-              Try again
-            </button>
-          </p>
-        )}
-      </div>
-      {onOpenOriginal && (
-        <footer class="comments__footer">
-          <OriginalButton onOpen={onOpenOriginal} />
-        </footer>
+    <div class="comments__list">
+      <CommentComposer
+        label="Add a comment"
+        placeholder="Ask the author or share how the build went…"
+        submitLabel="Post"
+        onSubmit={(text) => controller.post(null, text)}
+        onSignIn={thread.onSignIn}
+        inline
+      />
+      {searching && page.hasMore && (
+        <p class="comments__scope-note">
+          {`Searching loaded comments only (${state.total !== null ? `${loaded} of ${state.total}` : `${loaded}`}).`}
+          <button type="button" class="comment__link" disabled={more.status === 'loading'} onClick={() => controller.loadMore()}>
+            {more.status === 'loading' ? 'Loading…' : 'Load more'}
+          </button>
+        </p>
       )}
-    </>
+      {rootIds.length === 0 &&
+        (searching ? (
+          <EmptyState title="No matches in loaded comments" text="Try other words, or clear the search." />
+        ) : (
+          !page.hasMore && <EmptyState title="No comments yet" text="Nobody has commented on this guide so far." />
+        ))}
+      {rootIds.map((id) => (
+        <CommentThread key={id} rootId={id} state={state} controller={controller} {...thread} />
+      ))}
+      {page.hasMore && !searching && more.status === 'idle' && <div ref={end} class="comments__end" aria-hidden="true" />}
+      {more.status === 'loading' && !searching && (
+        <p class="comments__more-status" role="status">
+          <span class="spinner spinner--small" aria-hidden="true" />
+          Loading more comments…
+        </p>
+      )}
+      {more.status === 'error' && (
+        <p class="comments__error" role="alert">
+          {`Couldn't load more comments (${more.message}).`}
+          {waitNote(more, thread.now)}
+          <button type="button" class="comment__link" onClick={() => controller.loadMore()}>
+            Try again
+          </button>
+        </p>
+      )}
+    </div>
   );
 }
 

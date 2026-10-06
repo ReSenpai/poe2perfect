@@ -24,6 +24,7 @@ Third-party components included in the built extension
 - Preact 10 — MIT License — https://github.com/preactjs/preact
 - Lucide icons (lucide-preact) — ISC License — https://github.com/lucide-icons/lucide
 - Inter font (via @fontsource-variable/inter) — SIL Open Font License 1.1 — https://github.com/rsms/inter
+- Noto Sans font (via @fontsource-variable/noto-sans) — SIL Open Font License 1.1 — https://github.com/notofonts/latin-greek-cyrillic
 - WXT runtime utilities, @wxt-dev/storage, @wxt-dev/browser — MIT License — https://github.com/wxt-dev/wxt
 - @webext-core/isolated-element — MIT License — https://github.com/aklinker1/webext-core
 - superlock — MIT License — https://github.com/fabiospampinato/superlock

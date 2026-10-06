@@ -2,6 +2,8 @@
 export const FONT_FAMILY = 'PoE2 Guide Inter';
 
 export interface FontSource {
+  /** Family to register under; the UI font when left out. */
+  family?: string;
   dataUrl: string;
   unicodeRange: string;
 }
@@ -24,8 +26,8 @@ export function registerFonts({
 }): void {
   if (registered.has(fontSet)) return;
   registered.add(fontSet);
-  for (const { dataUrl, unicodeRange } of sources) {
-    const face = new FontFaceCtor(FONT_FAMILY, decodeDataUrl(dataUrl), { weight: '100 900', style: 'normal', display: 'swap', unicodeRange });
+  for (const { family = FONT_FAMILY, dataUrl, unicodeRange } of sources) {
+    const face = new FontFaceCtor(family, decodeDataUrl(dataUrl), { weight: '100 900', style: 'normal', display: 'swap', unicodeRange });
     fontSet.add(face);
   }
 }

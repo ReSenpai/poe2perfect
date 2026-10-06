@@ -1,114 +1,56 @@
-/* The Comments tab: a framed column filling the panel, with its own scrolling list. */
+/*
+ * The Comments tab reads like a thread feed: one slim bar on top, then comments without boxes, threads parted by a
+ * thin rule and answers hanging off a line drawn from the avatar above them. Comment text is set in the reading font.
+ */
 .comments {
   display: flex;
   flex: 1;
   flex-direction: column;
   width: 100%;
-  max-width: 1200px;
+  max-width: 960px;
   min-height: 0;
   margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--surface) 55%, var(--bg));
 }
 
-/* Title and search/sort on top, filter chips and scope below. */
-.comments__header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px 16px;
-  align-items: end;
-  padding: 20px 20px 14px;
-}
-
-.comments__header > .comments__error {
-  grid-column: 1 / -1;
-}
-
-.comments__tools {
+/* One row: title and count, the filter, then search, sort and the way to the site. */
+.comments__bar {
   display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.comments__search {
-  display: flex;
-  box-sizing: border-box;
-  gap: 8px;
-  align-items: center;
-  width: clamp(200px, 26vw, 340px);
-  height: 36px;
-  padding: 0 4px 0 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--bg);
-  color: var(--text-muted);
-}
-
-.comments__search:focus-within {
-  border-color: var(--accent);
-}
-
-.comments__search input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font: 14px/20px var(--font);
-  outline: none;
-}
-
-.comments__search input::placeholder {
-  color: var(--text-disabled);
-}
-
-.comments__search input::-webkit-search-cancel-button {
-  display: none;
-}
-
-.comments__clear {
-  width: 26px;
-  height: 26px;
-}
-
-.comments__sort {
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/20px var(--font);
-  cursor: pointer;
-}
-
-.comments__sort:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 0;
-}
-
-.comments__filters {
-  display: flex;
-  grid-column: 1 / -1;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 12px;
   align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.comments__title {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  cursor: default;
+}
+
+.comments__count {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .comments__chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
-  padding: 4px 12px;
+  padding: 2px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
-  font: 500 13px/20px var(--font);
+  font: 500 12px/20px var(--font);
   cursor: pointer;
 }
 
@@ -127,54 +69,122 @@
   outline-offset: 2px;
 }
 
-.comments__title {
+.comments__tools {
   display: flex;
-  gap: 10px;
-  align-items: baseline;
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 28px;
-}
-
-.comments__count {
-  color: var(--text-muted);
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.comments__subtitle {
-  margin: 2px 0 0;
-  color: var(--text-muted);
-}
-
-.comments__scope {
-  display: inline-flex;
+  gap: 4px;
+  align-items: center;
   margin-left: auto;
+}
+
+.comments__search {
+  display: flex;
+  box-sizing: border-box;
   gap: 6px;
   align-items: center;
+  width: 200px;
+  height: 30px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
   color: var(--text-muted);
-  font-size: 12px;
-  line-height: 18px;
+  transition: width 150ms;
 }
 
+.comments__search:focus-within {
+  width: 260px;
+  border-color: var(--accent);
+}
+
+.comments__search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 13px/20px var(--font);
+  outline: none;
+}
+
+.comments__search input::placeholder {
+  color: var(--text-disabled);
+}
+
+.comments__search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.comments__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.comments__clear:hover {
+  color: var(--text);
+}
+
+.comments__sort {
+  height: 30px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  font: 500 13px/20px var(--font);
+  cursor: pointer;
+}
+
+.comments__sort:hover {
+  color: var(--text);
+}
+
+.comments__sort option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.comments__clear:focus-visible,
+.comments__sort:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+
+.comments__bar > .comments__error {
+  flex-basis: 100%;
+}
+
+/* The feed: its own scroll, so the bar stays put. */
 .comments__list {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 12px 8px 24px 0;
 }
 
-.comments__footer {
+.comments__error {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 4px 10px;
   align-items: center;
-  padding: 12px 20px 16px;
-  border-top: 1px solid var(--border);
+  margin: 0;
+  color: var(--res-fire);
+  font-size: 13px;
+}
+
+.comments__list > .comments__error {
+  padding: 12px 0;
 }
 
 /* Says the list shows part of what is loaded while a search or filter is on. */
@@ -184,13 +194,9 @@
   gap: 4px 10px;
   align-items: center;
   margin: 0;
+  padding: 6px 0;
   color: var(--text-muted);
-  font-size: 13px;
-}
-
-.comments__scope-note .comment__link:disabled {
-  color: var(--text-muted);
-  cursor: progress;
+  font-size: 12px;
 }
 
 /* Marks the end of the list; coming into view loads the next page. */
@@ -204,7 +210,7 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 8px;
+  padding: 12px;
   color: var(--text-muted);
   font-size: 13px;
 }
@@ -212,36 +218,6 @@
 ::highlight(poe2perfect-comment-search) {
   background-color: rgba(232, 161, 90, 0.35);
   color: var(--text);
-}
-
-.comments__original {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Reply sits at the far end of the footer, as in the concept. */
-.comments__footer .comments__original {
-  min-width: 220px;
-  margin-left: auto;
-}
-
-.comments__empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
-
-.comments__error {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  align-items: center;
-  margin: 0;
-  color: var(--res-fire);
-  font-size: 13px;
 }
 
 .comments__empty,
@@ -274,19 +250,33 @@
   margin: 0;
 }
 
-/* A box to write a comment, above the list, or an answer, right under the comment it answers. */
+.comments__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.comments__original {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A box to write a comment, on top of the feed, or an answer, right under the comment it answers. */
 .composer {
   display: grid;
   gap: 8px;
 }
 
 .comments__list > .composer {
-  margin-bottom: 4px;
+  padding-bottom: 6px;
 }
 
 .comment__main > .composer {
   max-width: 90ch;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .composer--inline {
@@ -294,29 +284,16 @@
   align-items: start;
 }
 
-.composer--inline .composer__box {
-  min-height: 40px;
-  padding: 9px 12px;
-}
-
-.composer--inline .composer__bar {
-  min-height: 40px;
-}
-
-.composer--inline .composer__error {
-  grid-column: 1 / -1;
-}
-
 .composer__box {
   box-sizing: border-box;
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 38px;
+  padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: var(--bg);
   color: var(--text);
-  font: 14px/21px var(--font);
+  font: 15px/23px var(--font-reading);
   resize: vertical;
 }
 
@@ -334,6 +311,14 @@
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
+}
+
+.composer--inline .composer__bar {
+  min-height: 38px;
+}
+
+.composer--inline .composer__error {
+  grid-column: 1 / -1;
 }
 
 .composer__bar .button:disabled {
@@ -357,11 +342,11 @@
   font-size: 13px;
 }
 
-/* One comment: avatar beside who/when/what. */
+/* One comment: a small avatar beside who · when, the text, then quiet actions. */
 .comment {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
+  gap: 10px;
   align-items: start;
 }
 
@@ -374,24 +359,23 @@
   outline-offset: 2px;
 }
 
+/* Threads parted by a thin rule instead of boxes. */
 .comment--root {
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .comment__avatar {
   display: block;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .comment__avatar--small {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .comment__avatar--blank {
@@ -402,12 +386,12 @@
   border: 1px solid var(--border);
   background: var(--surface-hover);
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .comment__avatar--small.comment__avatar--blank {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .comment__main {
@@ -417,24 +401,31 @@
 .comment__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 2px 6px;
   align-items: center;
+  min-height: 24px;
 }
 
 .comment__name {
   color: var(--text);
+  font-size: 13px;
   font-weight: 600;
 }
 
+/* The author's own words: their name in the accent, and the badge says it in words. */
+.comment--by-author > .comment__main > .comment__meta > .comment__name {
+  color: var(--accent);
+}
+
 .comment__badge {
-  padding: 0 6px;
+  padding: 0 5px;
   border: 1px solid var(--accent);
   border-radius: 4px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 16px;
 }
 
 .comment__time {
@@ -443,22 +434,33 @@
   line-height: 18px;
 }
 
+.comment__time::before {
+  margin-right: 6px;
+  color: var(--text-disabled);
+  content: '·';
+}
+
 .comment__body {
-  max-width: 90ch;
-  margin-top: 4px;
+  max-width: 80ch;
+  margin-top: 2px;
 }
 
 /* About eight lines; "Show more" opens the rest. */
 .comment__body--folded {
-  max-height: 168px;
+  max-height: 184px;
   overflow: hidden;
 }
 
+/* Long reading: the reading font, a touch larger, with room between lines. */
 .comment__text,
 .comment__text.rt {
-  font-size: 14px;
-  line-height: 21px;
+  color: var(--text);
+  font: 15px/23px var(--font-reading);
   overflow-wrap: anywhere;
+}
+
+.comment__text.rt > :not(:first-child) {
+  margin-top: 10px;
 }
 
 .comment__text--plain {
@@ -468,14 +470,14 @@
 
 .comment__unavailable {
   margin: 0;
-  padding-top: 6px;
+  padding-top: 3px;
   color: var(--text-disabled);
-  font-style: italic;
+  font: italic 14px/22px var(--font-reading);
 }
 
 .comment__spoiler {
-  margin-top: 6px;
-  padding: 4px 10px;
+  margin-top: 4px;
+  padding: 3px 10px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-control);
   background: transparent;
@@ -491,16 +493,12 @@
 .comment__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 2px 14px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
-.comment__actions:empty {
-  display: none;
-}
-
-/* Quiet text buttons: replies, show more, try again. */
+/* Quiet text buttons, grey until hovered; the ones that recover from a failure stand out. */
 .comment__link {
   display: inline-flex;
   gap: 4px;
@@ -509,13 +507,34 @@
   border: 0;
   border-radius: 2px;
   background: none;
-  color: var(--accent);
-  font: 500 13px/20px var(--font);
+  color: var(--text-muted);
+  font: 600 12px/20px var(--font);
   cursor: pointer;
 }
 
 .comment__link:hover {
+  color: var(--text);
+}
+
+.thread__more,
+.comments__error .comment__link,
+.comments__scope-note .comment__link,
+.composer__error .comment__link,
+.thread__status .comment__link {
+  color: var(--accent);
+}
+
+.thread__more:hover,
+.comments__error .comment__link:hover,
+.comments__scope-note .comment__link:hover,
+.composer__error .comment__link:hover,
+.thread__status .comment__link:hover {
   color: var(--accent-strong);
+}
+
+.comments__scope-note .comment__link:disabled {
+  color: var(--text-muted);
+  cursor: progress;
 }
 
 .comment__link:focus-visible,
@@ -527,19 +546,13 @@
 
 .comment__author-replied {
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 20px;
-}
-
-.comment__author-replied::before {
-  margin-right: 12px;
-  color: var(--text-disabled);
-  content: '·';
 }
 
 .comment__replying {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   padding: 0;
   border: 0;
   background: none;
@@ -552,20 +565,17 @@
   color: var(--text);
 }
 
-/* Answers one step in, along a thin line; the author's own answers mark the line in the accent. */
+/*
+ * Answers hang off a line drawn down from the middle of the avatar above (28 px avatar, 10 px gap: the line sits
+ * 24 px left of the text), and their own avatars line up with the text they answer.
+ */
 .thread__replies {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 12px;
-  padding-left: 16px;
-  border-left: 1px solid var(--border);
-}
-
-.comment--reply.comment--by-author {
-  margin-left: -17px;
-  padding-left: 15px;
-  border-left: 2px solid var(--accent);
+  gap: 12px;
+  margin: 8px 0 0 -24px;
+  padding-left: 22px;
+  border-left: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .thread__status {
@@ -575,7 +585,7 @@
   align-items: center;
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .thread__status--error {
@@ -592,25 +602,19 @@
 }
 
 @media (max-width: 720px) {
-  .comments__header {
-    grid-template-columns: minmax(0, 1fr);
+  .comments__tools {
+    width: 100%;
+    margin-left: 0;
   }
 
-  .comments__search {
+  .comments__search,
+  .comments__search:focus-within {
     flex: 1;
     width: auto;
   }
 
-  .comments__list {
-    padding: 0 12px 16px;
-  }
-
   .thread__replies {
-    padding-left: 10px;
-  }
-
-  .comment--reply.comment--by-author {
-    margin-left: -11px;
-    padding-left: 9px;
+    margin-left: -18px;
+    padding-left: 12px;
   }
 }

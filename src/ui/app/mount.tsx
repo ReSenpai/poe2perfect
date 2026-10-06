@@ -6,6 +6,7 @@ import type { RememberedVariant, TabId } from '@/lib/ui/route';
 import { BASE_CSS } from '@/ui/styles';
 import { registerFonts } from '@/ui/theme/fonts';
 import { INTER_SOURCES } from '@/ui/theme/inter-sources';
+import { NOTO_SOURCES } from '@/ui/theme/noto-sources';
 import appCss from './app.css?inline';
 import { ConnectedApp } from './App';
 
@@ -25,7 +26,7 @@ export async function mountApp(
     onOriginalComments: () => void;
   },
 ): Promise<HTMLElement> {
-  registerFonts({ fontSet: document.fonts, FontFace, sources: INTER_SOURCES });
+  registerFonts({ fontSet: document.fonts, FontFace, sources: [...INTER_SOURCES, ...NOTO_SOURCES] });
   const ui = await createShadowRootUi(ctx, {
     name: 'poe2-build-guide',
     css: `${BASE_CSS}\n${appCss}`,
