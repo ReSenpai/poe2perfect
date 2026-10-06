@@ -84,13 +84,14 @@ afterEach(() => {
 const card = (name: string) => screen.getByText(name, { selector: '.comment__name' }).closest('article')!;
 
 describe('CommentsPanel', () => {
-  it("names the discussion and the site's counter in one compact bar, the rest in its tooltip", () => {
-    renderPanel(readySeed([rawComment({ id: 'r1' })]));
+  it('leaves the name and the counter to the tab, and scrolls its bar away with the comments', () => {
+    const { container } = renderPanel(readySeed([rawComment({ id: 'r1' })]));
 
-    const heading = screen.getByRole('heading', { level: 2, name: /Comments/ });
-    expect(heading.textContent).toContain('24');
-    expect(heading.getAttribute('title')).toBe('Discussion from the original build page, for all build variants');
-    expect(screen.queryByText('Discussion from the original build page')).toBeNull();
+    expect(screen.queryByRole('heading', { name: /Comments/ })).toBeNull();
+    const list = container.querySelector('.comments__list')!;
+    expect(list.querySelector('header')).toBeTruthy();
+    expect(within(list as HTMLElement).getByRole('searchbox', { name: 'Search comments' })).toBeTruthy();
+    expect(within(list as HTMLElement).getByRole('textbox', { name: 'Add a comment' })).toBeTruthy();
   });
 
   it('shows each root comment with its author, time and text, in the order the site sent them', () => {

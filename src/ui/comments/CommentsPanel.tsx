@@ -35,7 +35,6 @@ export function CommentsPanel({
   // The order asked for, shown while its first page loads.
   const [wantedSort, setWantedSort] = useState<CommentsSort | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const total = state.status === 'disabled' ? null : state.total;
   const filtered = state.status === 'ready' ? filterThreads(state.list, { query, authorReplied: authorOnly }) : null;
 
   useSearchHighlight(root, query);
@@ -53,69 +52,67 @@ export function CommentsPanel({
 
   const sortShown = state.status === 'ready' && state.resort.status === 'loading' && wantedSort ? wantedSort : state.status === 'ready' ? state.sort : 'NEW';
 
-  return (
-    <div class="comments" ref={root}>
-      <header class="comments__bar">
-        <h2 class="comments__title" title="Discussion from the original build page, for all build variants">
-          Comments
-          {total !== null && <span class="comments__count">{total}</span>}
-        </h2>
-        {state.status === 'ready' && state.canIdentifyAuthor && (
-          <div class="comments__chips" role="group" aria-label="Filter comments">
-            <button type="button" class="chip" aria-pressed={!authorOnly} onClick={() => setAuthorOnly(false)}>
-              All comments
-            </button>
-            <button type="button" class="chip" aria-pressed={authorOnly} onClick={() => setAuthorOnly(true)}>
-              Author replied
-            </button>
-          </div>
-        )}
-        {state.status === 'ready' && (
-          <div class="comments__tools">
-            <label class="comments__search">
-              <Search size={14} aria-hidden="true" />
-              <input
-                type="search"
-                aria-label="Search comments"
-                placeholder="Search"
-                value={query}
-                onInput={(event) => setQuery((event.target as HTMLInputElement).value)}
-              />
-              {query && (
-                <button type="button" class="comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
-                  <X size={14} aria-hidden="true" />
-                </button>
-              )}
-            </label>
-            {state.canSort && controller && (
-              <select
-                class="comments__sort"
-                aria-label="Sort comments"
-                value={sortShown}
-                onChange={(event) => {
-                  const sort = (event.target as HTMLSelectElement).value as CommentsSort;
-                  setWantedSort(sort);
-                  controller.setSort(sort);
-                }}
-              >
-                {(Object.keys(SORT_LABELS) as CommentsSort[]).map((sort) => (
-                  <option key={sort} value={sort}>
-                    {SORT_LABELS[sort]}
-                  </option>
-                ))}
-              </select>
-            )}
-            {onOpenOriginal && (
-              <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
-                <ArrowUpRight size={16} aria-hidden="true" />
+  // Filter, search and sort scroll away with the comments; the tab already names the discussion and counts it.
+  const bar = state.status === 'ready' && (
+    <header class="comments__bar">
+      {state.canIdentifyAuthor && (
+        <div class="comments__chips" role="group" aria-label="Filter comments">
+          <button type="button" class="chip" aria-pressed={!authorOnly} onClick={() => setAuthorOnly(false)}>
+            All comments
+          </button>
+          <button type="button" class="chip" aria-pressed={authorOnly} onClick={() => setAuthorOnly(true)}>
+            Author replied
+          </button>
+        </div>
+      )}
+        <div class="comments__tools">
+          <label class="comments__search">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search comments"
+              placeholder="Search"
+              value={query}
+              onInput={(event) => setQuery((event.target as HTMLInputElement).value)}
+            />
+            {query && (
+              <button type="button" class="comments__clear" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
+                <X size={14} aria-hidden="true" />
               </button>
             )}
-          </div>
-        )}
-        {state.status === 'ready' && state.resort.status === 'error' && (
-          <p class="comments__error" role="alert">{`Couldn't sort the comments (${state.resort.message}).`}</p>
-        )}
-      </header>
+          </label>
+          {state.canSort && controller && (
+            <select
+              class="comments__sort"
+              aria-label="Sort comments"
+              value={sortShown}
+              onChange={(event) => {
+                const sort = (event.target as HTMLSelectElement).value as CommentsSort;
+                setWantedSort(sort);
+                controller.setSort(sort);
+              }}
+            >
+              {(Object.keys(SORT_LABELS) as CommentsSort[]).map((sort) => (
+                <option key={sort} value={sort}>
+                  {SORT_LABELS[sort]}
+                </option>
+              ))}
+            </select>
+          )}
+          {onOpenOriginal && (
+            <button type="button" class="icon-button" aria-label="Open on Mobalytics" title="Open on Mobalytics" onClick={onOpenOriginal}>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      {state.resort.status === 'error' && (
+        <p class="comments__error" role="alert">{`Couldn't sort the comments (${state.resort.message}).`}</p>
+      )}
+    </header>
+  );
+
+  return (
+    <div class="comments" ref={root}>
       {state.status === 'ready' ? (
         controller &&
         filtered && (
@@ -131,6 +128,7 @@ export function CommentsPanel({
             replyingTo={replyingTo}
             onReply={setReplyingTo}
             onSignIn={onOpenOriginal}
+            bar={bar}
           />
         )
       ) : (
@@ -147,6 +145,7 @@ function ReadyList({
   controller,
   filtered,
   searching,
+  bar,
   ...thread
 }: {
   state: Ready;
@@ -161,6 +160,8 @@ function ReadyList({
   replyingTo: string | null;
   onReply: (id: string | null) => void;
   onSignIn?: () => void;
+  /** Filter, search and sort, at the top of the scrolling list. */
+  bar: preact.ComponentChildren;
 }) {
   const { page } = state.list;
   const { more } = state;
@@ -172,6 +173,7 @@ function ReadyList({
 
   return (
     <div class="comments__list">
+      {bar}
       <CommentComposer
         label="Add a comment"
         placeholder="Ask the author or share how the build went…"

@@ -1,5 +1,5 @@
 /*
- * The Comments tab reads like a thread feed: one slim bar on top, then comments without boxes, threads parted by a
+ * The Comments tab reads like a thread feed: a slim bar and the reply box on top, scrolling with the comments without boxes, threads parted by a
  * thin rule and answers hanging off a line drawn from the avatar above them. Comment text is set in the reading font.
  */
 .comments {
@@ -12,31 +12,13 @@
   margin: 0 auto;
 }
 
-/* One row: title and count, the filter, then search, sort and the way to the site. */
+/* One row at the top of the feed, scrolling away with it: the filter, then search, sort and the way to the site. */
 .comments__bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
   align-items: center;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.comments__title {
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
-  cursor: default;
-}
-
-.comments__count {
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 500;
 }
 
 .comments__chips {
@@ -170,7 +152,7 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 8px 24px 0;
+  padding: 0 8px 24px 0;
 }
 
 .comments__error {
