@@ -20,24 +20,24 @@
 }
 
 /* As a side panel: a fixed header with the counter, Expand and Close; the feed below in a narrower column. */
+/* Headed like the other cards: the title in their size, its buttons quiet beside it. */
 .comments__head {
   display: flex;
   flex: none;
   gap: 2px;
   align-items: center;
-  padding: 8px 8px 8px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 10px 4px 20px;
 }
 
 .comments__title {
   display: flex;
   flex: 1;
-  gap: 6px;
+  gap: 8px;
   align-items: baseline;
   margin: 0;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 24px;
 }
 
 .comments__count {
@@ -46,8 +46,23 @@
   font-weight: 500;
 }
 
+.comments--side {
+  /* What the feed sits on, for the bits that paint over a line (its end, the fold's middle). */
+  --feed-bg: var(--surface);
+}
+
 .comments--side .comments__list {
-  padding: 12px 12px 20px 16px;
+  padding: 8px 12px 16px 20px;
+}
+
+/* A card's scrollbar, as in the other cards; the wide one is for the Comments tab. */
+.comments--side .comments__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comments--side .comments__list::-webkit-scrollbar-thumb {
+  min-height: 0;
+  border-width: 2px;
 }
 
 .comments--side .comments__tools {
@@ -855,7 +870,7 @@
   bottom: calc(-1 * var(--parent-pad-bottom) - 1px);
   left: calc(-1 * var(--to-line) - 2px);
   width: 5px;
-  background: var(--bg);
+  background: var(--feed-bg, var(--bg));
   content: '';
   pointer-events: none;
 }
@@ -874,7 +889,7 @@
   padding: 0;
   border: 1px solid var(--rail);
   border-radius: 50%;
-  background: var(--bg);
+  background: var(--feed-bg, var(--bg));
   color: var(--text-muted);
   cursor: pointer;
 }

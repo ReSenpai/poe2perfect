@@ -186,7 +186,7 @@ export function BuildView({
             </button>
           </div>
         </div>
-        <div class="build-view__body">
+        <div class={docked ? 'build-view__body build-view__body--docked' : 'build-view__body'}>
           <section
             class={['build-view__panel', FILL_TABS.includes(route.tab) && 'build-view__panel--fill', FLUSH_TABS.includes(route.tab) && 'build-view__panel--flush']
               .filter(Boolean)
