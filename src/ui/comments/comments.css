@@ -488,7 +488,7 @@
   box-sizing: border-box;
   width: var(--avatar);
   height: var(--avatar);
-  border-radius: calc(var(--avatar) / 4.5);
+  border-radius: calc(var(--avatar) / 7);
   object-fit: cover;
 }
 
