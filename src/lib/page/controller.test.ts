@@ -59,13 +59,13 @@ describe('createPageController', () => {
     expect(setup().controller.getState()).toEqual({ active: false, mode: 'extension' });
   });
 
-  it("leaves a profile's build addressed by id alone while the guide can't read those yet", () => {
+  it("loads a profile's build addressed by id", () => {
     const { controller, load } = setup();
 
     controller.handleUrl('https://mobalytics.gg/poe-2/profile/some-player/builds/e4321b1e-aa41-4c49-855d-97ffba18f5f5');
 
-    expect(load).not.toHaveBeenCalled();
-    expect(controller.getState()).toMatchObject({ active: false });
+    expect(load).toHaveBeenCalledOnce();
+    expect(controller.getState()).toMatchObject({ active: true, key: 'some-player/e4321b1e-aa41-4c49-855d-97ffba18f5f5' });
   });
 
   it('loads a build published from a profile under its slug, keyed with the profile', () => {

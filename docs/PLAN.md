@@ -638,7 +638,16 @@ Steps (to agree on before starting):
   single variant (guides too), since the site draws no variant tabs then and the tree section was only recognised
   with them — tabs are now required only of the section used to switch variants. Checked live, signed in: a direct
   open (Overview, Gear, Passives with the tree), a move from the author's build list inside the SPA, Comments.
-- P3. Id builds: get the document (the chosen way), with a time limit and a clear message if it never comes.
+- P3. Id builds ✅ (way A, the user's choice: catch the site's own answer). `entrypoints/document-relay.content.ts`
+  (MAIN world, `document_start`, 1.3 KB) runs `installDocumentRelay`: wraps the page's `fetch`, returns every answer
+  untouched, and for `/api/poe-2/v1/graphql/query` requests asking for `userGeneratedDocumentById` reads a clone and
+  passes the document on as a `poe2-build-guide:document` event (a JSON string, so it crosses worlds in Firefox too),
+  keeping the last 5 and replaying them on `poe2-build-guide:documents-replay`. The guide's `createDocumentInbox`
+  asks for that replay when it starts (it runs at `document_idle`, after the site may have loaded the build), keeps
+  the last 5 builds and waits up to 15 s for the id a page needs; otherwise "The site didn't hand over this build.
+  Reload the page, then try again." Checked live, signed in: a direct open (all 7 tabs, the tree, 30 comments with the
+  author marked), a move from the author's list, back to the list and forward again (the site served it from its
+  cache, the inbox already had it).
 - P4. Comments, fixtures export and the dev hooks on profile builds; PRIVACY/README/CHANGELOG.
 - P5. Live check: both forms, a guide as before, SPA moves between them, signed in and out; Firefox by hand.
 

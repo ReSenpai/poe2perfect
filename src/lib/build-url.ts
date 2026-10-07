@@ -38,8 +38,7 @@ export function getBuildKey(url: string): string | null {
   return getBuildRef(url)?.key ?? null;
 }
 
-/** Pages the guide takes over: guides and profile builds by slug, for now; builds by id come next. */
+/** Pages the guide takes over: every build page it can read. */
 export function isBuildPageUrl(url: string): boolean {
-  const ref = getBuildRef(url);
-  return ref !== null && (ref.kind === 'guide' || ref.slug !== null);
+  return getBuildRef(url) !== null;
 }

@@ -67,7 +67,8 @@ function findBuildDocument(state: unknown): RawBuildDocument | null {
   return null;
 }
 
-function isBuildDocument(value: unknown): value is RawBuildDocument {
+/** Whether a value has the shape of a build document: an id, a name and its content. */
+export function isBuildDocument(value: unknown): value is RawBuildDocument {
   return (
     typeof get(value, 'id') === 'string' &&
     typeof get(value, 'data', 'name') === 'string' &&

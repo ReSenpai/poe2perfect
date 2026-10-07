@@ -10,6 +10,7 @@ import { captureFixture } from '@/lib/dev/fixture';
 import { listenForPageCapture } from '@/lib/dev/page-capture';
 import { listenForPageReport } from '@/lib/dev/page-report';
 import { createBuildLoader } from '@/lib/page/build-loader';
+import { createDocumentInbox } from '@/lib/page/document-relay';
 import { createHtmlFetcher } from '@/lib/page/fetch-html';
 import { pageFetch } from '@/lib/page/page-fetch';
 import { createPageController, isOverlayVisible } from '@/lib/page/controller';
@@ -20,6 +21,8 @@ import { mountApp } from '@/ui/app/mount';
 import { revealOriginalComments } from '@/lib/page/original-comments';
 
 const MARKER_ATTRIBUTE = 'data-poe2-build-guide';
+/** How long a profile build addressed by id may take to arrive from the site's own request. */
+const BUILD_BY_ID_TIMEOUT_MS = 15_000;
 
 // Build pages are asked for as the page itself: in Firefox a content script's own fetch goes as the extension.
 const fetchHtml = createHtmlFetcher(pageFetch());
@@ -30,11 +33,15 @@ export default defineContentScript({
   runAt: 'document_idle',
   async main(ctx) {
     const commentsSource = createCommentsSource({ fetch: pageFetch(), origin: location.origin, pageUrl: () => location.origin + location.pathname });
+    // Profile builds addressed by id come from the site's own answer, caught by the page-world relay.
+    const inbox = createDocumentInbox(document);
+    ctx.onInvalidated(() => inbox.dispose());
     const load = createBuildLoader({
       initialUrl: location.href,
       initialDocument: document,
       fetchHtml,
       readStaticData: () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 10_000 }),
+      waitForDocument: (id) => inbox.waitFor(id, BUILD_BY_ID_TIMEOUT_MS),
     });
     const controller = createPageController({
       load,

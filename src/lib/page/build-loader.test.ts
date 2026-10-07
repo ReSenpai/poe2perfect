@@ -35,7 +35,27 @@ function setup(overrides: Partial<Parameters<typeof createBuildLoader>[0]> = {})
   return { deps, load: createBuildLoader(deps) };
 }
 
+const BY_ID = 'https://mobalytics.gg/poe-2/profile/some-player/builds/e4321b1e-aa41-4c49-855d-97ffba18f5f5#gear';
+const byIdDocument = { id: 'e4321b1e-aa41-4c49-855d-97ffba18f5f5', data: { name: '[0.5] Whirling Assault', buildVariants: { values: [] } }, content: [] };
+
 describe('createBuildLoader', () => {
+  it('takes a profile build addressed by id from what the site loaded, as no HTML holds it', async () => {
+    const waitForDocument = vi.fn(async () => byIdDocument);
+    const { deps, load } = setup({ waitForDocument });
+
+    const result = await load(BY_ID);
+
+    expect(waitForDocument).toHaveBeenCalledWith('e4321b1e-aa41-4c49-855d-97ffba18f5f5');
+    expect(result).toMatchObject({ ok: true, build: { title: 'Whirling Assault' } });
+    expect(deps.fetchHtml).not.toHaveBeenCalled();
+  });
+
+  it("asks for a reload when the site never handed the build over, e.g. it took it from a cache the guide didn't see", async () => {
+    const { load } = setup({ waitForDocument: vi.fn(async () => null) });
+
+    expect(await load(BY_ID)).toEqual({ ok: false, message: "The site didn't hand over this build. Reload the page, then try again." });
+  });
+
   it('passes on how the fetch is going, so the guide can show progress', async () => {
     const fetchHtml = vi.fn(async (_url: string, onProgress?: (progress: { attempt: number; attempts: number }) => void) => {
       onProgress?.({ attempt: 2, attempts: 4 });

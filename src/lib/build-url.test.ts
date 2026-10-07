@@ -83,7 +83,7 @@ describe('isBuildPageUrl', () => {
     expect(isBuildPageUrl('https://mobalytics.gg/poe-2/profile/some-player/builds/frost-witch')).toBe(true);
   });
 
-  it("leaves profile builds addressed by id alone until the guide can read them", () => {
-    expect(isBuildPageUrl(`https://mobalytics.gg/poe-2/profile/some-player/builds/${ID}`)).toBe(false);
+  it('is true for a profile build addressed by id', () => {
+    expect(isBuildPageUrl(`https://mobalytics.gg/poe-2/profile/some-player/builds/${ID}`)).toBe(true);
   });
 });
