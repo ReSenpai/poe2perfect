@@ -632,7 +632,12 @@ Steps (to agree on before starting):
 - P1. URLs ✅. `getBuildRef` reads both forms (`guide` / `profile` with `slug` or `id`), `getBuildKey` gives the key;
   the page controller, loader and remembered tabs/variants run on the key (state field `key`, was `slug`).
   `isBuildPageUrl` still takes guides only, so profile pages stay untouched until the loader can read them.
-- P2. Slug builds: read the profile document from the state; the loader, controller and remembered state on the key.
+- P2. Slug builds ✅. `extractBuildDocument` knows both state queries (`ngf-ug-featured-document-page` →
+  `userGeneratedDocumentBySlug`, `ngf-ug-normal-document-page` → `userGeneratedDocumentBySlugifiedName`);
+  `isBuildPageUrl` takes profile builds by slug. Found on the way: the embedded tree never showed for a build with a
+  single variant (guides too), since the site draws no variant tabs then and the tree section was only recognised
+  with them — tabs are now required only of the section used to switch variants. Checked live, signed in: a direct
+  open (Overview, Gear, Passives with the tree), a move from the author's build list inside the SPA, Comments.
 - P3. Id builds: get the document (the chosen way), with a time limit and a clear message if it never comes.
 - P4. Comments, fixtures export and the dev hooks on profile builds; PRIVACY/README/CHANGELOG.
 - P5. Live check: both forms, a guide as before, SPA moves between them, signed in and out; Firefox by hand.

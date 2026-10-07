@@ -19,6 +19,14 @@ function documentQuery(doc: unknown) {
   };
 }
 
+/** A build published from a player's profile, addressed by its slug: another query, another field, the same document. */
+function profileDocumentQuery(doc: unknown) {
+  return {
+    queryKey: ['ngf-ug-normal-document-page', 'frost-witch', 'some-player', []],
+    state: { data: [{ game: { documents: { userGeneratedDocumentBySlugifiedName: { error: null, data: doc } } } }, null] },
+  };
+}
+
 const BANNER_QUERY = { queryKey: ['ngf-banner-takeover'], state: { data: [{ game: {} }, null] } };
 
 function pageHtml(stateScript: string) {
@@ -40,6 +48,12 @@ describe('extractBuildDocument', () => {
     const result = extractBuildDocument(html);
 
     expect(result).toEqual({ ok: true, doc: DOC });
+  });
+
+  it("finds a profile build's document the same way", () => {
+    const html = pageHtml(serialize(stateWith([BANNER_QUERY, profileDocumentQuery(DOC)])));
+
+    expect(extractBuildDocument(html)).toEqual({ ok: true, doc: DOC });
   });
 
   it('accepts a parsed Document', () => {
