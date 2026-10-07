@@ -1,4 +1,4 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import type { LoadResult } from './build-loader';
 import type { FetchProgress } from './fetch-html';
@@ -9,7 +9,7 @@ interface ActiveBase {
   active: true;
   mode: PageMode;
   url: string;
-  slug: string;
+  key: string;
 }
 
 export type PageState =
@@ -49,9 +49,9 @@ export function createPageController({
     listeners.forEach((listener) => listener(state));
   };
 
-  const start = (url: string, slug: string) => {
+  const start = (url: string, key: string) => {
     const id = ++loadId;
-    set({ active: true, mode: state.mode, url, slug, status: 'loading' });
+    set({ active: true, mode: state.mode, url, key, status: 'loading' });
     const report = (progress: FetchProgress) => {
       if (id !== loadId || !state.active || state.status !== 'loading') return;
       set({ ...state, progress });
@@ -60,7 +60,7 @@ export function createPageController({
       .catch((error: unknown): LoadResult => ({ ok: false, message: error instanceof Error ? error.message : String(error) }))
       .then((result) => {
         if (id !== loadId || !state.active) return;
-        const base = { active: true as const, mode: state.mode, url: state.url, slug };
+        const base = { active: true as const, mode: state.mode, url: state.url, key };
         set(result.ok ? { ...base, status: 'ready', build: result.build } : { ...base, status: 'error', message: result.message });
       });
   };
@@ -69,21 +69,21 @@ export function createPageController({
     getState: () => state,
 
     handleUrl(url) {
-      const slug = getBuildSlug(url);
-      if (!slug) {
+      const key = getBuildKey(url);
+      if (!key) {
         loadId++;
         if (state.active) set({ active: false, mode: state.mode });
         return;
       }
-      if (state.active && state.slug === slug) {
+      if (state.active && state.key === key) {
         state = { ...state, url };
         return;
       }
-      start(url, slug);
+      start(url, key);
     },
 
     retry() {
-      if (state.active && state.status === 'error') start(state.url, state.slug);
+      if (state.active && state.status === 'error') start(state.url, state.key);
     },
 
     setMode(mode) {

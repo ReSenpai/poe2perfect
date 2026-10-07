@@ -1,4 +1,4 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey } from '@/lib/build-url';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
 import { pickStaticSubset } from '@/lib/data/static-subset';
@@ -24,8 +24,9 @@ export interface CaptureOptions {
 
 /** Dev tool: snapshot of a build page's data for use as a test fixture. */
 export async function captureFixture({ url, loadPage, readStaticData, now = () => new Date() }: CaptureOptions): Promise<CaptureResult> {
-  const slug = getBuildSlug(url);
-  if (!slug) return { ok: false, message: 'Это не страница билда' };
+  const key = getBuildKey(url);
+  if (!key) return { ok: false, message: 'Это не страница билда' };
+  const slug = key.replaceAll('/', '--');
 
   let page: Document | string;
   try {

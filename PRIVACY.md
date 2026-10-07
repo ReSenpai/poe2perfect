@@ -12,6 +12,9 @@ mobalytics.gg in a tabbed layout. The same policy covers both; the extension beh
   page from mobalytics.gg again to read its data. These requests go only to mobalytics.gg and are sent without your
   cookies. When the site's bot protection turns such a request away (it can on a first visit), the last retry is sent
   the way your browser loads the page itself, with your mobalytics.gg cookies, and still only to mobalytics.gg.
+- **Reads the build the site loads for itself.** A profile build opened by its id is not in the page's HTML: the site
+  loads it after the page opens. A small script in the page hands that answer, as the site received it, to the
+  extension. It sends no request of its own and passes on no other answers.
 - **Reads the site's game data cache.** For tooltips it reads game data (items, gems, passives) that mobalytics.gg has
   already stored in your browser. It never changes that data.
 - **Stores display preferences locally.** Whether the guide or the original page is shown, whether the header and the

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StaticDataResult } from '@/lib/data/static-data';
+import type { RawBuildDocument } from '@/lib/data/types';
 import { createBuildLoader } from './build-loader';
 
 function pageHtml(name: string) {
@@ -22,6 +23,9 @@ const STATIC_MISSING: StaticDataResult = { ok: false, reason: 'unavailable', mes
 
 const BUILD_A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const BUILD_B = 'https://mobalytics.gg/poe-2/builds/build-b?weaponSet=set1#skills';
+const PROFILE_SLUG = 'https://mobalytics.gg/poe-2/profile/gl1tch3d/builds/gl1tch3d-s-blacial-golt';
+const PROFILE_DOCUMENT_ID = 'e4321b1e-aa41-4c49-855d-97ffba18f5f5';
+const PROFILE_ID = `https://mobalytics.gg/poe-2/profile/fierce-golem-xc5lul/builds/${PROFILE_DOCUMENT_ID}`;
 
 function setup(overrides: Partial<Parameters<typeof createBuildLoader>[0]> = {}) {
   const deps = {
@@ -29,6 +33,7 @@ function setup(overrides: Partial<Parameters<typeof createBuildLoader>[0]> = {})
     initialDocument: parse(pageHtml('[0.5.5] Build A')),
     fetchHtml: vi.fn(async (_url: string) => pageHtml('[0.5] Build B')),
     readStaticData: vi.fn(async () => STATIC_OK),
+    readDocumentById: vi.fn(async (_id: string): Promise<RawBuildDocument | null> => null),
     ...overrides,
   };
   return { deps, load: createBuildLoader(deps) };
@@ -128,6 +133,44 @@ describe('createBuildLoader', () => {
     });
 
     expect(await load(BUILD_B)).toEqual({ ok: false, message: "Couldn't load the build page (HTTP 503). Check your connection and try again." });
+  });
+
+  it('reads a profile build named by its slug from the page HTML', async () => {
+    const doc = { id: 'p1', data: { name: '[0.5] Profile Build', buildVariants: { values: [] } }, content: [] };
+    const state = {
+      poe2State: {
+        apollo: {
+          graphqlV2: {
+            queries: [{ queryKey: ['ngf-ug-normal-document-page'], state: { data: [{ game: { documents: { userGeneratedDocumentBySlugifiedName: { data: doc } } } }] } }],
+          },
+        },
+      },
+    };
+    const fetchHtml = vi.fn(async (_url: string) => `<html><head><script>window.__PRELOADED_STATE__=${JSON.stringify(state)};</script></head></html>`);
+    const { load } = setup({ fetchHtml });
+
+    const result = await load(PROFILE_SLUG);
+
+    expect(fetchHtml.mock.calls[0]?.[0]).toBe(PROFILE_SLUG);
+    expect(result).toMatchObject({ ok: true, build: { title: 'Profile Build' } });
+  });
+
+  it('gets a profile build named by its id from the site API answer, since no HTML carries it', async () => {
+    const doc = { id: PROFILE_DOCUMENT_ID, data: { name: '[0.5] Whirling Assault', buildVariants: { values: [] } }, content: [] };
+    const readDocumentById = vi.fn(async (_id: string): Promise<RawBuildDocument | null> => doc);
+    const { deps, load } = setup({ readDocumentById });
+
+    const result = await load(`${PROFILE_ID}#gear`);
+
+    expect(readDocumentById).toHaveBeenCalledWith(PROFILE_DOCUMENT_ID);
+    expect(deps.fetchHtml).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: true, build: { title: 'Whirling Assault', hasStaticData: true } });
+  });
+
+  it('explains a profile build by id that the site never sent', async () => {
+    const { load } = setup();
+
+    expect(await load(PROFILE_ID)).toEqual({ ok: false, message: "The site didn't send this build to the page. Reload the page, then try again." });
   });
 
   it('rejects a URL that is not a build page', async () => {

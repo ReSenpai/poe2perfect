@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Profile builds
+- Builds published from a player's profile (`mobalytics.gg/poe-2/profile/<player>/builds/…`) open in the guide too,
+  whether the address ends in the build's name or in its id.
+
 ## 1.3.0
 
 ### Firefox

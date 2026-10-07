@@ -7,7 +7,11 @@ export type ExtractResult =
   | { ok: false; error: { code: ExtractErrorCode; message: string } };
 
 const STATE_PREFIX = 'window.__PRELOADED_STATE__=';
-const DOCUMENT_QUERY_KEY = 'ngf-ug-featured-document-page';
+// Featured guides and profile builds come from different queries, each with its own field for the document.
+const DOCUMENT_QUERIES = new Map([
+  ['ngf-ug-featured-document-page', 'userGeneratedDocumentBySlug'],
+  ['ngf-ug-normal-document-page', 'userGeneratedDocumentBySlugifiedName'],
+]);
 
 /**
  * Reads the build guide document from the site's server-rendered state script.
@@ -47,15 +51,24 @@ function findBuildDocument(state: unknown): RawBuildDocument | null {
   const queries = get(state, 'poe2State', 'apollo', 'graphqlV2', 'queries');
   if (!Array.isArray(queries)) return null;
 
-  const query = queries.find((q) => Array.isArray(get(q, 'queryKey')) && get(q, 'queryKey', 0) === DOCUMENT_QUERY_KEY);
-  const results = get(query, 'state', 'data');
-  if (!Array.isArray(results)) return null;
+  for (const query of queries) {
+    const key = get(query, 'queryKey', 0);
+    const field = typeof key === 'string' ? DOCUMENT_QUERIES.get(key) : undefined;
+    const results = get(query, 'state', 'data');
+    if (!field || !Array.isArray(results)) continue;
 
-  for (const result of results) {
-    const doc = get(result, 'game', 'documents', 'userGeneratedDocumentBySlug', 'data');
-    if (isBuildDocument(doc)) return doc;
+    for (const result of results) {
+      const doc = get(result, 'game', 'documents', field, 'data');
+      if (isBuildDocument(doc)) return doc;
+    }
   }
   return null;
+}
+
+/** The build in the site's own API answer for a profile build opened by id, which no HTML carries. */
+export function extractApiDocument(response: unknown): RawBuildDocument | null {
+  const doc = get(response, 'data', 'game', 'documents', 'userGeneratedDocumentById', 'data');
+  return isBuildDocument(doc) ? doc : null;
 }
 
 function isBuildDocument(value: unknown): value is RawBuildDocument {

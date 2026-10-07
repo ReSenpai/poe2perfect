@@ -385,6 +385,26 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
 - Шаг 4. Живая проверка в Firefox: дерево пассивок (встраивание чужого canvas), буфер обмена.
 - Шаг 5. Документация и материалы для addons.mozilla.org.
 
+### Билды из профилей игроков (после 1.3.0)
+Запрос: расширение должно работать и на `/poe-2/profile/<автор>/builds/<…>`, а не только на `/poe-2/builds/<slug>`.
+
+- Сверено на живых страницах (07.10.2026): у профилей два вида адресов, и данные лежат по-разному.
+- По слагу (`…/builds/gl1tch3d-s-blacial-golt`): HTML без cookies несёт билд, но под другим запросом —
+  `ngf-ug-normal-document-page` → `game.documents.userGeneratedDocumentBySlugifiedName.data`. Форма документа та же.
+- По id (`…/builds/e4321b1e-…`, у билда `slugifiedName: null`): сервер не рендерит ничего, даже без cookies
+  (`__PRELOADED_STATE__` ~500 байт, запросов нет). Сайт сам грузит билд после открытия:
+  `POST /api/poe-2/v1/graphql/query`, операция `Poe2UgNormalDocumentByIdQuery`, `variables.input.id` = id из адреса,
+  ответ (~1.2 МБ) → `data.game.documents.userGeneratedDocumentById.data`, `id` документа совпадает с адресом.
+- Свой запрос к API не повторяем: у сайта он 38 КБ и 68 фрагментов, копия сломается при первой правке схемы.
+  Вместо этого `entrypoints/document-relay.content.ts` (world MAIN, `document_start`) оборачивает `fetch` страницы
+  и пересылает ответ контент-скрипту событием `poe2-build-guide:document` (строкой — только строки проходят между
+  мирами в обоих браузерах). Последние 5 ответов хранятся и отдаются повторно по `poe2-build-guide:document-request`:
+  контент-скрипт стартует на `document_idle`, когда сайт мог уже всё загрузить.
+- Ключ билда (`getBuildKey`, бывший `getBuildSlug`): для гайдов — слаг, как раньше (запомненные вкладки и варианты
+  не теряются), для профилей — `<автор>/<слаг или id>`, потому что слаги уникальны только в пределах автора.
+- Ограничение: если сайт взял билд из своего кэша (не запрашивал заново), ответа не будет — через 15 с ошибка
+  «Reload the page, then try again». Экспорт фикстуры для билдов по id не работает (в HTML нет билда).
+
 ## Автоматический выпуск релизов — сделано (01.10.2026)
 
 Перенесено из `poe2perfect-trade`: три воркфлоу в `.github/workflows/` и `scripts/release-notes.mjs`.
@@ -409,3 +429,10 @@ WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `b
 - Тесты: разбор строк модов (`+(20-30)% to Fire Resistance`, `+X to maximum Energy Shield`, `% increased`),
   суммирование, неизвестные моды игнорируются.
 - Проверка: сверка с Path of Building / калькулятором на одном билде (если есть PoB-код в гайде).
+
+### PoE 1 (`/poe/builds/<slug>`) — оценка, не начато
+Сверено 07.10.2026 на `fubgun-winter-orb-elementalist`: HTML несёт билд, но это порт на вторую игру, а не правка адреса.
+- Состояние под `poeState` (не `poe2State`), запрос тот же: `ngf-ug-featured-document-page` → `userGeneratedDocumentBySlug`.
+- Вариант билда другой формы: `{ id, genericBuilder, passiveTree, skills }` вместо `equipment` / `skillGems`;
+  в `passiveTree` есть `keystones` и `masteries`. Парсеры экипировки и скиллов придётся писать заново.
+- Справочник, дерево пассивок и атлас — свои для PoE 1 (другие разделы статики и другая геометрия дерева).

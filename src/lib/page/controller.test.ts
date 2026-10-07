@@ -67,10 +67,20 @@ describe('createPageController', () => {
     const { controller, settle } = setup();
 
     controller.handleUrl(A);
-    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' });
+    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'loading' });
 
     await settle(A, { ok: true, build: build('Build A') });
-    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'ready', build: build('Build A') });
+    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'ready', build: build('Build A') });
+  });
+
+  it('loads a profile build, told apart from others by its author', () => {
+    const { controller, load } = setup();
+    const profile = 'https://mobalytics.gg/poe-2/profile/gl1tch3d/builds/gl1tch3d-s-blacial-golt';
+
+    controller.handleUrl(profile);
+
+    expect(load).toHaveBeenCalledWith(profile, expect.any(Function));
+    expect(controller.getState()).toMatchObject({ status: 'loading', key: 'gl1tch3d/gl1tch3d-s-blacial-golt' });
   });
 
   it('shows a load failure', async () => {
@@ -90,7 +100,7 @@ describe('createPageController', () => {
     controller.retry();
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(controller.getState()).toMatchObject({ status: 'loading', slug: 'build-a' });
+    expect(controller.getState()).toMatchObject({ status: 'loading', key: 'build-a' });
     await settle(A, { ok: true, build: build('Build A') });
     expect(controller.getState()).toMatchObject({ status: 'ready', build: { title: 'Build A' } });
   });
@@ -133,7 +143,7 @@ describe('createPageController', () => {
     await settle(B, { ok: true, build: build('Build B') });
     await settle(A, { ok: true, build: build('Build A') });
 
-    expect(controller.getState()).toMatchObject({ slug: 'build-b', status: 'ready', build: { title: 'Build B' } });
+    expect(controller.getState()).toMatchObject({ key: 'build-b', status: 'ready', build: { title: 'Build B' } });
   });
 
   it('deactivates when leaving build pages and loads again on return', async () => {
@@ -156,7 +166,7 @@ describe('createPageController', () => {
     controller.setMode('original');
     controller.handleUrl(B);
 
-    expect(controller.getState()).toMatchObject({ mode: 'original', slug: 'build-b' });
+    expect(controller.getState()).toMatchObject({ mode: 'original', key: 'build-b' });
     expect(onModeChange).toHaveBeenCalledOnce();
     expect(onModeChange).toHaveBeenCalledWith('original');
 
@@ -181,7 +191,7 @@ describe('createPageController', () => {
 describe('isOverlayVisible', () => {
   it('is visible only on an active build page in extension mode', () => {
     expect(isOverlayVisible({ active: false, mode: 'extension' })).toBe(false);
-    expect(isOverlayVisible({ active: true, mode: 'original', url: A, slug: 'build-a', status: 'loading' })).toBe(false);
-    expect(isOverlayVisible({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' })).toBe(true);
+    expect(isOverlayVisible({ active: true, mode: 'original', url: A, key: 'build-a', status: 'loading' })).toBe(false);
+    expect(isOverlayVisible({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'loading' })).toBe(true);
   });
 });

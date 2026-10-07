@@ -95,6 +95,14 @@ describe('captureFixture', () => {
     });
   });
 
+  it('names a profile build fixture after its author and slug, as one file name', async () => {
+    const url = 'https://mobalytics.gg/poe-2/profile/gl1tch3d/builds/gl1tch3d-s-blacial-golt';
+
+    const result = await captureFixture({ url, loadPage: async () => pageHtml(DOC), readStaticData: async () => STATIC_OK });
+
+    expect(result).toMatchObject({ ok: true, fileName: 'gl1tch3d--gl1tch3d-s-blacial-golt.json', fixture: { meta: { slug: 'gl1tch3d--gl1tch3d-s-blacial-golt' } } });
+  });
+
   it('fails on a non-build URL without loading the page', async () => {
     const loadPage = vi.fn();
 

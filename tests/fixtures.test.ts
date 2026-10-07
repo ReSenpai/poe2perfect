@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey } from '@/lib/build-url';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import { pickStaticSubset } from '@/lib/data/static-subset';
 import type { RawStaticData } from '@/lib/data/types';
@@ -54,7 +54,7 @@ describe.each(FIXTURE_SLUGS)('fixture %s', (slug) => {
   const staticData = fixture.staticData!;
 
   it('was captured from its own build page, with static data', () => {
-    expect(getBuildSlug(fixture.meta.url)).toBe(slug);
+    expect(getBuildKey(fixture.meta.url)?.replaceAll('/', '--')).toBe(slug);
     expect(staticData).not.toBeNull();
   });
 

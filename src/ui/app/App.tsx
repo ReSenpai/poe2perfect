@@ -145,7 +145,7 @@ export function ConnectedApp({
   const [lastTabs, setLastTabs] = useState(initialLastTabs);
   const [glanceCollapsed, setGlanceCollapsed] = useState(initialGlanceCollapsed);
   const [lastVariants, setLastVariants] = useState(initialLastVariants);
-  const buildSlug = state.active ? state.slug : null;
+  const buildSlug = state.active ? state.key : null;
 
   useEffect(() => {
     setState(controller.getState());

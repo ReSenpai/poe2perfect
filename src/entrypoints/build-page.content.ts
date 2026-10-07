@@ -7,6 +7,7 @@ import { captureFixture } from '@/lib/dev/fixture';
 import { listenForPageCapture } from '@/lib/dev/page-capture';
 import { listenForPageReport } from '@/lib/dev/page-report';
 import { createBuildLoader } from '@/lib/page/build-loader';
+import { createDocumentReceiver } from '@/lib/page/document-relay';
 import { createHtmlFetcher } from '@/lib/page/fetch-html';
 import { pageFetch } from '@/lib/page/page-fetch';
 import { createPageController, isOverlayVisible } from '@/lib/page/controller';
@@ -30,6 +31,7 @@ export default defineContentScript({
       initialDocument: document,
       fetchHtml,
       readStaticData: () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 10_000 }),
+      readDocumentById: createDocumentReceiver(document, { timeoutMs: 15_000 }),
     });
     const controller = createPageController({
       load,

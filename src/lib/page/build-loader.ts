@@ -1,9 +1,9 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey, parseBuildUrl } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
-import type { RawStaticData } from '@/lib/data/types';
+import type { RawBuildDocument, RawStaticData } from '@/lib/data/types';
 import type { FetchProgress, HtmlFetcher } from './fetch-html';
 
 export type LoadResult = { ok: true; build: Build } | { ok: false; message: string };
@@ -13,6 +13,8 @@ export interface BuildLoaderDeps {
   initialDocument: Document;
   fetchHtml: HtmlFetcher;
   readStaticData: () => Promise<StaticDataResult>;
+  /** The site's own API answer for a profile build opened by id; null when it never comes. */
+  readDocumentById: (id: string) => Promise<RawBuildDocument | null>;
 }
 
 /**
@@ -24,8 +26,9 @@ export function createBuildLoader({
   initialDocument,
   fetchHtml,
   readStaticData,
+  readDocumentById,
 }: BuildLoaderDeps): (url: string, onProgress?: (progress: FetchProgress) => void) => Promise<LoadResult> {
-  const initialSlug = getBuildSlug(initialUrl);
+  const initialKey = getBuildKey(initialUrl);
   let staticData: Promise<RawStaticData | null> | null = null;
 
   const loadStaticData = () => {
@@ -38,11 +41,17 @@ export function createBuildLoader({
   };
 
   return async (url, onProgress) => {
-    const slug = getBuildSlug(url);
-    if (!slug) return { ok: false, message: 'Not a build page' };
+    const page = parseBuildUrl(url);
+    if (!page) return { ok: false, message: 'Not a build page' };
+
+    if (page.source === 'profile-id') {
+      const doc = await readDocumentById(page.id);
+      if (!doc) return { ok: false, message: "The site didn't send this build to the page. Reload the page, then try again." };
+      return { ok: true, build: parseBuild(doc, await loadStaticData()) };
+    }
 
     // The page's own document only has the build for signed-out visitors; otherwise fetch the page.
-    let extracted = slug === initialSlug ? extractBuildDocument(initialDocument) : null;
+    let extracted = page.key === initialKey ? extractBuildDocument(initialDocument) : null;
     if (!extracted?.ok) {
       try {
         extracted = extractBuildDocument(await fetchHtml(url, onProgress));

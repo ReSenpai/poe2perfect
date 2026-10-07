@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractBuildDocument } from './preloaded-state';
+import { extractApiDocument, extractBuildDocument } from './preloaded-state';
 
 const DOC = {
   id: '00e278a1',
@@ -49,6 +49,16 @@ describe('extractBuildDocument', () => {
     expect(extractBuildDocument(document)).toEqual({ ok: true, doc: DOC });
   });
 
+  it('finds a profile build, which the site keeps under another query', () => {
+    const profileQuery = {
+      queryKey: ['ngf-ug-normal-document-page', 'gl1tch3d-s-blacial-golt', 'gl1tch3d', []],
+      state: { data: [{ game: { documents: { userGeneratedDocumentBySlugifiedName: { error: null, data: DOC } } } }, null] },
+    };
+    const html = pageHtml(serialize(stateWith([BANNER_QUERY, profileQuery])));
+
+    expect(extractBuildDocument(html)).toEqual({ ok: true, doc: DOC });
+  });
+
   it('decodes \\u002F escapes in strings', () => {
     const doc = { ...DOC, data: { ...DOC.data, name: 'Chaos/Spell' } };
     const html = pageHtml(serialize(stateWith([documentQuery(doc)])));
@@ -93,5 +103,25 @@ describe('extractBuildDocument', () => {
     const html = pageHtml(serialize({ api: {} }));
 
     expect(extractBuildDocument(html)).toMatchObject({ ok: false, error: { code: 'no-build-document' } });
+  });
+});
+
+describe('extractApiDocument', () => {
+  const response = (doc: unknown) => ({
+    data: { game: { documents: { userGeneratedDocumentById: { error: null, data: doc }, userGeneratedDocumentTypes: { data: [] } } } },
+  });
+
+  it('finds the build in the answer to the site query for a profile build by id', () => {
+    expect(extractApiDocument(response(DOC))).toEqual(DOC);
+  });
+
+  it.each([
+    ['no document', response(null)],
+    ['a document of unexpected shape', response({ id: 'x' })],
+    ['another query', { data: { game: { documents: { userGeneratedDocumentTypes: { data: [] } } } } }],
+    ['an error answer', { errors: [{ message: 'nope' }] }],
+    ['not an object', 'nope'],
+  ])('is null for %s', (_name, value) => {
+    expect(extractApiDocument(value)).toBeNull();
   });
 });
