@@ -139,12 +139,13 @@ export function SiteTree({ kind, variantIndex, embedTree }: { kind: TreeKind; va
     const placeholder = stage.current!;
     const handle = embedTree({ kind, placeholder, variantIndex: shownIndex.current, onStatus: setStatus });
     embed.current = handle;
-    // The tree is laid over the placeholder with fixed positioning, so it has to follow the panel's scrolling.
-    const scroller = placeholder.closest('.build-view__panel');
+    // The tree is laid over the placeholder with fixed positioning, so it has to follow whatever scrolls around it:
+    // the panel, or the whole view beside the comments. Scroll events don't bubble, so listen while they capture.
+    const root = placeholder.getRootNode();
     const follow = () => handle.sync();
-    scroller?.addEventListener('scroll', follow);
+    root.addEventListener('scroll', follow, { capture: true, passive: true });
     return () => {
-      scroller?.removeEventListener('scroll', follow);
+      root.removeEventListener('scroll', follow, { capture: true });
       handle.destroy();
       embed.current = null;
     };

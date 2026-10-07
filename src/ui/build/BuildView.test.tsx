@@ -256,6 +256,12 @@ describe('BuildView tabs', () => {
     expect(onRouteChange).toHaveBeenLastCalledWith('#skills_act-2');
   });
 
+  it('puts the variant chips in a card of their own, like the blocks below them', () => {
+    renderView('#gear');
+
+    expect(screen.getByRole('group', { name: 'Build variant' }).classList.contains('card')).toBe(true);
+  });
+
   it('shows no variant picker on tabs about the whole build', () => {
     renderView('#overview');
 

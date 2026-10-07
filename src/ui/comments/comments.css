@@ -1,6 +1,7 @@
 /*
- * The Comments tab reads like a thread feed: a slim bar and the reply box on top, scrolling with the comments without boxes, threads parted by a
- * thin rule and answers hanging off a line drawn from the avatar above them. Comment text is set in the reading font.
+ * The Comments tab reads like a thread feed: a slim bar and the reply box on top, scrolling away with the comments;
+ * no boxes, threads parted by a thin rule, answers hanging off a line drawn from the avatar above them. Comment text
+ * is set in the reading font.
  */
 .comments {
   display: flex;
@@ -106,29 +107,11 @@
   gap: 6px;
 }
 
-.chip {
+/* The filter: the guide's chips, as pills and a size smaller to sit in the slim bar. */
+.comments__chips .chip {
   padding: 2px 10px;
-  border: 1px solid var(--border);
   border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
   font: 500 12px/20px var(--font);
-  cursor: pointer;
-}
-
-.chip:hover {
-  color: var(--text);
-}
-
-.chip[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.chip:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .comments__tools {

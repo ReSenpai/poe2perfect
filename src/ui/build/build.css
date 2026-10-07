@@ -209,6 +209,7 @@
   display: flex;
   flex: none;
   flex-direction: column;
+  box-sizing: border-box;
   width: clamp(360px, 32vw, 480px);
   min-height: 0;
   margin: 24px 24px 24px 0;
@@ -218,9 +219,25 @@
   background: var(--surface);
 }
 
-/* Cards beside each other keep 12 px between them. */
+/*
+ * Beside the comments the whole view scrolls as one, with its scrollbar at the window's right: the section no longer
+ * scrolls on its own, and the comments card, as tall as the view, moves with it like any other card.
+ */
+.build-view__body--docked {
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
 .build-view__body--docked > .build-view__panel {
+  /* Cards beside each other keep 12 px between them. */
   padding-right: 12px;
+  min-height: 100%;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.build-view__body--docked > .build-view__aside {
+  height: calc(100% - 48px);
 }
 
 /* A tab-bar toggle that is on, e.g. the open comments panel. */

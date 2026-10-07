@@ -6,6 +6,11 @@
   margin-bottom: 12px;
 }
 
+/* As a card: a slimmer padding than the content cards, it only holds a row of chips. */
+.variants.card {
+  padding: 10px 12px;
+}
+
 .chip {
   padding: 4px 10px;
   border: 1px solid var(--border);
