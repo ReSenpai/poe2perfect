@@ -600,7 +600,7 @@ Refresh and no restoring the reading anchor on a width change in the first versi
 
 ## Future features
 
-### Builds from player profiles (research 07.10.2026)
+### Builds from player profiles — done (07.10.2026)
 An outside PR #9 (juddisjudd) did this, but it went to `main` past `dev` and changed line endings — we do it ourselves,
 starting from its findings, checked again live.
 
@@ -654,7 +654,12 @@ Steps (to agree on before starting):
   gives 30 total, 12 by the author. Comments needed no change: the same widget and `resourceId`. PRIVACY (the
   page-world script), README (builds from profiles), CHANGELOG (Unreleased → Builds from player profiles, crediting
   Judd for the research), CLAUDE.md (a site data note).
-- P5. Live check: both forms, a guide as before, SPA moves between them, signed in and out; Firefox by hand.
+- P5. Live check ✅ (except by hand). In one tab, signed in: a guide → the author's list (the guide steps aside) →
+  a slug build → an id build → back to each; every build reopens on its own remembered tab (keys: the guide's slug,
+  `fubgun/…`, `fierce-golem-…/<id>`). On the id build: original page ↔ guide, the comments side panel beside Gear.
+  Signed out isn't checked separately: slug pages are already read without cookies, and the site's own request for
+  an id build answers without a cookie too (checked during research). By hand: signed out, Firefox (the page-world
+  script and the event crossing worlds).
 
 ### Resistances and ES (beta)
 Computed from items (unique mods — the min–max range, rare mods from the build) and passives
