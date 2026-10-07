@@ -128,6 +128,14 @@ export default defineContentScript({
           return { shown: await togglePreview(ctx, loadBuild) };
         }),
       );
+      // The file is named by `data-poe2-build-guide-screenshot-name` on <html>, set before the event.
+      ctx.onInvalidated(
+        listenForPageReport(document, { event: 'poe2-build-guide:screenshot', attribute: 'data-poe2-build-guide-screenshot' }, async () => {
+          const { saveScreenshot } = await import('@/lib/dev/screenshot');
+          const name = document.documentElement.getAttribute('data-poe2-build-guide-screenshot-name') ?? 'screenshot';
+          return saveScreenshot(document, name, (message) => browser.runtime.sendMessage(message));
+        }),
+      );
     }
   },
 });
