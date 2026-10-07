@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Builds from player profiles
+- Builds published from a player's profile (`mobalytics.gg/poe-2/profile/<player>/builds/…`) now open in the guide
+  too, with every tab and their comments, whether the address carries the build's name or its id. Thanks to Judd
+  (juddisjudd) for working out how the site serves them.
+- The passive and atlas trees now show for a build with a single variant; they stayed on "The site didn't show a
+  passive tree" before.
+
 ### Comments
 - A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under
   the comment they answer along a thread line, as on Reddit, and open by themselves three levels deep. A minus on the
@@ -17,6 +24,9 @@
 - Comment text is set in Noto Sans, a calmer face for long reading; the rest of the guide keeps Inter.
 - A commenter without an avatar gets the portrait of a class or ascendancy instead of a bare letter, picked from
   their account so it is always the same one for them.
+- Beside the comments, the section's blocks and the comments panel line up as one set of cards: the variant chips
+  have a card of their own, everything scrolls together with one scrollbar at the window's right, and the comments
+  card runs down beside the section however long it is.
 
 ## 1.3.0
 

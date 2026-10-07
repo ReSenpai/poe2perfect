@@ -94,7 +94,13 @@ export default defineContentScript({
 
     if (import.meta.env.DEV) {
       const loadStaticData = () => readStaticData({ idb: indexedDbCandidates(), timeoutMs: 5_000 });
-      const capture = () => captureFixture({ url: location.href, loadPage: () => fetchHtml(location.href), readStaticData: loadStaticData });
+      const capture = () =>
+        captureFixture({
+          url: location.href,
+          loadPage: () => fetchHtml(location.href),
+          readStaticData: loadStaticData,
+          waitForDocument: (id) => inbox.waitFor(id, BUILD_BY_ID_TIMEOUT_MS),
+        });
       ctx.onInvalidated(listenForCapture(browser.runtime.onMessage as never, capture));
       ctx.onInvalidated(listenForPageCapture(document, capture));
 

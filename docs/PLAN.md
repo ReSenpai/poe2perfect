@@ -648,7 +648,12 @@ Steps (to agree on before starting):
   Reload the page, then try again." Checked live, signed in: a direct open (all 7 tabs, the tree, 30 comments with the
   author marked), a move from the author's list, back to the list and forward again (the site served it from its
   cache, the inbox already had it).
-- P4. Comments, fixtures export and the dev hooks on profile builds; PRIVACY/README/CHANGELOG.
+- P4. Fixtures, dev hooks, docs ✅. `captureFixture` takes an id build from the same inbox as the loader and names
+  a profile build's file `<profile>--<slug or id>.json` (its key with the slash swapped). The dev hooks (parse,
+  comments, preview) run through the loader and work on both forms — checked live: an id build's comments probe
+  gives 30 total, 12 by the author. Comments needed no change: the same widget and `resourceId`. PRIVACY (the
+  page-world script), README (builds from profiles), CHANGELOG (Unreleased → Builds from player profiles, crediting
+  Judd for the research), CLAUDE.md (a site data note).
 - P5. Live check: both forms, a guide as before, SPA moves between them, signed in and out; Firefox by hand.
 
 ### Resistances and ES (beta)

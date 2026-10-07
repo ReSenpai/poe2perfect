@@ -1,6 +1,6 @@
 # poe2perfect — Privacy Policy
 
-_Last updated: October 6, 2026_
+_Last updated: October 7, 2026_
 
 poe2perfect is a browser extension for Chrome and Firefox that shows Path of Exile 2 build guides from
 mobalytics.gg in a tabbed layout. The same policy covers both; the extension behaves identically in each.
@@ -12,6 +12,10 @@ mobalytics.gg in a tabbed layout. The same policy covers both; the extension beh
   page from mobalytics.gg again to read its data. These requests go only to mobalytics.gg and are sent without your
   cookies. When the site's bot protection turns such a request away (it can on a first visit), the last retry is sent
   the way your browser loads the page itself, with your mobalytics.gg cookies, and still only to mobalytics.gg.
+- **Reads builds the site loads by itself.** A build published from a player's profile and addressed by its id is
+  in no page's HTML: the site loads it after the page opens. To read it, a small part of the extension runs inside
+  mobalytics.gg pages and passes that build from the site's own answer to the guide. It looks only at the site's
+  request for such a build, sends no request of its own and changes nothing the site receives.
 - **Reads and joins the build's discussion.** It reads the comments of the build you open from mobalytics.gg's own
   comment service, the way the site's page does, with your mobalytics.gg session so that your own votes show. When you
   press Post, Reply or a vote arrow, it sends that comment, reply or vote to mobalytics.gg as your account, exactly as

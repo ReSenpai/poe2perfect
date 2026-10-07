@@ -28,8 +28,8 @@ Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 ## Installation
 
 **[Add poe2perfect to Chrome](https://chromewebstore.google.com/detail/poe2perfect/iaalfjcbfnidaiogadcgcdcfgmekpnce)**,
-then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds). It works whether or not you are
-signed in to the site.
+then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds), from the catalogue or from a
+player's profile. It works whether or not you are signed in to the site.
 
 **Firefox** 140 or newer, from 1.3.0. The add-on is awaiting review on addons.mozilla.org; until it is listed, install
 the signed package from the [latest release](https://github.com/ReSenpai/poe2perfect/releases/latest):

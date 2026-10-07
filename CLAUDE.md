@@ -90,6 +90,9 @@ to 1.0.0 and a copy of that material.
   key `poe-2|<hash>`, ~17.5 MB. Never commit it whole — fixtures hold only the needed subset.
 - `curl` is blocked by Cloudflare — capture fixtures from the real browser.
 - The site is an SPA: client-side navigation does not refresh `__PRELOADED_STATE__`.
+- Profile builds `/poe-2/profile/<profile>/builds/<slug or id>`: by slug the HTML holds the build (state query
+  `ngf-ug-normal-document-page`); by id no HTML does — the page-world script `document-relay.content.ts` catches the
+  site's own `userGeneratedDocumentById` answer (details in `docs/PLAN.md`, profile builds).
 - Signed-in users get a client-rendered page: `__PRELOADED_STATE__` is ~500 bytes with no queries. Build pages are
   therefore fetched with `credentials: 'omit'` (signed-out HTML carries the full state); the current document is only
   used when it actually holds the build.

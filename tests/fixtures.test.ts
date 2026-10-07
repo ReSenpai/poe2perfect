@@ -54,7 +54,7 @@ describe.each(FIXTURE_SLUGS)('fixture %s', (slug) => {
   const staticData = fixture.staticData!;
 
   it('was captured from its own build page, with static data', () => {
-    expect(getBuildKey(fixture.meta.url)).toBe(slug);
+    expect(getBuildKey(fixture.meta.url)?.replaceAll('/', '--')).toBe(slug);
     expect(staticData).not.toBeNull();
   });
 
