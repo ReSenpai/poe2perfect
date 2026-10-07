@@ -1,4 +1,4 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
 import type { CommentsSeed } from '@/lib/comments/model';
@@ -28,7 +28,7 @@ export function createBuildLoader({
   fetchHtml,
   readStaticData,
 }: BuildLoaderDeps): (url: string, onProgress?: (progress: FetchProgress) => void) => Promise<LoadResult> {
-  const initialSlug = getBuildSlug(initialUrl);
+  const initialKey = getBuildKey(initialUrl);
   let staticData: Promise<RawStaticData | null> | null = null;
 
   const loadStaticData = () => {
@@ -41,11 +41,11 @@ export function createBuildLoader({
   };
 
   return async (url, onProgress) => {
-    const slug = getBuildSlug(url);
-    if (!slug) return { ok: false, message: 'Not a build page' };
+    const key = getBuildKey(url);
+    if (!key) return { ok: false, message: 'Not a build page' };
 
     // The page's own document only has the build for signed-out visitors; otherwise fetch the page.
-    let extracted = slug === initialSlug ? extractBuildDocument(initialDocument) : null;
+    let extracted = key === initialKey ? extractBuildDocument(initialDocument) : null;
     if (!extracted?.ok) {
       try {
         extracted = extractBuildDocument(await fetchHtml(url, onProgress));

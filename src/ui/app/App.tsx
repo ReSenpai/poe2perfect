@@ -124,17 +124,17 @@ export interface ConnectedAppProps {
   initialHeaderCollapsed: boolean;
   /** Persists the preference; the UI state itself lives here so it survives switching builds. */
   onHeaderCollapsedChange: (collapsed: boolean) => void;
-  /** The tab each build was last read at, by build slug. */
+  /** The tab each build was last read at, by build key. */
   initialLastTabs?: Record<string, TabId>;
   /** Persists the tab this build is now read at. */
-  onLastTabChange?: (buildSlug: string, tab: TabId) => void;
+  onLastTabChange?: (buildKey: string, tab: TabId) => void;
   initialGlanceCollapsed?: boolean;
   /** Persists whether At a Glance on the Overview tab is collapsed. */
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
-  /** The variant each build was last read at, by build slug. */
+  /** The variant each build was last read at, by build key. */
   initialLastVariants?: Record<string, RememberedVariant>;
   /** Persists the variant this build is now read at. */
-  onVariantChange?: (buildSlug: string, variant: RememberedVariant) => void;
+  onVariantChange?: (buildKey: string, variant: RememberedVariant) => void;
   /** Brings the site's discussion into view once its page is in front. */
   onOriginalComments?: () => void;
 }
@@ -156,7 +156,7 @@ export function ConnectedApp({
   const [lastTabs, setLastTabs] = useState(initialLastTabs);
   const [glanceCollapsed, setGlanceCollapsed] = useState(initialGlanceCollapsed);
   const [lastVariants, setLastVariants] = useState(initialLastVariants);
-  const buildSlug = state.active ? state.slug : null;
+  const buildKey = state.active ? state.key : null;
 
   useEffect(() => {
     setState(controller.getState());
@@ -174,15 +174,15 @@ export function ConnectedApp({
   };
 
   const changeTab = (tab: TabId) => {
-    if (!buildSlug) return;
-    setLastTabs((remembered) => ({ ...remembered, [buildSlug]: tab }));
-    onLastTabChange?.(buildSlug, tab);
+    if (!buildKey) return;
+    setLastTabs((remembered) => ({ ...remembered, [buildKey]: tab }));
+    onLastTabChange?.(buildKey, tab);
   };
 
   const changeVariant = (variant: RememberedVariant) => {
-    if (!buildSlug) return;
-    setLastVariants((remembered) => ({ ...remembered, [buildSlug]: variant }));
-    onVariantChange?.(buildSlug, variant);
+    if (!buildKey) return;
+    setLastVariants((remembered) => ({ ...remembered, [buildKey]: variant }));
+    onVariantChange?.(buildKey, variant);
   };
 
   return (
@@ -192,11 +192,11 @@ export function ConnectedApp({
       onRetry={controller.retry}
       headerCollapsed={headerCollapsed}
       onHeaderCollapsedChange={changeHeaderCollapsed}
-      lastTab={buildSlug ? lastTabs[buildSlug] : undefined}
+      lastTab={buildKey ? lastTabs[buildKey] : undefined}
       onTabChange={changeTab}
       glanceCollapsed={glanceCollapsed}
       onGlanceCollapsedChange={changeGlanceCollapsed}
-      lastVariant={buildSlug ? lastVariants[buildSlug] : null}
+      lastVariant={buildKey ? lastVariants[buildKey] : null}
       onVariantChange={changeVariant}
       onOriginalComments={onOriginalComments}
     />

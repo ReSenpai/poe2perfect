@@ -59,6 +59,15 @@ describe('createPageController', () => {
     expect(setup().controller.getState()).toEqual({ active: false, mode: 'extension' });
   });
 
+  it("leaves a profile's build alone while the guide can't read those yet", () => {
+    const { controller, load } = setup();
+
+    controller.handleUrl('https://mobalytics.gg/poe-2/profile/some-player/builds/frost-witch');
+
+    expect(load).not.toHaveBeenCalled();
+    expect(controller.getState()).toMatchObject({ active: false });
+  });
+
   it('ignores pages that are not builds', () => {
     const { controller, load } = setup();
 
@@ -72,10 +81,10 @@ describe('createPageController', () => {
     const { controller, settle } = setup();
 
     controller.handleUrl(A);
-    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' });
+    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'loading' });
 
     await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
-    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'ready', build: build('Build A'), comments: null });
+    expect(controller.getState()).toEqual({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'ready', build: build('Build A'), comments: null });
   });
 
   it('shows a load failure', async () => {
@@ -95,7 +104,7 @@ describe('createPageController', () => {
     controller.retry();
 
     expect(load).toHaveBeenCalledTimes(2);
-    expect(controller.getState()).toMatchObject({ status: 'loading', slug: 'build-a' });
+    expect(controller.getState()).toMatchObject({ status: 'loading', key: 'build-a' });
     await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
     expect(controller.getState()).toMatchObject({ status: 'ready', build: { title: 'Build A' } });
   });
@@ -138,7 +147,7 @@ describe('createPageController', () => {
     await settle(B, { ok: true, comments: NO_COMMENTS, build: build('Build B') });
     await settle(A, { ok: true, comments: NO_COMMENTS, build: build('Build A') });
 
-    expect(controller.getState()).toMatchObject({ slug: 'build-b', status: 'ready', build: { title: 'Build B' } });
+    expect(controller.getState()).toMatchObject({ key: 'build-b', status: 'ready', build: { title: 'Build B' } });
   });
 
   it('deactivates when leaving build pages and loads again on return', async () => {
@@ -161,7 +170,7 @@ describe('createPageController', () => {
     controller.setMode('original');
     controller.handleUrl(B);
 
-    expect(controller.getState()).toMatchObject({ mode: 'original', slug: 'build-b' });
+    expect(controller.getState()).toMatchObject({ mode: 'original', key: 'build-b' });
     expect(onModeChange).toHaveBeenCalledOnce();
     expect(onModeChange).toHaveBeenCalledWith('original');
 
@@ -257,7 +266,7 @@ describe('createPageController comments', () => {
 describe('isOverlayVisible', () => {
   it('is visible only on an active build page in extension mode', () => {
     expect(isOverlayVisible({ active: false, mode: 'extension' })).toBe(false);
-    expect(isOverlayVisible({ active: true, mode: 'original', url: A, slug: 'build-a', status: 'loading' })).toBe(false);
-    expect(isOverlayVisible({ active: true, mode: 'extension', url: A, slug: 'build-a', status: 'loading' })).toBe(true);
+    expect(isOverlayVisible({ active: true, mode: 'original', url: A, key: 'build-a', status: 'loading' })).toBe(false);
+    expect(isOverlayVisible({ active: true, mode: 'extension', url: A, key: 'build-a', status: 'loading' })).toBe(true);
   });
 });

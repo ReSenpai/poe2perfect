@@ -12,7 +12,7 @@ const URL_A = 'https://mobalytics.gg/poe-2/builds/build-a';
 const fixture = loadFixture('chaos-dot-lich-starter-deadrabbit');
 const BUILD = parseBuild(fixture.build, fixture.staticData);
 const TITLE = 'ED Contagion Lich League Starter (Level 1 to Endgame)';
-const base = { active: true as const, url: URL_A, slug: 'build-a' };
+const base = { active: true as const, url: URL_A, key: 'build-a' };
 
 function renderApp(state: PageState) {
   const onModeChange = vi.fn();

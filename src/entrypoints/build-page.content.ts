@@ -66,13 +66,13 @@ export default defineContentScript({
             headerCollapsed,
             onHeaderCollapsedChange: (collapsed) => void headerCollapsedItem.setValue(collapsed),
             lastTabs,
-            onLastTabChange: (buildSlug, tab) =>
-              void lastTabsItem.getValue().then((remembered) => lastTabsItem.setValue(rememberPerBuild(remembered, buildSlug, tab))),
+            onLastTabChange: (buildKey, tab) =>
+              void lastTabsItem.getValue().then((remembered) => lastTabsItem.setValue(rememberPerBuild(remembered, buildKey, tab))),
             glanceCollapsed,
             onGlanceCollapsedChange: (collapsed) => void glanceCollapsedItem.setValue(collapsed),
             lastVariants,
-            onVariantChange: (buildSlug, variant) =>
-              void lastVariantsItem.getValue().then((remembered) => lastVariantsItem.setValue(rememberPerBuild(remembered, buildSlug, variant))),
+            onVariantChange: (buildKey, variant) =>
+              void lastVariantsItem.getValue().then((remembered) => lastVariantsItem.setValue(rememberPerBuild(remembered, buildKey, variant))),
             onOriginalComments: () => void revealOriginalComments(document),
           }).then((host) => {
             ctx.onInvalidated(guardFocus({ doc: document, host, isActive: () => isOverlayVisible(controller.getState()) }));

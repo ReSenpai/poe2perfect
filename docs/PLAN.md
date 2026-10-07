@@ -600,18 +600,42 @@ Refresh and no restoring the reading anchor on a width change in the first versi
 
 ## Future features
 
-### Builds from player profiles (after comments)
-An outside PR #9 (juddisjudd) did this, but it went to `main` past `dev` and changed line endings — we decided to do it
-ourselves. Its findings, to check again:
-- Two kinds of addresses: `/poe-2/profile/<author>/builds/<slug>` — the build is in the HTML, state query
-  `ngf-ug-normal-document-page`, field `userGeneratedDocumentBySlugifiedName`; `/poe-2/profile/<author>/builds/<uuid>` —
-  the HTML has no build even signed out, the site loads it after opening with the `Poe2UgNormalDocumentByIdQuery`
-  query (`userGeneratedDocumentById`). The PR caught that answer with a MAIN world script (`document_start`, a `fetch` wrapper).
-- The build key for remembering tabs: a slug for guides, `<author>/<slug or id>` for profile builds (a slug is unique
-  only within its author).
-- Comments there probably work the same way (`resourceId` = `Poe2:UG:<doc.id>`) — check live.
-- The repository has no `.gitattributes`: CRLF and LF files are mixed, a contributor's editor turned some into LF and
-  produced whole-file conflicts. Before taking outside PRs — normalise and pin the line endings.
+### Builds from player profiles (research 07.10.2026)
+An outside PR #9 (juddisjudd) did this, but it went to `main` past `dev` and changed line endings — we do it ourselves,
+starting from its findings, checked again live.
+
+**Addresses.** `/poe-2/profile/<profile>/builds/<slug or id>`; the author's build list links each build by its slug,
+or by its id when it has none (`slugifiedName: null`). `#comments` works there as on guides. PoE 1 pages
+(`/poe/...`) stay out of scope.
+
+**By slug** (e.g. a streamer's builds): the signed-out HTML carries the build, like a guide. State query
+`["ngf-ug-normal-document-page", <slug>, <profile>, []]`, path `game.documents.userGeneratedDocumentBySlugifiedName.data`.
+The document has exactly the guide's fields (`id`, `content`, `data`, `author`, `comments`…), and the comments seed sits
+in the state as `["ngf-comments", "Poe2:UG:<id>", "NEW", null]`.
+
+**By id:** no HTML holds the build, signed in or out (checked: the state is ~560 bytes, the id isn't in the page).
+The site loads it after opening with `Poe2UgNormalDocumentByIdQuery` (`input: { id, widgetsOverride: [] }`) on
+`/api/poe-2/v1/graphql/query`; the answer comes without a cookie too, at
+`game.documents.userGeneratedDocumentById.data` — again the same document, `slugifiedName: null`, with the comments
+widget (`resourceId` `Poe2:UG:<id>`, here a first page of 24 and a total of 30).
+- The query is 38 KB of text with 68 typed fragments: a short query of our own can't ask for the document.
+- The server takes only a full query string (`MISSING_QUERY_STRING` by operation name alone); it supports persisted
+  queries, but the site doesn't register its own, so there is no hash to send.
+- So there are two ways: catch the site's own answer from the page world (PR #9: a MAIN-world script at
+  `document_start` wraps `fetch`, hands the answer over as an event, keeps the last 5), or send the site's query from
+  the extension (a 38 KB copy that has to follow their schema).
+
+**Build key.** A slug is unique only within its author, so remembered tabs and variants key profile builds as
+`<profile>/<slug or id>`; guides keep their slug, so what readers have stored survives.
+
+Steps (to agree on before starting):
+- P1. URLs ✅. `getBuildRef` reads both forms (`guide` / `profile` with `slug` or `id`), `getBuildKey` gives the key;
+  the page controller, loader and remembered tabs/variants run on the key (state field `key`, was `slug`).
+  `isBuildPageUrl` still takes guides only, so profile pages stay untouched until the loader can read them.
+- P2. Slug builds: read the profile document from the state; the loader, controller and remembered state on the key.
+- P3. Id builds: get the document (the chosen way), with a time limit and a clear message if it never comes.
+- P4. Comments, fixtures export and the dev hooks on profile builds; PRIVACY/README/CHANGELOG.
+- P5. Live check: both forms, a guide as before, SPA moves between them, signed in and out; Firefox by hand.
 
 ### Resistances and ES (beta)
 Computed from items (unique mods — the min–max range, rare mods from the build) and passives

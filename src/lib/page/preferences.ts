@@ -11,18 +11,18 @@ export const headerCollapsedItem = storage.defineItem<boolean>('local:headerColl
 /** Whether At a Glance on the Overview tab is collapsed, leaving the guide texts more room. */
 export const glanceCollapsedItem = storage.defineItem<boolean>('local:glanceCollapsed', { fallback: false });
 
-/** The tab each build was last read at, by build slug; a build nobody has opened yet starts at the overview. */
+/** The tab each build was last read at, by build key; a build nobody has opened yet starts at the overview. */
 export const lastTabsItem = storage.defineItem<Record<string, TabId>>('local:lastTabs', { fallback: {} });
 
-/** The variant each build was last read at, by build slug, so a build opens where its reader left off. */
+/** The variant each build was last read at, by build key, so a build opens where its reader left off. */
 export const lastVariantsItem = storage.defineItem<Record<string, RememberedVariant>>('local:lastVariants', { fallback: {} });
 
 /** How many builds are remembered; the ones read longest ago are forgotten first. */
 const REMEMBERED_BUILDS = 30;
 
 /** Notes something about the build just read, keeping the record from growing without end. */
-export function rememberPerBuild<T>(remembered: Record<string, T>, buildSlug: string, value: T): Record<string, T> {
-  const { [buildSlug]: _dropped, ...rest } = remembered;
-  const entries = [...Object.entries(rest), [buildSlug, value] as const];
+export function rememberPerBuild<T>(remembered: Record<string, T>, buildKey: string, value: T): Record<string, T> {
+  const { [buildKey]: _dropped, ...rest } = remembered;
+  const entries = [...Object.entries(rest), [buildKey, value] as const];
   return Object.fromEntries(entries.slice(-REMEMBERED_BUILDS));
 }

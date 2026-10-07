@@ -18,11 +18,11 @@ export async function mountApp(
     headerCollapsed: boolean;
     onHeaderCollapsedChange: (collapsed: boolean) => void;
     lastTabs: Record<string, TabId>;
-    onLastTabChange: (buildSlug: string, tab: TabId) => void;
+    onLastTabChange: (buildKey: string, tab: TabId) => void;
     glanceCollapsed: boolean;
     onGlanceCollapsedChange: (collapsed: boolean) => void;
     lastVariants: Record<string, RememberedVariant>;
-    onVariantChange: (buildSlug: string, variant: RememberedVariant) => void;
+    onVariantChange: (buildKey: string, variant: RememberedVariant) => void;
     onOriginalComments: () => void;
   },
 ): Promise<HTMLElement> {
