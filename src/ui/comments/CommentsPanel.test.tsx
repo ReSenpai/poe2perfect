@@ -4,6 +4,7 @@ import { AUTHOR_ID, commentsPayload, deletedComment, rawComment, resourceIdOf } 
 import { createCommentsController } from '@/lib/comments/controller';
 import type { CommentsSeed } from '@/lib/comments/model';
 import { parseCommentsPayload } from '@/lib/comments/parse-comments';
+import { portraitFor } from '@/lib/comments/portraits';
 import type { CommentsSource, SourceResult } from '@/lib/comments/source';
 import { CommentsPanel } from './CommentsPanel';
 
@@ -119,8 +120,19 @@ describe('CommentsPanel', () => {
     expect(within(card('MisoxShiru fan')).queryByText('Build author')).toBeNull();
   });
 
-  it('shows initials when a commenter has no avatar', () => {
+  it('gives a commenter without an avatar a class portrait, the same one for every comment of theirs', () => {
+    renderPanel(readySeed([rawComment({ id: 'r1', author: ashen }), rawComment({ id: 'a1', parentId: 'r1', author: ashen })]));
+
+    const [first, second] = screen.getAllByText('AshenExile', { selector: '.comment__name' }).map((name) => name.closest('article')!.querySelector('img')!);
+    expect(first!.getAttribute('src')).toBe(portraitFor(ashen.id));
+    expect(second!.getAttribute('src')).toBe(first!.getAttribute('src'));
+    expect(first!.getAttribute('alt')).toBe('');
+  });
+
+  it('falls back to initials when the portrait does not load', () => {
     renderPanel(readySeed([rawComment({ id: 'r1', author: ashen })]));
+
+    fireEvent.error(card('AshenExile').querySelector('img')!);
 
     expect(within(card('AshenExile')).getByText('A', { selector: '.comment__avatar' })).toBeTruthy();
   });

@@ -15,6 +15,8 @@
   place of that tab's side column (gear priority, the passive order, the quest rewards…) for as long as it is open.
   On a narrow window, or from the panel's own button, they open as the Comments tab, with a way back.
 - Comment text is set in Noto Sans, a calmer face for long reading; the rest of the guide keeps Inter.
+- A commenter without an avatar gets the portrait of a class or ascendancy instead of a bare letter, picked from
+  their account so it is always the same one for them.
 
 ## 1.3.0
 

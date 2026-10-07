@@ -482,17 +482,14 @@
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
+/* A rounded square, sized by the comment's `--avatar` (the thread lines are drawn from the same size). */
 .comment__avatar {
   display: block;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  box-sizing: border-box;
+  width: var(--avatar);
+  height: var(--avatar);
+  border-radius: calc(var(--avatar) / 4.5);
   object-fit: cover;
-}
-
-.comment__avatar--small {
-  width: 24px;
-  height: 24px;
 }
 
 .comment__avatar--blank {
@@ -503,12 +500,12 @@
   border: 1px solid var(--border);
   background: var(--surface-hover);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .comment__avatar--small.comment__avatar--blank {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .comment__main {
@@ -520,7 +517,8 @@
   flex-wrap: wrap;
   gap: 2px 6px;
   align-items: center;
-  min-height: 24px;
+  /* As tall as the avatar, so the name sits level with its middle. */
+  min-height: var(--avatar);
 }
 
 .comment__name {
@@ -751,11 +749,11 @@
  * Threads as on Reddit. A 1 px line runs down from the middle of the avatar along the answers; each answer hooks onto
  * it with a rounded elbow whose upright lies exactly on that line, and the line ends at the last answer. Pointing at a
  * line (or its fold) lights up that line and the elbows to its own answers, not the lines further in.
- * Sizes: avatar 28 px at the root, 24 px for answers, 10 px between avatar and text.
+ * Sizes: avatar 36 px at the root, 30 px for answers, 10 px between avatar and text.
  */
 .comment {
   position: relative;
-  --avatar: 24px;
+  --avatar: 30px;
   --pad-top: 0px;
   --pad-bottom: 0px;
   /* This comment's own line; every comment sets it, so a lit line never lights the ones further in. */
@@ -763,7 +761,7 @@
 }
 
 .comment--root {
-  --avatar: 28px;
+  --avatar: 36px;
   --pad-top: 14px;
   --pad-bottom: 14px;
 }
@@ -805,12 +803,12 @@
 }
 
 .comment--root > .comment__main > .thread__replies {
-  --parent-avatar: 28px;
+  --parent-avatar: 36px;
   --parent-pad-bottom: 14px;
 }
 
 .comment--reply > .comment__main > .thread__replies {
-  --parent-avatar: 24px;
+  --parent-avatar: 30px;
   --parent-pad-bottom: 0px;
 }
 

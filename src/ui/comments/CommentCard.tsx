@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { User } from 'lucide-preact';
 import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { Comment } from '@/lib/comments/model';
+import { portraitFor } from '@/lib/comments/portraits';
 import { fullDate, relativeTime } from '@/lib/comments/time';
 import { toRichBlocks } from '@/lib/rich-text/convert';
 import { RichText } from '@/ui/rich-text/RichText';
@@ -59,10 +60,19 @@ export function CommentCard({
   );
 }
 
+/**
+ * The commenter's own avatar; without one, a class portrait that stays theirs (see `portraitFor`); when a picture
+ * does not load, the next one, then the initial. A deleted comment keeps a plain silhouette.
+ */
 function Avatar({ comment }: { comment: Comment }) {
   const { author } = comment;
   const size = comment.depth === 0 ? 'comment__avatar' : 'comment__avatar comment__avatar--small';
-  if (author?.avatarUrl) return <img class={size} src={author.avatarUrl} alt="" loading="lazy" />;
+  const pictures = author ? [author.avatarUrl, portraitFor(author.id || author.name)].filter((url): url is string => Boolean(url)) : [];
+  const [failed, setFailed] = useState<readonly string[]>([]);
+  const picture = pictures.find((url) => !failed.includes(url));
+  if (picture) {
+    return <img class={size} src={picture} alt="" loading="lazy" onError={() => setFailed((urls) => [...urls, picture])} />;
+  }
   const initial = author?.name.trim().charAt(0).toUpperCase();
   return (
     <span class={`${size} comment__avatar--blank`} aria-hidden="true">
