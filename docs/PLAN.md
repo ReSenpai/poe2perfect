@@ -1,584 +1,621 @@
-# План реализации
+# Implementation plan
 
-Расширение для Chrome: страница билда PoE 2 на mobalytics.gg → чистый интерфейс по вкладкам.
-Дизайн: [reference/DESIGN.md](../reference/DESIGN.md), схемы экранов: [reference/interface.md](../reference/interface.md).
-Пример билда: https://mobalytics.gg/poe-2/builds/chaos-dot-lich-starter-deadrabbit
+A Chrome extension: a PoE 2 build page on mobalytics.gg → a clean tabbed interface.
+Design: [reference/DESIGN.md](../reference/DESIGN.md), screen layouts: [reference/interface.md](../reference/interface.md).
+Sample build: https://mobalytics.gg/poe-2/builds/chaos-dot-lich-starter-deadrabbit
 
-## Решения
+## Decisions
 
-| Вопрос | Решение |
+| Question | Decision |
 |---|---|
-| Стек | WXT + TypeScript (strict) + Preact + Vitest (+ happy-dom, @testing-library/preact) |
-| Размещение | Поверх страницы сайта, в Shadow DOM, с переключателем «Оригинал ↔ Расширение» |
-| Резисты и ES | Считаем по предметам и пассивкам, показываем с пометкой **beta** (значения приблизительные) |
-| Параметры скиллов | Берём из справочника сайта (см. ниже) |
-| Подсказки при наведении | Везде, как на сайте: предметы, руны/соул-коры, скиллы, саппорты, пассивки |
-| Дерево пассивок | В первой версии — дерево самого сайта, встроенное во вкладку Passives |
+| Stack | WXT + TypeScript (strict) + Preact + Vitest (+ happy-dom, @testing-library/preact) |
+| Placement | Over the site's page, in Shadow DOM, with an "Original ↔ Extension" switch |
+| Resistances and ES | Computed from items and passives, shown marked **beta** (approximate values) |
+| Skill parameters | Taken from the site's game data (see below) |
+| Hover tooltips | Everywhere, as on the site: items, runes/soul cores, skills, supports, passives |
+| Passive tree | In the first version, the site's own tree, embedded in the Passives tab |
 
-## Источники данных
+## Data sources
 
-### 1. Билд — `window.__PRELOADED_STATE__` в HTML
-Скрипт `window.__PRELOADED_STATE__={…};` (~590 КБ, валидный JSON).
-Путь: `poe2State.apollo.graphqlV2.queries[]` → запрос с `queryKey[0] === "ngf-ug-featured-document-page"`
-→ `state.data[0].game.documents.userGeneratedDocumentBySlug.data` (дальше — `doc`).
+### 1. The build — `window.__PRELOADED_STATE__` in the HTML
+The script `window.__PRELOADED_STATE__={…};` (~590 KB, valid JSON).
+Path: `poe2State.apollo.graphqlV2.queries[]` → the query with `queryKey[0] === "ngf-ug-featured-document-page"`
+→ `state.data[0].game.documents.userGeneratedDocumentBySlug.data` (`doc` from here on).
 
-| Что | Где в `doc` |
+| What | Where in `doc` |
 |---|---|
-| Название, патч | `data.name` (`"[0.5.5] ED Contagion Lich League Starter (…)"`) |
-| Класс, асценданс, тип билда | `tags.data[]` по `groupSlug` (`class`, `ascendancy`, `build-type`…) |
-| Автор, даты | `author`, `updatedAt` |
-| Варианты (Act 1 … Endgame Low Life) | виджет `NgfDocumentCmWidgetContentVariantsV1` → `childrenVariants[]` (`id`, `title`, описание) |
-| Экипировка варианта | `data.buildVariants.values[id].equipment` — слоты (`helmet`, `body`, `mainHand`, `offHand`, `leftRing`, `rightRing`, `amulet`, `belt`, `gloves`, `boots`, фласки, чармы) → `commonItem` (slug, имя, иконка, `isUnique`, моды) + `runes`; `priorityList` — список **предметов** |
-| Скиллы варианта | `…skillGems.gems[]` → `activeSkill` (slug, имя, иконка) + `subSkills[]` (саппорты: slug и иконка) |
-| Дерево пассивок | `…passiveTree` → `mainTree.selectedSlugs` (`node-51184`…), `set1Tree`, `set2Tree`, `ascendancyTree`, `jewels` |
-| Тексты | виджеты `…RichTextSimplifiedV2` (Build Overview, How it Plays), описания Equipment/SkillGems (там приоритеты статов текстом), `…StrengthsAndWeaknessesV1`, видео |
+| Name, patch | `data.name` (`"[0.5.5] ED Contagion Lich League Starter (…)"`) |
+| Class, ascendancy, build type | `tags.data[]` by `groupSlug` (`class`, `ascendancy`, `build-type`…) |
+| Author, dates | `author`, `updatedAt` |
+| Variants (Act 1 … Endgame Low Life) | widget `NgfDocumentCmWidgetContentVariantsV1` → `childrenVariants[]` (`id`, `title`, description) |
+| A variant's gear | `data.buildVariants.values[id].equipment` — slots (`helmet`, `body`, `mainHand`, `offHand`, `leftRing`, `rightRing`, `amulet`, `belt`, `gloves`, `boots`, flasks, charms) → `commonItem` (slug, name, icon, `isUnique`, mods) + `runes`; `priorityList` — a list of **items** |
+| A variant's skills | `…skillGems.gems[]` → `activeSkill` (slug, name, icon) + `subSkills[]` (supports: slug and icon) |
+| Passive tree | `…passiveTree` → `mainTree.selectedSlugs` (`node-51184`…), `set1Tree`, `set2Tree`, `ascendancyTree`, `jewels` |
+| Texts | `…RichTextSimplifiedV2` widgets (Build Overview, How it Plays), Equipment/SkillGems descriptions (stat priorities as text), `…StrengthsAndWeaknessesV1`, video |
 
-Тексты — JSON редактора Lexical: абзацы, заголовки, списки, ссылки и встроенные «чипы» игровых сущностей
+Texts are Lexical editor JSON: paragraphs, headings, lists, links and inline "chips" of game entities
 (`static-data-widget`: `id` = slug, `label`, `icon`, `groupId`).
 
-### 2. Справочник — IndexedDB сайта `ngf-static-data`
-Сайт сам кладёт туда полный справочник PoE 2 (~17.5 МБ, `cacheVersion`, TTL 7 дней).
-Хранилище `cache`, запись с ключом `poe-2|<hash>` → `staticData.game.staticData`. Контент-скрипт работает
-на том же домене и может читать эту базу. По ней работают подсказки сайта (при наведении запросов в сеть нет).
+### 2. Game data — the site's IndexedDB `ngf-static-data`
+The site itself stores the full PoE 2 game data there (~17.5 MB, `cacheVersion`, 7-day TTL).
+Store `cache`, the record keyed `poe-2|<hash>` → `staticData.game.staticData`. The content script runs on the same
+domain and can read this database. The site's own tooltips work from it (hovering makes no network requests).
 
-| Раздел | Что даёт |
+| Section | What it gives |
 |---|---|
-| `poe2Gems` | имя, описание, теги, статы по уровням (каст, мана, требования), `bakedDescriptions` — для скиллов и саппортов |
-| `poe2PassiveSkills` | ~10 000 пассивок: имя, иконка, `notable` / `keystone`, эффекты |
-| `poe2PassiveSkillsGraph` | геометрия дерева: группы, орбиты, `node-N → passiveSlug`, рёбра |
-| `poe2Armours`, `poe2Weapons`, `poe2Focuses`, `poe2Rings`, `poe2Amulets`… | предметы: базы, моды уникальных (диапазоны `(10-15)%`), требования |
-| `poe2SoulCores`, `poe2Prefixes`, `poe2Suffixes`, `poe2Jewels`, `poe2Ascendancies` | руны/соул-коры, моды, камни, асценданс |
+| `poe2Gems` | name, description, tags, stats per level (cast time, mana, requirements), `bakedDescriptions` — for skills and supports |
+| `poe2PassiveSkills` | ~10,000 passives: name, icon, `notable` / `keystone`, effects |
+| `poe2PassiveSkillsGraph` | tree geometry: groups, orbits, `node-N → passiveSlug`, edges |
+| `poe2Armours`, `poe2Weapons`, `poe2Focuses`, `poe2Rings`, `poe2Amulets`… | items: bases, unique mods (ranges `(10-15)%`), requirements |
+| `poe2SoulCores`, `poe2Prefixes`, `poe2Suffixes`, `poe2Jewels`, `poe2Ascendancies` | runes/soul cores, mods, jewels, ascendancies |
 
-Риск: при самом первом визите база может ещё не записаться → ждём её появления; без справочника
-интерфейс работает, но без подсказок и параметров.
+Risk: on the very first visit the database may not be written yet → we wait for it to appear; without the game data
+the interface works, but without tooltips and parameters.
 
-### Ограничения среды
-- `curl` блокирует Cloudflare → фикстуры снимаем в настоящем браузере.
-- Сайт — SPA: при переходе между билдами без перезагрузки новый `__PRELOADED_STATE__` не приходит →
-  догружаем HTML страницы через `fetch` (тот же домен) или перезагружаем.
-- Справочник целиком в репозиторий не кладём: в фикстуры идёт выборка только нужных записей.
+### Environment constraints
+- Cloudflare blocks `curl` → fixtures are captured in a real browser.
+- The site is an SPA: moving between builds without a reload brings no new `__PRELOADED_STATE__` →
+  we fetch the page's HTML with `fetch` (same domain) or reload.
+- The game data is never committed whole: fixtures hold only the records they need.
 
-## Как проходит каждый шаг
+## How each step goes
 
-1. **Red:** пишу тесты на поведение шага, убеждаюсь, что они падают.
-2. **Green:** минимальная реализация, тесты зелёные.
-3. **Refactor**, затем `npm test`, `npm run typecheck`, `npm run build` — всё чисто.
-4. **Проверка вживую** (где есть UI): открываю билд в Chrome, делаю скриншоты, сверяю с концептом.
-5. **Отчёт:** кратко что сделано + что проверить руками. Коммит.
+1. **Red:** write tests for the step's behaviour, make sure they fail.
+2. **Green:** the minimal implementation, tests pass.
+3. **Refactor**, then `npm test`, `npm run typecheck`, `npm run build` — all clean.
+4. **Live check** (where there is UI): open the build in Chrome, take screenshots, compare with the concept.
+5. **Report:** briefly what was done + what to check by hand. Commit.
 
-## Шаги
+## Steps
 
-### Шаг 0. Каркас проекта ✅
-WXT + TS + Preact + Vitest, `git init`, скрипты `test` / `typecheck` / `build` / `dev`.
-Контент-скрипт на `https://mobalytics.gg/poe-2/builds/*` пока только ставит маркер (атрибут на `<html>`).
-- Тесты: матчер URL страницы билда (билд / не билд / список билдов / другие игры).
-- Проверка: сборка проходит; после загрузки расширения маркер виден на странице.
-  Проверяю, работает ли автоперезагрузка расширения при пересборке.
-- **Руками (один раз):** `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка сборки.
+### Step 0. Project skeleton ✅
+WXT + TS + Preact + Vitest, `git init`, scripts `test` / `typecheck` / `build` / `dev`.
+The content script on `https://mobalytics.gg/poe-2/builds/*` only sets a marker for now (an attribute on `<html>`).
+- Tests: the build page URL matcher (build / not a build / build list / other games).
+- Check: the build passes; with the extension loaded, the marker is visible on the page.
+  Check whether the extension auto-reloads on rebuild.
+- **By hand (once):** `chrome://extensions` → "Developer mode" → "Load unpacked" → the build folder.
 
-### Шаг 1. Извлечение данных и фикстуры ✅
-- `extractBuildDocument(html | Document)` → `doc` или типизированная ошибка (нет скрипта / битый JSON / нет запроса).
-- `readStaticData()` — чтение IndexedDB с ожиданием, базу сайта никогда не создаёт; `pickStaticSubset(staticData, doc)` — выборка нужных записей.
-- Дев-экспорт (только в dev-сборке): кнопка в попапе сохраняет `<slug>.json` = `{ meta, build, staticData }`;
-  для автопроверок — событие `poe2-build-guide:capture` на `document`, отчёт в атрибуте `data-poe2-build-guide-capture`.
-- Фикстуры в `tests/fixtures/` (0.8–1 МБ): Witch Lich, Mercenary Gemling, Ranger Pathfinder; загрузка — `tests/fixtures/load.ts`.
-- Тесты на фикстурах: все гемы, уникальные предметы и выбранные ноды дерева есть в выборке справочника.
+### Step 1. Data extraction and fixtures ✅
+- `extractBuildDocument(html | Document)` → `doc` or a typed error (no script / broken JSON / no query).
+- `readStaticData()` — reads IndexedDB, waiting for it, and never creates the site's database;
+  `pickStaticSubset(staticData, doc)` — picks the needed records.
+- Dev export (dev build only): a popup button saves `<slug>.json` = `{ meta, build, staticData }`;
+  for automated checks — the `poe2-build-guide:capture` event on `document`, report in the
+  `data-poe2-build-guide-capture` attribute.
+- Fixtures in `tests/fixtures/` (0.8–1 MB): Witch Lich, Mercenary Gemling, Ranger Pathfinder; loaded by `tests/fixtures/load.ts`.
+- Tests on the fixtures: every gem, unique item and selected tree node is in the game data subset.
 
-### Шаг 2. Модель билда и парсер ✅
-`parseBuild(doc, staticData | null) → Build` (`src/lib/build/`, модель — `model.ts`): шапка, текстовые секции в порядке
-страницы, варианты с экипировкой, скиллами (параметры из справочника), пассивками и заметками автора.
-- Вариант по умолчанию — **первый** (как на сайте); id `default-variant` — просто самый старый вариант.
-- Моды предмета: реальные значения импортированного → диапазоны аффиксов → диапазоны уникального из справочника.
-  Свойства и требования неимпортированных предметов — тоже из справочника.
-- Параметры гема: точные на уровне из билда (`statsPerLevel`), иначе диапазоны сайта.
-- `priorityList` дерева — все взятые notable/keystone в порядке выбора, а не авторская подборка.
-- Имена саппортов без записи в справочнике — из чипов в текстах гайда, иначе из slug.
-- Проверено на живой странице: отчёт `poe2-build-guide:parse` и скриншоты сайта совпадают (варианты, шлем, скиллы и саппорты).
+### Step 2. Build model and parser ✅
+`parseBuild(doc, staticData | null) → Build` (`src/lib/build/`, model in `model.ts`): header, text sections in page
+order, variants with gear, skills (parameters from the game data), passives and author's notes.
+- The default variant is the **first** one (as on the site); the id `default-variant` is just the oldest variant.
+- Item mods: an imported item's real values → affix ranges → the unique's ranges from the game data.
+  Properties and requirements of non-imported items come from the game data too.
+- Gem parameters: exact at the build's level (`statsPerLevel`), otherwise the site's ranges.
+- The tree's `priorityList` is every notable/keystone taken, in selection order, not the author's pick.
+- Support names without a game data record come from chips in the guide texts, otherwise from the slug.
+- Checked on the live page: the `poe2-build-guide:parse` report matches the site's screenshots (variants, helmet,
+  skills and supports).
 
-### Шаг 3. Rich text (Lexical) → безопасный рендер ✅
-`toRichBlocks` (`src/lib/rich-text/convert.ts`) → типизированное дерево; `<RichText>` (`src/ui/rich-text/`) рендерит его
-только через JSX. Абзацы, заголовки, списки (в т.ч. вложенные), формат текста, `color: #hex`, переносы,
-ссылки (только http(s), относительные → mobalytics.gg, `noopener noreferrer`), чипы сущностей с иконкой (`renderEntity` —
-точка расширения для подсказок). Неизвестные контейнеры разворачиваются в абзац.
-- CSS UI встраивается строкой (`?inline`) в `createShadowRootUi({ css })`: загрузка CSS средствами WXT (`cssInjectionMode: 'ui'`)
-  в dev падала с `Failed to fetch`. Токены дизайна — `src/ui/theme/tokens.css`.
-- Dev-модули с Preact/CSS подключать только через `import()` внутри `import.meta.env.DEV`, иначе попадают в прод.
-- Проверено: dev-превью (`poe2-build-guide:preview`) на трёх билдах совпадает со структурой текстов на сайте.
+### Step 3. Rich text (Lexical) → safe rendering ✅
+`toRichBlocks` (`src/lib/rich-text/convert.ts`) → a typed tree; `<RichText>` (`src/ui/rich-text/`) renders it
+through JSX only. Paragraphs, headings, lists (nested too), text format, `color: #hex`, line breaks,
+links (http(s) only, relative → mobalytics.gg, `noopener noreferrer`), entity chips with an icon (`renderEntity` —
+the extension point for tooltips). Unknown containers unwrap into a paragraph.
+- UI CSS is passed inline (`?inline`) to `createShadowRootUi({ css })`: loading CSS the WXT way
+  (`cssInjectionMode: 'ui'`) failed in dev with `Failed to fetch`. Design tokens — `src/ui/theme/tokens.css`.
+- Dev modules with Preact/CSS are loaded only with `import()` inside `import.meta.env.DEV`, or they end up in production.
+- Checked: the dev preview (`poe2-build-guide:preview`) on three builds matches the structure of the site's texts.
 
-### Шаг 4. Монтирование на странице ✅
-Контент-скрипт на всём `mobalytics.gg/*`, смена URL — `wxt:locationchange`. UI монтируется в shadow root при первом
-заходе на билд (`src/ui/app/mount.tsx`).
-- `createBuildLoader` (`src/lib/page/`): билд, с которым открыта страница, — из текущего документа, остальные — `fetch` HTML;
-  справочник читается один раз и кэшируется (при неудаче — повтор при следующей загрузке).
-- `createPageController`: неактивно / загрузка / готово / ошибка + режим `extension | original`; устаревшие загрузки
-  отбрасываются, смена query/hash того же билда не перезагружает. Режим хранится в `storage.local` (`pageModeItem`).
-- Оверлей закрывает страницу (`position: fixed`, прокрутка страницы блокируется), в режиме оригинала — кнопка «Открыть гайд».
-- Проверено в Chrome: оверлей, «Оригинал» ↔ «Открыть гайд», режим после перезагрузки, переход со списка на билд внутри SPA,
-  «Назад»/«Вперёд», ошибка на несуществующем билде.
-- Изменение `permissions` в manifest требует ручной перезагрузки расширения в `chrome://extensions`.
+### Step 4. Mounting on the page ✅
+The content script runs on all of `mobalytics.gg/*`, URL changes come from `wxt:locationchange`. The UI is mounted in
+a shadow root on the first visit to a build (`src/ui/app/mount.tsx`).
+- `createBuildLoader` (`src/lib/page/`): the build the page opened with comes from the current document, others are
+  fetched as HTML; the game data is read once and cached (on failure, retried on the next load).
+- `createPageController`: inactive / loading / ready / error + an `extension | original` mode; stale loads are
+  dropped, a query/hash change on the same build doesn't reload. The mode is kept in `storage.local` (`pageModeItem`).
+- The overlay covers the page (`position: fixed`, page scrolling locked); in original mode — an "Open guide" button.
+- Checked in Chrome: the overlay, "Original" ↔ "Open guide", the mode after a reload, moving from the list to a build
+  inside the SPA, Back/Forward, the error on a build that doesn't exist.
+- Changing `permissions` in the manifest needs a manual extension reload in `chrome://extensions`.
 
-### Шаг 5. Дизайн-токены, шапка, вкладки ✅
-- Токены — `src/ui/theme/tokens.css`; Inter (latin + cyrillic) встроен в бандл и регистрируется через FontFace API под именем
-  `PoE2 Guide Inter`: CSP сайта (`font-src *`) не пускает `data:`, а FontFace из памяти ничего не загружает.
-- Шапка по концепту (`BuildHeader`): арт класса, название, класс / асценданс, патч, типы билда, автор, начало Build Overview,
-  кнопка «Оригинал». Вкладки (`Tabs`, иконки lucide-preact): WAI-ARIA, стрелки, клавиши `1`–`6` (слушаются в capture-фазе:
-  shadow root WXT останавливает всплытие клавиш).
-- Маршрут в хэше: **`#gear_act-1`** (`src/lib/ui/route.ts`), без записи в историю (`replaceState`), внешние изменения хэша
-  подхватываются. Слэш нельзя: сайт при загрузке делает `querySelector('#toc-item-' + hash + '-id')` и падает на невалидном
-  селекторе (проверено: `#a/b` → «Oops, something went wrong»).
-- Панели вкладок — пока заглушка «Раздел появится в следующих версиях».
-- Доработки по отзыву: шапка сворачивается в компактную строку (кнопка со стрелкой, `aria-expanded`, настройка
-  `headerCollapsed` в `storage.local`, общая для вкладок, сохраняется при переходах между билдами); скроллбары UI —
-  `::-webkit-scrollbar` в палитре (стандартный `scrollbar-color` на Windows оставляет стрелки).
+### Step 5. Design tokens, header, tabs ✅
+- Tokens — `src/ui/theme/tokens.css`; Inter (latin + cyrillic) is bundled and registered with the FontFace API as
+  `PoE2 Guide Inter`: the site's CSP (`font-src *`) doesn't allow `data:`, and a FontFace from memory loads nothing.
+- Header after the concept (`BuildHeader`): class art, name, class / ascendancy, patch, build types, author, the start
+  of Build Overview, an "Original" button. Tabs (`Tabs`, lucide-preact icons): WAI-ARIA, arrows, keys `1`–`6`
+  (listened for in the capture phase: WXT's shadow root stops key events from bubbling).
+- Route in the hash: **`#gear_act-1`** (`src/lib/ui/route.ts`), no history entries (`replaceState`), outside hash
+  changes are picked up. No slash: on load the site does `querySelector('#toc-item-' + hash + '-id')` and crashes on an
+  invalid selector (checked: `#a/b` → "Oops, something went wrong").
+- Tab panels — a placeholder for now, "This section comes in a later version".
+- Follow-ups from feedback: the header collapses into a compact row (a chevron button, `aria-expanded`, the
+  `headerCollapsed` setting in `storage.local`, shared by tabs, kept across builds); UI scrollbars —
+  `::-webkit-scrollbar` in the palette (the standard `scrollbar-color` leaves arrows on Windows).
 
-### Шаг 6. Подсказки (tooltip) ✅
-- `build.entities`: чипы из текстов гайда, разобранные через справочник (гем / пассивка / руна / предмет); удалённые из игры
-  сущности остаются чипом без подсказки.
-- `src/lib/tooltip/`: `TooltipModel` из предмета, гема, пассивки, руны (как в игре: класс, свойства, требования, описание,
-  эффекты, бонусы качества, flavour, Corrupted, пометка «диапазоны»); `placeTooltip` — снизу → сверху → справа → слева, в пределах экрана.
-- `src/ui/tooltip/`: один `TooltipProvider` на представление билда, `WithTooltip` — задержка 150 мс при наведении, сразу при
-  фокусе, Escape/blur/прокрутка закрывают, `aria-describedby`.
-- Overview пока показывает тексты гайда с подсказками на чипах (остальное — шаг 9).
-- Проверено в Chrome: подсказки Contagion, Atziri's Disdain, Eternal Life, Tecrod's Gaze совпадают с подсказками сайта.
+### Step 6. Tooltips ✅
+- `build.entities`: chips from the guide texts, resolved through the game data (gem / passive / rune / item); entities
+  removed from the game stay a chip without a tooltip.
+- `src/lib/tooltip/`: a `TooltipModel` from an item, gem, passive or rune (as in the game: class, properties,
+  requirements, description, effects, quality bonuses, flavour, Corrupted, a "ranges" note); `placeTooltip` — below →
+  above → right → left, within the screen.
+- `src/ui/tooltip/`: one `TooltipProvider` per build view, `WithTooltip` — a 150 ms delay on hover, immediate on
+  focus, Escape/blur/scroll close it, `aria-describedby`.
+- Overview shows the guide texts with tooltips on chips for now (the rest is step 9).
+- Checked in Chrome: the Contagion, Atziri's Disdain, Eternal Life and Tecrod's Gaze tooltips match the site's.
 
-### Шаг 7. Вкладка Gear ✅
-- `VariantPicker` (чипы вариантов, `aria-pressed`) на вкладках с вариантом; выбор пишется в хэш (`#gear_act-1`).
-- `GearPanel` (`src/ui/gear/`): группы как в листе персонажа (`groupSlots`: Armour, Weapons, Weapon Set 2, Jewellery,
-  Flasks & Charms), карточка слота — иконка, слот, имя цветом редкости, 2 первых мода, руны; подсказка предмета на карточке.
-  Справа — Gear Priority (номер, иконка, имя, слот; подсказка из экипированного предмета) и заметки автора с подсказками на чипах.
-- Доработки по отзыву: без заголовков групп и без заголовка «Gear» — броня крупными карточками, остальное компактной
-  сеткой (`splitSlots`), второй сет подписан «Weapon · Set 2»; всё с приоритетом помещается на один экран (проверено
-  на окне 1463×662). Руны в предметах — свои подсказки (вложенные `WithTooltip` через `pointerover`). Заметки автора —
-  на всю ширину под экипировкой и приоритетом. Иконки Gear без `loading="lazy"`.
-- Вторая доработка: без подписи «Variant»; Gear по концепту — колонка брони + сетка остальных в 2 колонки, растянуты на
-  высоту приоритета; стандартные слоты всегда (пустые — «Empty»), второй сет, третье кольцо и чармы — только если заняты
-  (`sheetSlots`). Шапка стала чисто информационной: «Collapse/Expand header» и «Show original page» — иконки в строке
-  вкладок, свёрнутая шапка скрыта целиком (в строке вкладок остаётся название). Overview — две колонки «книжкой».
-  Весь UI на английском.
-- Сводка резистов/ES — шаг 11.
-- Проверено в Chrome: слоты и приоритет FULL LIFE и ACT 1, подсказка редкого предмета с реальными модами и рунами, смена варианта.
+### Step 7. Gear tab ✅
+- `VariantPicker` (variant chips, `aria-pressed`) on tabs that have a variant; the choice goes into the hash (`#gear_act-1`).
+- `GearPanel` (`src/ui/gear/`): groups as in the character sheet (`groupSlots`: Armour, Weapons, Weapon Set 2,
+  Jewellery, Flasks & Charms); a slot card — icon, slot, name in rarity colour, the first 2 mods, runes; the item's
+  tooltip on the card. On the right — Gear Priority (number, icon, name, slot; tooltip from the equipped item) and the
+  author's notes with tooltips on chips.
+- Follow-ups from feedback: no group headings and no "Gear" heading — armour as large cards, the rest in a compact grid
+  (`splitSlots`), the second set labelled "Weapon · Set 2"; everything including the priority fits on one screen
+  (checked on a 1463×662 window). Runes in items have their own tooltips (nested `WithTooltip` via `pointerover`).
+  The author's notes span the full width under the gear and priority. Gear icons without `loading="lazy"`.
+- Second follow-up: no "Variant" label; Gear after the concept — an armour column + a 2-column grid of the rest,
+  stretched to the priority's height; standard slots always (empty ones say "Empty"), the second set, a third ring and
+  charms only when filled (`sheetSlots`). The header became purely informational: "Collapse/Expand header" and "Show
+  original page" are icons in the tab row, a collapsed header is hidden entirely (the tab row keeps the name). Overview —
+  two columns, like a book. The whole UI is in English.
+- Resistance/ES summary — step 11.
+- Checked in Chrome: slots and priority for FULL LIFE and ACT 1, a rare item's tooltip with real mods and runes,
+  switching variants.
 
-### Шаг 8. Вкладка Skills ✅
-- `SkillsPanel` (`src/ui/skills/`): карточка Active Skills (требования атрибутов, строки в 2 колонки: иконка, имя, теги,
-  саппорты в кольце цвета атрибута с подсказками; выбор — `aria-pressed`), справа — детали выбранного гема (теги,
-  параметры, требования, описание, эффекты, качество, саппорты с именами и подсказками), Author's Notes на всю ширину.
-  Выбор сбрасывается при смене варианта (`key` по варианту).
-- Нулевые параметры сайта (`Cast Time 0.0` у Essence Drain) скрываются при разборе.
-- Gem Priority (`priorityGems` → `variant.gemPriority`): порядок добычи гемов с привязкой к скиллу; карточка под Active
-  Skills, однострочные пункты в 4 колонки, пункты выбранного скилла подсвечены, подсказки на гемах.
-- Проверено в Chrome: Lich FULL LIFE (саппорты совпадают с сайтом), Gemling Uber Endgame (точные параметры на уровне 19),
-  выбор скилла, подсказки саппортов; всё на одном экране с развёрнутой шапкой.
+### Step 8. Skills tab ✅
+- `SkillsPanel` (`src/ui/skills/`): an Active Skills card (attribute requirements, rows in 2 columns: icon, name, tags,
+  supports in a ring of the attribute's colour with tooltips; selection — `aria-pressed`), on the right — the selected
+  gem's details (tags, parameters, requirements, description, effects, quality, supports with names and tooltips),
+  Author's Notes full width. The selection resets when the variant changes (`key` by variant).
+- The site's zero parameters (`Cast Time 0.0` on Essence Drain) are hidden when parsing.
+- Gem Priority (`priorityGems` → `variant.gemPriority`): the order to get gems in, tied to their skill; a card under
+  Active Skills, one-line entries in 4 columns, entries of the selected skill highlighted, tooltips on gems.
+- Checked in Chrome: Lich FULL LIFE (supports match the site), Gemling Uber Endgame (exact parameters at level 19),
+  selecting a skill, support tooltips; everything on one screen with the header expanded.
 
-### Шаг 9. Вкладка Overview ✅
-- Слева: тексты гайда в две колонки «книжкой».
-- Справа — At a Glance по самому полному варианту (`showcaseVariant`: больше всего предметов и скиллов, при равенстве — позднее):
-  Strengths / Weaknesses (маркеры + и −; по замечанию — внутри карточки, а не отдельными блоками), главный скилл, ключевые уникальные предметы, ноды асценданса (всё с подсказками), автор, дата обновления, ссылка на видео
-  (только http(s), подпись хоста YouTube/Twitch).
-- Проверено в Chrome: Lich (ENDGAME LOW LIFE) и Pathfinder (Endgame). Первый вариант с растянутыми на высоту At a Glance
-  карточками давал пустоту — перестроено в две колонки.
+### Step 9. Overview tab ✅
+- Left: the guide texts in two columns, like a book.
+- Right — At a Glance from the fullest variant (`showcaseVariant`: the most items and skills, on a tie the later one):
+  Strengths / Weaknesses (+ and − markers; after feedback — inside the card, not as separate blocks), the main skill,
+  key unique items, ascendancy nodes (all with tooltips), author, update date, a video link (http(s) only, host label
+  YouTube/Twitch).
+- Checked in Chrome: Lich (ENDGAME LOW LIFE) and Pathfinder (Endgame). The first version, with cards stretched to At a
+  Glance's height, left empty space — rebuilt into two columns.
 
-### Шаг 10. Вкладка Passives ✅
-- Дерево сайта (WebGL-canvas со своими кнопками зума) остаётся в DOM сайта, но его блок кладётся `position: fixed`
-  поверх нашей области (`lib/passives/tree-embed.ts`); переносить узел нельзя — React сайта его перемонтирует.
-- Находки: якорь `span[id$="-passive-tree-N"]`, N — индекс варианта; при смене варианта сайт перемонтирует секцию
-  (MutationObserver находит новое дерево); вариант переключается кликом по `[role=tab]` сайта, сайт переписывает URL
-  и теряет наш hash — восстанавливаем. Canvas создаётся лениво, когда секция видна — прокручиваем к ней (под оверлеем).
-  Предок с `container-type: inline-size` делал fixed относительным — на время снимаем. У блока `min-height: 580px` — сбрасываем.
-  Tippy-подсказки сайта (z 9999) поднимаем стилем; наши тултипы рендерятся вне `.overlay` (портал), чтобы быть над деревом.
-  До гидратации сайт игнорирует клик/прокрутку — повторяем раз в секунду, пока дерево не появится.
-- Боковая панель Key Passives: асценданс, пронумерованные ключевые пассивки (иконка, первый эффект, тултип), очки.
-- Всё возвращается при уходе с вкладки / в оригинал (стили, container-type, прокрутка). Заметки автора к дереву — в Notes (шаг 12).
-- Не сделано из interface.md: подсветка/центрирование ноды по клику в панели (canvas сайта не даёт API).
+### Step 10. Passives tab ✅
+- The site's tree (a WebGL canvas with its own zoom buttons) stays in the site's DOM, but its block is laid
+  `position: fixed` over our area (`lib/passives/tree-embed.ts`); the node can't be moved — the site's React would
+  remount it.
+- Findings: the anchor is `span[id$="-passive-tree-N"]`, N being the variant index; on a variant change the site
+  remounts the section (a MutationObserver finds the new tree); the variant is switched by clicking the site's
+  `[role=tab]`, the site rewrites the URL and loses our hash — we restore it. The canvas is created lazily when the
+  section is visible — we scroll to it (under the overlay). An ancestor with `container-type: inline-size` made fixed
+  positioning relative — lifted for the time being. The block has `min-height: 580px` — reset. The site's Tippy
+  tooltips (z 9999) are raised by a style; our tooltips render outside `.overlay` (a portal) to sit above the tree.
+  Until hydration the site ignores clicks/scrolling — we retry every second until the tree appears.
+- Key Passives side panel: ascendancy, numbered key passives (icon, first effect, tooltip), points.
+- Everything is restored on leaving the tab / going to the original (styles, container-type, scroll). The author's
+  notes on the tree — in Notes (step 12).
+- Not done from interface.md: highlighting/centring a node on a click in the panel (the site's canvas has no API).
 
-### Шаг 11. Вкладка Atlas Tree ✅
-Вместо резистов/ES (перенесены в «Будущие фичи»). Вкладка после Passives, только если атлас есть хоть в одном варианте.
-- Данные: `buildVariants.values[].atlasTree` — `mainTree` и под-деревья (`expeditionTree`, `bossTree`, …) с `selectedSlugs`;
-  ноды резолвятся через тот же граф `poe2PassiveSkillsGraph` (второе дерево). Панель: очки + notable/keystone по под-деревьям.
-  Ноды boss-дерева в текущих static data отсутствуют — просто пропускаются. Заметок к атласу у вариантов нет.
-- Сайт: секция `-atlas-tree-N` есть только у вариантов с атласом — вариант переключаем через вкладки любой секции варианта.
-  Высоту задаёт внутренний блок (`min-height: 644px`) — слот ищется до первого блока с min-height и потом не перевыбирается.
-- Ленивая загрузка деревьев сайта срабатывает на въезд секции в видимую область: повторы чередуют прокрутку вверх и обратно.
-- Проверено: Lich (оба эндгейма, ACT 1 — пустое состояние, переход Atlas → Passives), Pathfinder без вкладки.
+### Step 11. Atlas Tree tab ✅
+In place of resistances/ES (moved to "Future features"). The tab comes after Passives, only if some variant has an atlas.
+- Data: `buildVariants.values[].atlasTree` — `mainTree` and sub-trees (`expeditionTree`, `bossTree`, …) with
+  `selectedSlugs`; nodes resolve through the same `poe2PassiveSkillsGraph` graph (the second tree). Panel: points +
+  notables/keystones per sub-tree. The boss tree's nodes are missing from the current static data — simply skipped.
+  Variants have no atlas notes.
+- Site: the `-atlas-tree-N` section exists only for variants with an atlas — the variant is switched through the tabs
+  of any of the variant's sections. The height is set by an inner block (`min-height: 644px`) — the slot is looked up
+  down to the first block with a min-height and not re-chosen afterwards.
+- The site's trees load lazily when their section scrolls into view: retries alternate scrolling up and back.
+- Checked: Lich (both endgames, ACT 1 — the empty state, going Atlas → Passives), Pathfinder without the tab.
 
-### Шаг 12. Progression, заметки к дереву, без Notes ✅
-Решения пользователя: вкладку Notes убрали (все тексты гайда уже на Overview), заметки к пассивному дереву —
-во вкладке Passives, квестовые награды — в Progression.
-- Progression: список стадий (варианты по порядку гайда) · выбранная стадия (описание автора + изменения относительно
-  предыдущей: скиллы/саппорты, экипировка по слотам, очки и новые ключевые пассивки, ссылки «Open …») · Quest Rewards
-  (`data.questRewards.quests[]`, только с выбранной наградой, по актам в порядке первого появления, «Choice» при нескольких наградах).
-- Passives: переключатель «Key Passives / Author's Notes» в заголовке боковой панели, если у варианта есть заметки.
-- Порядок стадий — как у автора (у Pathfinder «Endgame» идёт первым — сравнение тогда условное).
-- Проверено: Lich (эндгейм, ACT 2 с «No changes»), Pathfinder; заметки ACT 2 с подсказками.
+### Step 12. Progression, tree notes, no Notes ✅
+The user's decisions: the Notes tab was dropped (every guide text is already on Overview), passive tree notes go in the
+Passives tab, quest rewards in Progression.
+- Progression: the list of stages (variants in guide order) · the selected stage (the author's description + changes
+  from the previous one: skills/supports, gear by slot, points and new key passives, "Open …" links) · Quest Rewards
+  (`data.questRewards.quests[]`, only those with a chosen reward, by act in order of first appearance, "Choice" when
+  there are several rewards).
+- Passives: a "Key Passives / Author's Notes" switch in the side panel's heading, when the variant has notes.
+- Stage order is the author's (Pathfinder has "Endgame" first — the comparison is nominal then).
+- Checked: Lich (endgame, ACT 2 with "No changes"), Pathfinder; ACT 2 notes with tooltips.
 
-### Шаг 13. Состояния и полировка ✅
-- Загрузка — спиннер; ошибка — понятные тексты (нет гайда / сайт изменился (код) / сеть) и «Try again» (`controller.retry()`).
-- Пусто: вкладки варианта у билда без вариантов; тихий значок в панели вкладок, если static data не прочитались.
-- Запоминание вкладки (`local:lastTab`): открывается, когда в адресе нет вкладки; смена варианта не считается.
-- Фокус: `guardFocus` возвращает Tab со скрытой страницы в гайд (вперёд — на первую кнопку, назад — на последнюю);
-  блок встроенного дерева помечен `data-poe2-build-guide-tree` и доступен с клавиатуры. Видимый фокус у ссылок в текстах.
-- `prefers-reduced-motion`: глобально выключает анимации и переходы (в т.ч. спиннер).
-- Регресс в Chrome: Warrior (Warbringer), Monk (Martial Artist), Druid (+Atlas), Huntress (Ritualist), Sorceress — все вкладки
-  с содержимым, без ошибок; плюс фикстуры Witch/Ranger/Mercenary. Несуществующий билд — «This page has no build guide…».
+### Step 13. States and polish ✅
+- Loading — a spinner; errors — clear texts (no guide / the site changed (code) / network) and "Try again" (`controller.retry()`).
+- Empty: variant tabs on a build without variants; a quiet icon in the tab bar when the static data couldn't be read.
+- The tab is remembered (`local:lastTab`): it opens when the address has no tab; changing the variant doesn't count.
+- Focus: `guardFocus` brings Tab back from the hidden page into the guide (forward — to the first button, back — to the
+  last); the embedded tree's block is marked `data-poe2-build-guide-tree` and reachable from the keyboard. Visible
+  focus on links in texts.
+- `prefers-reduced-motion`: turns off animations and transitions globally (the spinner included).
+- Regression in Chrome: Warrior (Warbringer), Monk (Martial Artist), Druid (+Atlas), Huntress (Ritualist),
+  Sorceress — all tabs with content, no errors; plus the Witch/Ranger/Mercenary fixtures. A build that doesn't
+  exist — "This page has no build guide…".
 
-### Шаг 14. Упаковка ✅
-- Имя `poe2perfect` (манифест, package.json, бренд в оверлее), `version_name: 0.1.0 beta`.
-- Иконки 16/32/48/96/128 в `public/icon/` (тёмный квадрат, оранжевое «P2» с подчёркиванием, как активная вкладка).
-- `npm run zip` → `.output/poe2perfect-0.1.0-chrome.zip` (манифест: только `storage`, content script на mobalytics.gg).
-- README (установка, разработка) и гайд для бета-тестеров `docs/beta-guide.html` (опубликован как артефакт).
+### Step 14. Packaging ✅
+- Name `poe2perfect` (manifest, package.json, the brand in the overlay), `version_name: 0.1.0 beta`.
+- Icons 16/32/48/96/128 in `public/icon/` (a dark square, an orange "P2" underlined like the active tab).
+- `npm run zip` → `.output/poe2perfect-0.1.0-chrome.zip` (manifest: only `storage`, a content script on mobalytics.gg).
+- README (install, development) and a guide for beta testers `docs/beta-guide.html` (published as an artifact).
 
-### Правки после беты (по замечаниям)
-- Passives и Atlas Tree: если у варианта есть заметки автора, боковая панель открывается на «Notes», ключевые ноды — второй вкладкой.
-  Заметки к атласу — `descriptionPoe2AtlasTree` из виджета атласа варианта.
-- Progression: описание стадии — под блоками Skills / Gear / Passives.
-- Gear: навыки, которые даёт предмет («Grants Skill: …» в `baseItemType.bakedDescriptions` базы и в модах уникальных,
-  с уровнем «Level (1-20)») — строка с иконкой гема и подсказкой на карточке и секция «Grants Skill» в подсказке предмета;
-  гем ищется по имени, weapon-granted версия (`weapongranted…`) в приоритете.
-- Вход в аккаунт: для залогиненного сайт рендерит страницу в браузере, `__PRELOADED_STATE__` почти пустой → «no build guide».
-  Теперь страница билда берётся запросом без cookies (`credentials: 'omit'`), если в текущем документе билда нет,
-  и при переходах внутри сайта. Проверено в Chrome с входом: открытие билда, SPA-переход, Gear/Passives/Progression.
-- Progression: блоки Skills / Gear / Passives одной высоты (по самому высокому), описание стадии — в блоке «Author's Notes».
-- Overview: тексты сеткой по два, карточки в ряду одной высоты, нечётная последняя — на всю ширину; колонка текстов и
-  At a Glance тянутся друг к другу. At a Glance сворачивается в узкую полосу (`local:glanceCollapsed`).
+### Changes after the beta (from feedback)
+- Passives and Atlas Tree: if the variant has author's notes, the side panel opens on "Notes", key nodes in the second tab.
+  Atlas notes — `descriptionPoe2AtlasTree` from the variant's atlas widget.
+- Progression: the stage description goes under the Skills / Gear / Passives blocks.
+- Gear: skills an item grants ("Grants Skill: …" in the base's `baseItemType.bakedDescriptions` and in unique mods,
+  with the level "Level (1-20)") — a row with the gem's icon and tooltip on the card and a "Grants Skill" section in
+  the item tooltip; the gem is looked up by name, the weapon-granted version (`weapongranted…`) first.
+- Signed in: for a signed-in user the site renders the page in the browser, `__PRELOADED_STATE__` is almost empty →
+  "no build guide". Now the build page is requested without cookies (`credentials: 'omit'`) when the current document
+  has no build, and on navigation inside the site. Checked in Chrome signed in: opening a build, SPA navigation,
+  Gear/Passives/Progression.
+- Progression: the Skills / Gear / Passives blocks share one height (the tallest), the stage description is in an
+  "Author's Notes" block.
+- Overview: texts in a grid of two, cards in a row share their height, an odd last one takes the full width; the text
+  column and At a Glance stretch to each other. At a Glance collapses into a narrow rail (`local:glanceCollapsed`).
 
-### Публикация 1.0.0
-- Версия 1.0.0 (без `version_name`), архив `.output/poe2perfect-1.0.0-chrome.zip`.
-- `store/`: скриншоты 1280×800 (Overview, Gear с подсказкой, Skills, Passives, Progression), промо-плитки 440×280 и
-  1400×560, иконка магазина 128 (арт 96 + поля 16), тексты карточки и ответы Privacy practices (`listing.md`),
-  инструкция `PUBLISHING.md`. Исходные кадры — `store/raw/`. Папка `store/` и скрипты отрисовки картинок
-  не попадают в публичный репозиторий (только `PRIVACY.md` в корне).
+### Release 1.0.0
+- Version 1.0.0 (no `version_name`), archive `.output/poe2perfect-1.0.0-chrome.zip`.
+- `store/`: 1280×800 screenshots (Overview, Gear with a tooltip, Skills, Passives, Progression), 440×280 and 1400×560
+  promo tiles, a 128 store icon (96 art + 16 margins), listing texts and Privacy practices answers (`listing.md`),
+  instructions in `PUBLISHING.md`. Source frames — `store/raw/`. The `store/` folder and the image scripts stay out of
+  the public repository (only `PRIVACY.md` in the root).
 
-### Добровольные пожертвования
-- Boosty (`boosty.to/resenpai`): ссылка в README, `.github/FUNDING.yml`, гайде для тестеров и описании для магазина.
-  Ничего не закрыто за деньги (требование Chrome Web Store и дух GPL). Тексты и картинки страницы — `store/boosty-page.md`,
-  `scripts/make-boosty-assets.py`. Оплата с зарубежных карт на Boosty ограничена — при необходимости добавить Ko-fi.
+### Voluntary donations
+- Boosty (`boosty.to/resenpai`): a link in the README, `.github/FUNDING.yml`, the tester guide and the store
+  description. Nothing is locked behind payment (a Chrome Web Store requirement and the spirit of the GPL). The page's
+  texts and images — `store/boosty-page.md`, `scripts/make-boosty-assets.py`. Paying with foreign cards on Boosty is
+  limited — add Ko-fi if needed.
 
-### Приоритет пассивок (после 1.0.0)
-- Боковая панель Passives — это порядок прокачки: подвкладка называется «Priority» и открывается первой, «Notes» второй.
-  Асценданс тоже приоритет — его ноды пронумерованы. В Atlas Tree порядок вкладок такой же.
-- Узел, с которого начинается дерево (`passive-…start`), бесплатный: он больше не считается в очках асценданса
-  и атласа (`isFreeStartNode` в `parse-passives.ts`).
+### Passive priority (after 1.0.0)
+- The Passives side panel is the levelling order: its sub-tab is called "Priority" and opens first, "Notes" second.
+  The ascendancy is a priority too — its nodes are numbered. Atlas Tree has the same tab order.
+- The node the tree starts from (`passive-…start`) is free: it no longer counts toward ascendancy and atlas points
+  (`isFreeStartNode` in `parse-passives.ts`).
 
-### Подсветка ноды с приоритета (после 1.0.0)
-- У сайта рядом с деревом есть «Notable Priority»: у каждой иконки атрибут `data-priority-slug` с тем же слагом ноды,
-  что и у нас. Наведение на такую иконку рисует кольцо вокруг ноды на canvas — проверено на живой странице.
-- `lib/passives/tree-focus.ts` шлёт этой иконке те же события: наведение на нашу строку Priority подсвечивает ноду,
-  клик передаётся их элементу. Поиск идёт внутри секции нужного дерева, чтобы не путать пассивки и атлас.
-- Зум камеры по клику воспроизвести на сайте не удалось (ни настоящим кликом, ни синтетическим) — возможно, клик
-  только фиксирует подсветку.
+### Highlighting a node from the priority (after 1.0.0)
+- Next to the tree the site has a "Notable Priority": each icon carries a `data-priority-slug` attribute with the same
+  node slug as ours. Hovering such an icon draws a ring around the node on the canvas — checked on the live page.
+- `lib/passives/tree-focus.ts` sends that icon the same events: hovering our Priority row highlights the node, a click
+  is passed to their element. The search stays within the right tree's section, so passives and atlas don't mix up.
+- Zooming the camera on a click couldn't be reproduced on the site (neither with a real nor a synthetic click) —
+  perhaps a click only pins the highlight.
 
-### Подсветка гема из Gem Priority (после 1.0.0)
-- Наведение (и фокус) на запись в Gem Priority подсвечивает камень в Active Skills: сокет в строке своего скилла,
-  а для записи-скилла — саму строку. Совпадение ищется по паре «гем + родительский скилл», поэтому одинаковые
-  саппорты в разных скиллах не подсвечиваются разом.
+### Highlighting a gem from Gem Priority (after 1.0.0)
+- Hovering (and focusing) a Gem Priority entry highlights the gem in Active Skills: the socket in its skill's row, and
+  for a skill entry, the row itself. The match is by the "gem + parent skill" pair, so the same support in different
+  skills isn't highlighted all at once.
 
-### Открытие кода (GPLv3)
-- `LICENSE` (GPL-3.0-or-later), `NOTICE` (сторонние компоненты, оговорка про имя и логотип), `CONTRIBUTING.md` (DCO),
-  лицензия в `package.json`.
-- Фикстуры очищаются при экспорте (`lib/dev/scrub.ts`): тексты гайдов → слова-заглушки, комментарии и чужие билды удаляются.
-- Картинки магазина и `store/raw/` не отслеживаются git; пересобираются `scripts/make-store-assets.py` и `make-icons.py`.
+### Open source (GPLv3)
+- `LICENSE` (GPL-3.0-or-later), `NOTICE` (third-party components, a note on the name and logo), `CONTRIBUTING.md`
+  (DCO), the licence in `package.json`.
+- Fixtures are scrubbed on export (`lib/dev/scrub.ts`): guide texts → placeholder words, comments and other people's
+  builds removed.
+- Store images and `store/raw/` aren't tracked by git; they are rebuilt by `scripts/make-store-assets.py` and `make-icons.py`.
 
-### Вкладка Gear: пояс, чармы, Trade (после 1.0.0)
-- Пояс переехал в левую колонку к броне (пять больших карточек), чармы показываются всегда — пустые как заглушки,
-  поэтому сетка не прыгает между вариантами.
-- У каждой надетой вещи кнопка **Trade** — иконка в левом нижнем углу плитки предмета (как у сайта), видна всегда;
-  ссылка `pathofexile.com/trade2/search/<лига>?q=<query>` собирается из
-  `poe2TradeRequest` в данных предмета — тот же запрос, что открывает сам сайт (сверено на живой странице:
-  13 из 14 ссылок совпадают, четырнадцатая — оружие второго сета, для него сайт ссылку не рисует).
+### Gear tab: belt, charms, Trade (after 1.0.0)
+- The belt moved to the left column with the armour (five large cards), charms are always shown — empty ones as
+  placeholders, so the grid doesn't jump between variants.
+- Every equipped item has a **Trade** button — an icon in the bottom-left corner of the item tile (as on the site),
+  always visible; the link `pathofexile.com/trade2/search/<league>?q=<query>` is built from
+  `poe2TradeRequest` in the item's data — the same query the site itself opens (compared on the live page:
+  13 of 14 links match, the fourteenth is the second set's weapon, for which the site draws no link).
 
-### Холодный старт: 403 от защиты сайта (после 1.1.0)
-- Жалоба пользователя: свежеустановленное расширение на первом заходе показывало «Couldn't show this build» с 403,
-  и билд загрузился только с пятой попытки.
-- Причина: сайт стоит за защитой от ботов, которая отклоняет запрос из браузера, ещё не примелькавшегося ей.
-  На прогретом профиле тот же запрос возвращает 200 и при `cf-cache-status: MISS`, так что дело не в кэше.
-- `createHtmlFetcher` делает до четырёх попыток с растущей паузой (0.7 / 1.4 / 2.8 с), а последнюю отправляет
-  с `credentials: 'include'` — с сессией самого посетителя, с которой страница уже прошла защиту.
-- Пока идут повторы, плашка загрузки пишет «The site is slow to answer. Attempt N of M…», а не выглядит зависшей.
-- Если все попытки упёрлись в 403, текст ошибки предлагает открыть оригинальную страницу и повторить.
+### Cold start: 403 from the site's protection (after 1.1.0)
+- User report: a freshly installed extension showed "Couldn't show this build" with a 403 on the first visit,
+  and the build only loaded on the fifth try.
+- Cause: the site is behind bot protection, which rejects requests from a browser it hasn't seen enough of yet.
+  On a warmed-up profile the same request returns 200 even with `cf-cache-status: MISS`, so it isn't the cache.
+- `createHtmlFetcher` makes up to four attempts with a growing pause (0.7 / 1.4 / 2.8 s) and sends the last one
+  with `credentials: 'include'` — with the visitor's own session, with which the page already passed the protection.
+- While retries run, the loading banner says "The site is slow to answer. Attempt N of M…" rather than looking stuck.
+- If every attempt hit a 403, the error text suggests opening the original page and trying again.
 
-### Копирование имени гема и память варианта (после 1.1.0)
-- Клик по гему в Active Skills, Gem Priority и в описании скилла кладёт его имя в буфер (`lib/ui/clipboard.ts`:
-  clipboard API, запасной путь — скрытое поле и `execCommand`). Плашка «Copied …» держится 2 секунды.
-- Клик по строке активного скилла и выбирает его, и копирует имя — это один и тот же жест.
-- Выбранный вариант (акт/стадия) запоминается по слагу билда в `local:lastVariants`, не больше 30 билдов.
-- Верхняя вкладка запоминается так же, по билду (`local:lastTabs`): раньше она была общей, и новый билд открывался
-  на чужой вкладке. Билд, который ещё не читали, открывается на Overview. Общий помощник — `rememberPerBuild`.
-- Автор билда может переделать варианты, поэтому хранится и id, и название: сначала ищем по id, потом по названию,
-  иначе открываем вариант по умолчанию. Вариант в адресе всегда важнее запомненного.
+### Copying gem names and remembering the variant (after 1.1.0)
+- Clicking a gem in Active Skills, Gem Priority and the skill description copies its name (`lib/ui/clipboard.ts`:
+  the clipboard API, with a hidden field and `execCommand` as a fallback). A "Copied …" toast stays for 2 seconds.
+- Clicking an active skill's row both selects it and copies the name — it's one and the same gesture.
+- The selected variant (act/stage) is remembered by build slug in `local:lastVariants`, for at most 30 builds.
+- The top tab is remembered the same way, per build (`local:lastTabs`): it used to be shared, and a new build opened
+  on someone else's tab. A build not read yet opens on Overview. The shared helper is `rememberPerBuild`.
+- A build's author may rework the variants, so both the id and the title are kept: look up by id first, then by
+  title, otherwise open the default variant. A variant in the address always wins over the remembered one.
 
-### Имплициты предметов и длинные названия в Gem Priority (после 1.1.0)
-- Имплицит (собственный мод базы: сопротивление кольца, дух амулета, условие чарма) лежит в
-  `baseItemType.bakedDescriptions` статики. Сайт печатает строку как есть, вместе с метками классов:
-  «Armour: Wand or Staff: Martial Weapon: All: +(10-15) to Intelligence» — проверено на его же тултипе.
-- Мы метки срезаем. Их набор закрытый, сверен по всей статике сайта (1157 строк, 861 с двоеточием, из них 609 —
-  «Grants Skill»): All, Armour, Body Armour, Boots, Bow, Gloves, Helmet, Martial Weapon, One Hand Mace,
-  Quarterstaff, Sceptre, Shield, Spear, Wand or Staff. Строки «Grants Skill» в имплициты не идут — они
-  показываются отдельным блоком.
-- В тултипе имплицит стоит над роллами. Своей линии ему не нужно: у каждого блока тултипа уже есть верхняя,
-  и вторая давала двойной разделитель.
-- В Gem Priority длинное название скилла раньше вылезало в соседнюю колонку: строка теперь обрезается
-  (`overflow: hidden` у строки, `flex: 1; min-width: 0` по цепочке). Первым сокращается название скилла:
-  у него `flex-shrink: 1000` и `min-width: 3em`, так что имя гема режется, только когда от скилла остались
-  три буквы. Первая версия с потолком 60% на имя гема резала имена даже при коротком скилле рядом.
+### Item implicits and long names in Gem Priority (after 1.1.0)
+- An implicit (the base's own mod: a ring's resistance, an amulet's spirit, a charm's condition) lives in
+  `baseItemType.bakedDescriptions` of the static data. The site prints the line as is, class labels included:
+  "Armour: Wand or Staff: Martial Weapon: All: +(10-15) to Intelligence" — checked against its own tooltip.
+- We strip the labels. Their set is closed, checked across all the site's static data (1157 lines, 861 with a colon,
+  609 of them "Grants Skill"): All, Armour, Body Armour, Boots, Bow, Gloves, Helmet, Martial Weapon, One Hand Mace,
+  Quarterstaff, Sceptre, Shield, Spear, Wand or Staff. "Grants Skill" lines don't go into implicits — they are shown
+  as a block of their own.
+- In the tooltip the implicit stands above the rolls. It needs no rule of its own: each tooltip block already has a
+  top one, and a second gave a double divider.
+- In Gem Priority a long skill name used to spill into the next column: the row is now clipped
+  (`overflow: hidden` on the row, `flex: 1; min-width: 0` down the chain). The skill name shrinks first:
+  it has `flex-shrink: 1000` and `min-width: 3em`, so the gem name is only cut once three letters of the skill are
+  left. The first version, with a 60% cap on the gem name, cut names even with a short skill beside them.
 
-### Битые картинки с CDN сайта (после 1.2.0)
-- Позже выяснилось, что отказы идут пачками и держатся недолго: в Chrome при открытии страницы 51 картинка из 134
-  получила 503, а через минуту те же файлы отдавались (и параллельно, и по очереди, 30 из 30). В Firefox в тот же
-  момент всё грузилось при тех же IP, узле Cloudflare и http/3 — разница в том, как браузеры раскладывают запросы
-  во времени, а не в сети.
-- Повторные запросы пробовали (0.9 и 2.5 с с разбросом) и отказались: решение по просьбе автора откатено, заглушка
-  должна появляться сразу. Замеры сохранены на случай, если к идее вернёмся: на Progression из 53 картинок 18
-  отказали сразу и все вернулись повтором.
-- Что осталось от той работы: отказ, который браузер уже держит в кэше, приходит раньше, чем навешивается
-  обработчик `onError`. Поэтому `Icon` дополнительно спрашивает `decode()` — без этого такие картинки висели
-  битыми, без заглушки.
-- Жалоба: у части предметов пропали иконки. Проверено по кодам ответов: `cdn.mobalytics.gg` отдаёт 503 на часть
-  файлов из `assets/poe-2/images/game/` (кольца, амулет, посох, фласка, пояс), а на другие — 200 (шлем, нагрудник,
-  иконки скиллов). На самой странице сайта в тот момент было 36 битых картинок из 151, то есть это авария у них.
-- `ui/common/Icon.tsx` — общий компонент картинки: при ошибке загрузки (и когда ссылки нет вовсе) остаётся заглушка
-  того же размера, а для украшений (арт в шапке, иконка в тултипе, чип в тексте) — ничего.
-- Заглушка не пустая, а по смыслу места: броня, оружие, щит, бижутерия, фласка, чарм, гем, пассивка, руна
-  (`IconKind`). Для экипировки тип берётся из слота — `slotIconKind` в `lib/ui/slots.ts`.
-- Все `<img>` в интерфейсе идут через него, так что верстка не скачет и значок битого изображения не появляется.
+### Broken images from the site's CDN (after 1.2.0)
+- Later it turned out the failures come in bursts and don't last: in Chrome, opening the page, 51 images of 134
+  got a 503, and a minute later the same files were served (in parallel and one by one, 30 of 30). In Firefox at the
+  same moment everything loaded, with the same IP, Cloudflare node and http/3 — the difference is in how the browsers
+  spread requests over time, not in the network.
+- Retrying (0.9 and 2.5 s with jitter) was tried and dropped: the change was reverted at the author's request, the
+  placeholder should appear at once. The measurements are kept in case we come back to it: on Progression 18 of 53
+  images failed at first, and a retry brought all of them back.
+- What remains of that work: a failure the browser already holds in its cache arrives before the `onError` handler is
+  attached. So `Icon` also asks for `decode()` — without it such images stayed broken, with no placeholder.
+- Report: some items lost their icons. Checked by response codes: `cdn.mobalytics.gg` returns 503 for some files in
+  `assets/poe-2/images/game/` (rings, an amulet, a staff, a flask, a belt) and 200 for others (helmet, body armour,
+  skill icons). The site's own page had 36 broken images of 151 at that moment, i.e. an outage on their side.
+- `ui/common/Icon.tsx` — the shared image component: on a load error (or with no link at all) a placeholder of the
+  same size stays, and for decorations (header art, the tooltip icon, a chip in text) — nothing.
+- The placeholder isn't blank but fits its place: armour, weapon, shield, jewellery, flask, charm, gem, passive, rune
+  (`IconKind`). For gear the kind comes from the slot — `slotIconKind` in `lib/ui/slots.ts`.
+- Every `<img>` in the interface goes through it, so the layout doesn't jump and no broken image icon appears.
 
-### Экспорт билда в Excel — вырезано (01.10.2026)
-Сделано и удалено по просьбе автора: «пока не вижу, как его сделать полезным, может позже вернёмся». Код живёт
-в истории — `src/lib/export/*`, `src/lib/stats/parse-modifier.ts`, `src/ui/build/ExportButton.tsx`, последний
-коммит с ним ищется по `git log --diff-filter=D -- src/lib/export`. Если возвращаться, то вместе с подсчётом
-итогов внутри интерфейса, а не отдельным файлом.
+### Exporting the build to Excel — removed (01.10.2026)
+Built and removed at the author's request: "I don't see yet how to make it useful, maybe we'll come back later". The
+code lives in history — `src/lib/export/*`, `src/lib/stats/parse-modifier.ts`, `src/ui/build/ExportButton.tsx`; the
+last commit with it is found with `git log --diff-filter=D -- src/lib/export`. If we come back to it, it should come
+with totals computed inside the interface, not as a separate file.
 
-Исходный замысел:
-Шутка сообщества: «все билды PoE 2 живут в экселе». Делаем кнопку, которая сохраняет билд книгой .xlsx —
-её открывает Excel и импортируют Google Таблицы.
+The original idea:
+A community joke: "every PoE 2 build lives in a spreadsheet". We make a button that saves the build as an .xlsx
+workbook — Excel opens it and Google Sheets imports it.
 
-- Шаг 1. `lib/export/zip.ts` — свой ZIP без сжатия (метод store) с CRC32. Без зависимостей.
-- Шаг 2. `lib/export/xlsx.ts` — книга из листов: `[Content_Types].xml`, `.rels`, `workbook.xml`, листы с
-  inline-строками, минимальные стили (жирная шапка, ширины колонок).
-- Шаг 3. `lib/export/build-sheets.ts` — билд в строки: Overview, Skills, Gear, Passives, Progression.
-  Вариант билда — отдельной колонкой, чтобы в таблице работали фильтры и сводные.
-- Шаг 4. Кнопка в панели вкладок (`ui/build/ExportButton.tsx`): собирает книгу и отдаёт файл `<slug>.xlsx`
-  через ссылку с `download`. Имя берётся из адреса билда, а если его там нет — из названия. Об успехе сообщает
-  сам браузер, а при отказе в панели появляется короткое `role="alert"`.
-- Проверка настоящим файлом: книга из фикстуры читается openpyxl в строгом режиме (без единого замечания),
-  многострочные ячейки приходят с переносом, число остаётся числом, кириллица цела.
-- Шаг 5. Расчёты, ради которых всё и затевалось: `lib/stats/parse-modifier.ts` вынимает из строки игрового текста
-  число и название стата («+16% to Fire Resistance» → Fire Resistance, flat, 16). На реальном билде 84% строк с
-  числами ложатся в именованный стат, остальные сохраняют своё написание с `#` вместо числа.
-- Лист Stats — по строке на мод: вариант, слот, предмет, стат, вид (flat/increased/more), значение, мин, макс и
-  исходная строка. Лист Totals — по строке на стат каждого варианта, суммы через `SUMIFS` по листу Stats плюс
-  оценка `Flat × (1 + Increased%) × (1 + More%)`. Считает не расширение, а сама таблица: правки пересчитываются.
-- Диапазоны роллов идут в расчёт средним, границы остаются в колонках Min и Max. В Overview три строки-пояснения.
+- Step 1. `lib/export/zip.ts` — our own ZIP without compression (the store method) with CRC32. No dependencies.
+- Step 2. `lib/export/xlsx.ts` — a workbook of sheets: `[Content_Types].xml`, `.rels`, `workbook.xml`, sheets with
+  inline strings, minimal styles (bold header, column widths).
+- Step 3. `lib/export/build-sheets.ts` — the build as rows: Overview, Skills, Gear, Passives, Progression.
+  The build variant is a column of its own, so filters and pivot tables work in the sheet.
+- Step 4. A button in the tab bar (`ui/build/ExportButton.tsx`): builds the workbook and hands over `<slug>.xlsx`
+  through a link with `download`. The name comes from the build's address, or from its title if the address has none.
+  The browser itself reports success, and on failure a short `role="alert"` appears in the bar.
+- Checked with a real file: a workbook from a fixture is read by openpyxl in strict mode (without a single warning),
+  multi-line cells come with wrapping, a number stays a number, Cyrillic is intact.
+- Step 5. The calculations it was all for: `lib/stats/parse-modifier.ts` takes the number and the stat name out of a
+  line of game text ("+16% to Fire Resistance" → Fire Resistance, flat, 16). On a real build 84% of lines with numbers
+  map to a named stat, the rest keep their wording with `#` in place of the number.
+- A Stats sheet — a row per mod: variant, slot, item, stat, kind (flat/increased/more), value, min, max and the
+  source line. A Totals sheet — a row per stat of each variant, sums through `SUMIFS` over the Stats sheet plus the
+  estimate `Flat × (1 + Increased%) × (1 + More%)`. The sheet does the math, not the extension: edits recalculate.
+- Roll ranges count at their mean, the bounds stay in the Min and Max columns. Overview has three explanatory lines.
 
-### Порт на Firefox (в работе)
-По образцу соседнего проекта `poe2perfect-trade`.
+### Firefox port (in progress)
+After the neighbouring project `poe2perfect-trade`.
 
-- Шаг 1 ✅. Один манифест на оба браузера: `lib/build/manifest.ts` (+ тесты). Firefox получает постоянный id
-  `poe2perfect@resenpai.dev`, `strict_min_version: 140.0` и объявление `data_collection_permissions: none`.
-  Версия для AMO — только цифры (`firefoxVersion`), MV3 в обоих браузерах, команды `dev:firefox`, `build:firefox`,
-  `zip:firefox` (последняя собирает и zip с исходниками для проверки AMO).
-- Шаг 2 ✅. `lib/page/page-fetch.ts`: запрос страницы билда идёт через `content.fetch`, когда он есть (Firefox),
-  иначе через обычный `fetch` (Chrome). Иначе Firefox просил бы страницу от имени расширения, с чужого origin.
-- Шаг 3 ✅. `lib/data/page-idb.ts` отдаёт список баз: своя и база страницы (`wrappedJSObject.indexedDB`), обе
-  пробуются по очереди. В Chrome это одна и та же база, поведение не меняется.
-- Шаг 3а ✅ (найдено живой проверкой в Firefox: «Loading build…» навсегда). Любое ожидание снаружи теперь
-  ограничено по времени: чтение IndexedDB (`ATTEMPT_MS`, 2 с на попытку) и запрос страницы (`attemptMs`, 15 с).
-  Раньше зависший вызов не давал циклу дойти до проверки таймаута, и загрузка не завершалась никогда.
-- Шаг 4. Живая проверка в Firefox: дерево пассивок (встраивание чужого canvas), буфер обмена.
-- Шаг 5. Документация и материалы для addons.mozilla.org.
+- Step 1 ✅. One manifest for both browsers: `lib/build/manifest.ts` (+ tests). Firefox gets a permanent id
+  `poe2perfect@resenpai.dev`, `strict_min_version: 140.0` and the `data_collection_permissions: none` declaration.
+  The AMO version is digits only (`firefoxVersion`), MV3 in both browsers, commands `dev:firefox`, `build:firefox`,
+  `zip:firefox` (the last one also builds the sources zip for AMO review).
+- Step 2 ✅. `lib/page/page-fetch.ts`: the build page is requested through `content.fetch` where it exists (Firefox),
+  otherwise through the plain `fetch` (Chrome). Otherwise Firefox would request the page as the extension, from a
+  foreign origin.
+- Step 3 ✅. `lib/data/page-idb.ts` gives a list of databases: its own and the page's (`wrappedJSObject.indexedDB`),
+  both tried in turn. In Chrome it's the same database, nothing changes.
+- Step 3a ✅ (found by a live check in Firefox: "Loading build…" forever). Every outside wait is now time-limited:
+  reading IndexedDB (`ATTEMPT_MS`, 2 s per attempt) and requesting the page (`attemptMs`, 15 s). Before, a hung call
+  kept the loop from reaching the timeout check, and loading never finished.
+- Step 4. A live check in Firefox: the passive tree (embedding someone else's canvas), the clipboard.
+- Step 5. Documentation and material for addons.mozilla.org.
 
-## Автоматический выпуск релизов — сделано (01.10.2026)
+## Automated releases — done (01.10.2026)
 
-Перенесено из `poe2perfect-trade`: три воркфлоу в `.github/workflows/` и `scripts/release-notes.mjs`.
-- `ci.yml` — на push в `main`/`dev` и на pull request: тесты, typecheck, обе сборки, линтер AMO (`web-ext lint`).
-- `release.yml` — на тег `v*`: сверяет тег с версией в `package.json`, собирает архивы, публикует релиз на GitHub
-  с разделом changelog в описании, отправляет в магазины (под выключателями `PUBLISH_CHROME`/`PUBLISH_FIREFOX`).
-- `store-check.yml` — вручную: проверяет доступ к магазинам с `--dry-run`, ничего не отправляя.
-- Проверено локально: `web-ext lint` даёт 0 ошибок (одно предупреждение `innerHTML` из кода самого WXT), а при
-  версии `1.3.0-beta.1` архивы называются по версии пакета, тогда как в манифесте Firefox лежит `1.2.999.1` —
-  именно это и предполагает воркфлоу.
-- Что осталось сделать руками: завести в репозитории переменные и секреты (ключи магазинов) и первую публикацию
-  в каждом магазине провести самому.
-- `sign-xpi.yml` (вручную) — подписать пакет unlisted, пока listed-версия на проверке AMO: та подписывается только
-  после ревью, unlisted — сразу, а номер версии у дополнения уникален, поэтому код уходит под четвёртым числом
-  (`FIREFOX_BUILD=1` → `1.3.0.1`) и `.xpi` прикладывается к релизу этой версии.
+Brought over from `poe2perfect-trade`: three workflows in `.github/workflows/` and `scripts/release-notes.mjs`.
+- `ci.yml` — on a push to `main`/`dev` and on pull requests: tests, typecheck, both builds, the AMO linter (`web-ext lint`).
+- `release.yml` — on a `v*` tag: checks the tag against the version in `package.json`, builds the archives, publishes
+  a GitHub release with the changelog section as its notes, submits to the stores (behind the
+  `PUBLISH_CHROME`/`PUBLISH_FIREFOX` switches).
+- `store-check.yml` — manual: checks store access with `--dry-run`, sending nothing.
+- Checked locally: `web-ext lint` gives 0 errors (one `innerHTML` warning from WXT's own code), and with version
+  `1.3.0-beta.1` the archives are named after the package version while the Firefox manifest holds `1.2.999.1` —
+  exactly what the workflow expects.
+- Left to do by hand: add the repository variables and secrets (store keys) and do the first publication in each
+  store yourself.
+- `sign-xpi.yml` (manual) — signs the package unlisted while the listed version is in AMO review: that one is signed
+  only after review, an unlisted one at once, and a version number is unique per add-on, so the code goes under a
+  fourth number (`FIREFOX_BUILD=1` → `1.3.0.1`) and the `.xpi` is attached to that version's release.
 
-## Комментарии (план, 06.10.2026)
+## Comments (plan, 06.10.2026)
 
-Спецификация: [reference/poe2perfect_comments_design.md](../reference/poe2perfect_comments_design.md), эскизы —
-`reference/Комментарии к билду …-2.png` (вкладка) и `reference/Снаряжение и комментарии …-1.png` (Gear + панель).
-Одна модель данных, два представления: вкладка Comments (сначала) и боковая панель (потом). Ответ — прямо из
-расширения (шаг C5a), Open on Mobalytics остаётся.
+Spec: [reference/poe2perfect_comments_design.md](../reference/poe2perfect_comments_design.md), sketches —
+`reference/Комментарии к билду …-2.png` (the tab) and `reference/Снаряжение и комментарии …-1.png` (Gear + panel);
+these three files are local, not in the repository.
+One data model, two views: the Comments tab (first) and a side panel (later). Replying right from the extension
+(step C5a), Open on Mobalytics stays.
 
-### Данные (живая проверка, 8 билдов каталога)
-- **Seed в документе.** Виджет `NgfDocumentCmWidgetCommentsV1` лежит в `doc.content[]` (не в `data.widgets`).
-  `data.isDisabled`, `data.payload`: `resourceId`, `commentId` (пустой), `error`, `page { hasMoreItems, nextCursor }`,
+### Data (live check, 8 catalogue builds)
+- **Seed in the document.** The `NgfDocumentCmWidgetCommentsV1` widget is in `doc.content[]` (not in `data.widgets`).
+  `data.isDisabled`, `data.payload`: `resourceId`, `commentId` (empty), `error`, `page { hasMoreItems, nextCursor }`,
   `data { parentId: null, sortBy: "NEW", limit: 10, comments[] }`; `data.commentsUiCapabilities`:
-  `loadingBehaviour: "SHOW_MORE"`, `sorting { enabled, defaultSortingOption: "NEW" }`. Тот же payload лежит
-  в запросе state `["ngf-comments", resourceId, "NEW", null]`. Signed-out HTML (наш `credentials: 'omit'`) seed
-  содержит; у вошедшего пользователя state пустой (~500 байт).
+  `loadingBehaviour: "SHOW_MORE"`, `sorting { enabled, defaultSortingOption: "NEW" }`. The same payload is in the
+  state query `["ngf-comments", resourceId, "NEW", null]`. Signed-out HTML (our `credentials: 'omit'`) carries the
+  seed; a signed-in user's state is empty (~500 bytes).
 - **`resourceId` = `"Poe2:UG:" + doc.id`.**
-- **Счётчик сайта:** `doc.comments.stats.totalComments` (сайт показывает его в шапке гайда). Считает сообщения всех
-  уровней, точная семантика с удалёнными не сходится (sample: 30 при 26 + 3 опубликованных). Показываем как сайт.
-- **Состав страницы.** 10 корней + все их ответы первого уровня: на всех 8 билдах сумма `replyCount` корней = числу
-  пришедших `depth: 1`. Ответы на ответы (`depth: 2`) в список не входят.
-- **Сообщение:** `id`, `parentId`, `depth`, `accountId`, `content` (Lexical `{ root }`), `plainTextContent`,
-  `status` (`PUBLISHED` / `DELETED`), `createdAt`, `updatedAt` (сдвигается от голосов — не дата правки), `deletedAt`,
+- **The site's counter:** `doc.comments.stats.totalComments` (the site shows it in the guide's header). It counts
+  messages of every level; the exact meaning with deleted ones doesn't add up (sample: 30 for 26 + 3 published). We
+  show it as the site does.
+- **What a page holds.** 10 roots + all their first-level replies: on all 8 builds the roots' `replyCount` sum equals
+  the number of `depth: 1` that came. Replies to replies (`depth: 2`) aren't in the list.
+- **A message:** `id`, `parentId`, `depth`, `accountId`, `content` (Lexical `{ root }`), `plainTextContent`,
+  `status` (`PUBLISHED` / `DELETED`), `createdAt`, `updatedAt` (moves with votes — not an edit date), `deletedAt`,
   `deletedByModerator`, `isSpoiler`, `spoilerLabel`, `score`/`upvotes`/`downvotes`, `replyCount`,
   `profile { user { id, username, displayName }, avatar { iconUrl }, avatarFrame, title, commentator }`.
-  Удалённое: `status: DELETED`, пустой текст, `profile: null`, `accountId: ""` — tombstone, ответы под ним живут.
-  `avatar` у обычных пользователей часто `null` → инициалы.
-- **Тело:** узлы `paragraph`, `text` (с `format`), `linebreak`, `autolink` — всё уже понимает наш
-  `toRichBlocks` (ссылки через `safeHref`) → рендерим `<RichText>`, `plainTextContent` — запасной вариант.
-- **Автор билда:** `doc.author.id` (есть в preloaded state и в фикстурах) = `author.user.id` из GraphQL =
-  `accountId` его комментариев — сверено на двух билдах с ответами автора (7 и 4 совпадения). Не по имени.
-- **API** (`POST /api/poe-2/v1/graphql/query`, без cookie отвечает 200; схемы input сервер печатает в ошибке валидации):
+  Deleted: `status: DELETED`, empty text, `profile: null`, `accountId: ""` — a tombstone, replies under it live on.
+  Regular users' `avatar` is often `null` → initials.
+- **Body:** nodes `paragraph`, `text` (with `format`), `linebreak`, `autolink` — all already understood by our
+  `toRichBlocks` (links through `safeHref`) → rendered with `<RichText>`, `plainTextContent` as a fallback.
+- **The build's author:** `doc.author.id` (in the preloaded state and the fixtures) = `author.user.id` from GraphQL =
+  the `accountId` of their comments — checked on two builds with author replies (7 and 4 matches). Not by name.
+- **API** (`POST /api/poe-2/v1/graphql/query`, answers 200 without a cookie; the server prints input schemas in
+  validation errors):
   - `NgfCommentsQuery` → `comments.comments(input: CommentsListInput { resourceId!, sortBy!, limit!, cursor })`;
   - `NgfCommentRepliesQuery` → `comments.replies(input: CommentsRepliesInput { parentId!, sortBy!, limit!, cursor })` —
-    так грузятся ответы любой глубины (проверено для `depth: 2`) и продолжение длинных веток;
-  - `CommentsSortBy`: `NEW`, `OLD`, `TOP` (остальные значения — ошибка схемы);
-  - ответ — `CommentsPayload` (как seed), `error { code, message, retryAfterSeconds }`;
-  - запись: `NgfCreateCommentMutation(CommentsCreateCommentInput { resourceId!, content: Map!, sourceUrl })` и
-    `NgfCreateReplyMutation(CommentsCreateReplyInput { parentId!, content: Map!, sourceUrl })`, в ответе комментарий +
-    `rejectionReason`; запросы сайт шлёт с `Authorization: Bearer` (`getToken`). Есть ещё Delete и Vote — не берём.
-- **Якорь `#comments`.** Каталог сайта ведёт на `/poe-2/builds/<slug>#comments` — у нас это откроет вкладку
-  Comments, что и нужно. Community-билды (`/poe-2/profile/…`) расширение не обслуживает — вне объёма.
-- **Защита сайта.** Частые запросы HTML без cookie начинают получать 403 (GraphQL при этом отвечал) — лишний раз
-  страницу ради комментариев не перезапрашиваем, seed берём из уже загруженного документа.
-- **Не проверено:** билд с `isDisabled: true` и билд без комментариев (в каталоге таких не нашлось) — разбираем
-  оборонительно, тесты на синтетике; запрос из контент-скрипта (Chrome — обычный `fetch`, Firefox — `content.fetch`)
-  проверяем вживую в C3.
+    loads replies at any depth (checked for `depth: 2`) and the rest of long threads;
+  - `CommentsSortBy`: `NEW`, `OLD`, `TOP` (other values are a schema error);
+  - the answer is a `CommentsPayload` (like the seed), `error { code, message, retryAfterSeconds }`;
+  - writing: `NgfCreateCommentMutation(CommentsCreateCommentInput { resourceId!, content: Map!, sourceUrl })` and
+    `NgfCreateReplyMutation(CommentsCreateReplyInput { parentId!, content: Map!, sourceUrl })`, answering with the
+    comment + `rejectionReason`; the site sends them with `Authorization: Bearer` (`getToken`). There are also Delete
+    and Vote — not taken.
+- **The `#comments` anchor.** The site's catalogue links to `/poe-2/builds/<slug>#comments` — for us it opens the
+  Comments tab, which is what we want. Community builds (`/poe-2/profile/…`) aren't served by the extension — out of scope.
+- **Site protection.** Frequent cookie-less HTML requests start getting 403 (GraphQL kept answering) — we don't
+  re-request the page for comments, the seed comes from the document already loaded.
+- **Not checked:** a build with `isDisabled: true` and a build without comments (none found in the catalogue) — parsed
+  defensively, tests on synthetic data; the request from the content script (Chrome — plain `fetch`, Firefox —
+  `content.fetch`) is checked live in C3.
 
-### Шаги
-- **C1. Исследование и синтетические фикстуры ✅** — результаты выше. `tests/fixtures/comments.ts`: сообщения,
-  tombstone, payload, виджет, `withComments(doc)`, ответы GraphQL; `tests/comments-fixtures.test.ts` проверяет,
-  что `scrubBuildDocument` их вырезает и разбор билда они не меняют.
-- **C2. Модель и разбор seed ✅** (`lib/comments/model.ts`, `parse-comments.ts`). `parseCommentsSeed(doc)`:
-  нет виджета / пустой или ошибочный payload → `unavailable` (не ноль), `isDisabled` → `disabled`, иначе `ready`
-  с `resourceId`, `sort`, `canSort`, `total` и списком. `parseCommentsPayload(payload, authorId)` годится и для
-  страниц API (C3): корни в порядке сайта, ответы по родителю от старых к новым, дубли по id схлопываются, tombstone,
-  спойлер с подписью, автор по `doc.author.id`, аватар только https, мусорные записи пропускаются.
-  `LoadResult` несёт `comments` рядом с `build`. **Edited не показываем:** `updatedAt` сдвигается от голосов
-  (у всех 58 проголосованных из 247 комментариев), признака правки у сайта нет.
-- **C3. Источник и контроллер ✅** (`lib/comments/source.ts`, `controller.ts`). Источник: `NgfCommentsQuery` и
-  `NgfCommentRepliesQuery` через `pageFetch` (same-origin), ошибки сведены к `{ message, retryAfterSeconds }`
-  (`HTTP 429` + Retry-After, код сайта, `network error`, `unexpected answer`), отмена — AbortError. Контроллер на
-  билд: первая страница из документа, `loadMore`, `loadReplies` (ответы от старых к новым, в т.ч. второй уровень),
-  `setSort` (лист меняется только по приходу новой страницы, страницы старого порядка отбрасываются), `retry` для
-  `unavailable` (первая страница через API), `dispose`; один запрос на вид, без повторов до `retryAt`.
-  Seed `unavailable` теперь несёт `resourceId`/`authorId`/`total`. Живая проверка в Chrome (dev-хук
-  `poe2-build-guide:comments`): sample build — 10 → 18 корней, ответ второго уровня догружен; билд с ответами
-  автора — 14 его сообщений распознано. Firefox — проверить руками.
-- **C4. Вкладка Comments ✅** (`ui/comments/`: `CommentsPanel`, `CommentThread`, `CommentCard`, `use-comments`,
-  `comments.css`; `lib/comments/time.ts`). Вкладка последней, всегда видна, вариант не сбрасывает, `#comments`
-  с сайта её открывает; в табе — счётчик сайта. Контроллер комментариев создаёт `PageController` на каждый
-  загруженный билд и закрывает при уходе. Карточки по эскизу -2: аватар / инициалы, имя, Build author, «2 hours ago»
-  (полная дата в title), тело через `<RichText>` (в комментариях бывают чипы предметов) с запасным plain text,
-  складывание после ~8 строк, спойлер под кнопкой. Удалённые — как у сайта: без ответов не показываются, с ответами —
-  «This comment was deleted by its author.» / «…removed by a moderator.». Ветки открыты сами до третьего уровня
-  ответов (по замечанию пользователя), глубже — View N replies; свернуть можно у корня (Hide replies). Недостающие
-  ответы открытых веток догружаются сами, дальше — Load more replies; ответ на ответ —
-  на том же отступе с «Replying to @name» (кнопка к родителю); у ветки — Author replied. **Сюда же из C6:**
-  Load more comments и ошибки страниц (с «The site asked to wait N s.»). Состояния: No comments yet, disabled,
-  unavailable (+ Try again через API), Loading comments…. Проверено вживую: 10 → 20 корней, ответ автора с бейджем
-  и линией, второй уровень ответов.
-- **C5. Переход на сайт ✅** (`lib/page/original-comments.ts`). «Reply on Mobalytics» в подвале вкладки (и при
-  пустом списке), «Open on Mobalytics» в состоянии unavailable; disabled — без кнопок. Режим original в той же вкладке
-  (ArrowUpRight), затем `revealOriginalComments`: ждёт `[data-testid="comment-widget-general"]` до 5 с
-  (MutationObserver), прокручивает окно так, чтобы верх виджета был в 72 px от края (липкая шапка сайта — 56 px),
-  для Reply ставит курсор в поле сайта (`role=textbox`, есть только у вошедших) — ничего не пишет и не отправляет.
-  Open guide возвращает на Comments (hash не меняется). `Open thread` не делаем: `data-id` комментариев в DOM сайта
-  то есть, то нет между загрузками — надёжного якоря ветки нет.
-- **C5a. Комментарии и ответы из расширения ✅.** Авторизация — сессионная cookie посетителя, не токен: в браузере
-  GraphQL-клиент сайта шлёт `Authorization` только в десктопном приложении (`IS_DESKTOP`), а «Bearer» в бандле — это
-  Firebase. Проверено безвредной мутацией снятия голоса с несуществующего комментария: без cookie —
-  `FORBIDDEN: not authenticated`, с cookie — `NOT_FOUND`. `content` — Lexical как у редактора сайта (абзац на строку,
-  у paragraph `textFormat`/`textStyle`), снято с тестового комментария пользователя; `sourceUrl` — адрес билда без hash.
-  `source.post` (`NgfCreateCommentMutation` / `NgfCreateReplyMutation`), `controller.post` (свой комментарий — первым,
-  ответ — в конец ветки, счётчики +1; `FORBIDDEN` → signed-out, `rejectionReason` → rejected, задержка сайта).
-  UI: поле «Add a comment» одной строкой над списком, Reply у каждого живого комментария открывает поле под ним (одно
-  за раз, фокус, Cancel / Escape), отправка только кнопкой или Ctrl+Enter, лимит 1000 символов, текст не пропадает при
-  ошибке; не вошёл — «Sign in on Mobalytics to comment.» с переходом на сайт. Кнопка в подвале — «Open on Mobalytics»
-  (без фокуса в поле сайта). Живую публикацию из расширения проверяет пользователь.
-- **C6. Навигация по обсуждению ✅** (`lib/comments/filter.ts`, панель). Бесконечная прокрутка (по просьбе
-  пользователя) вместо Load more: маркер конца списка + IntersectionObserver (корень — список, запас 400 px),
-  наблюдатель пересоздаётся на каждой новой странице; при ошибке — без автоповтора, Try again. Сортировка Newest /
-  Oldest / Top (select, во время загрузки показывает выбранное, при ошибке — «Couldn't sort the comments»), скрыта
-  при `canSort: false`. Поиск по загруженным текстам и именам (`filterThreads`): ветки с совпадениями, путь к
-  совпавшему ответу раскрывается поверх свёрнутого, подсветка — CSS Custom Highlight API (`::highlight()` в стилях
-  shadow root, текст не трогаем). Чипы All comments / Author replied (`aria-pressed`), скрыты без
-  `canIdentifyAuthor`. При поиске/фильтре сама не грузит: «Searching loaded comments only (N of M). Load more»,
-  пусто — «No matches in loaded comments». Пока поиск или фильтр включены, недостающие ответы догружаются для всех
-  загруженных веток до глубины автораскрытия (иначе ответ автора глубже первого уровня в скрытой ветке не находился). Проверено вживую; в фоновой вкладке автоматизации наблюдатель молчит,
-  пока браузер не рисует кадры (`visibilityState: hidden`) — в обычной вкладке работает.
-- **Лента вместо карточек (по замечанию пользователя: «читать как ленту на треде», как Reddit) ✅.** Шапка — одна
-  строка ~40 px без заголовка (название и число — на вкладке): чипы, поиск 200→260 px при фокусе, сортировка
-  текстом (Newest / Oldest / Top), иконка Open on Mobalytics; шапка и поле ввода — первые элементы прокручиваемого
-  списка и уезжают вместе с лентой; подвала нет — список на всю высоту.
-  Колонка до 960 px; комментарии без рамок, ветки разделены тонкой линией, аватар 28 / 24 px, «имя · время» в строку,
-  действия серые 12 px (акцент — только у автора и у кнопок восстановления), ответы висят на линии от центра аватара.
-  Текст комментариев и поле ввода — шрифт для чтения Noto Sans 15/23 px (`--font-reading`, `@fontsource-variable/
-  noto-sans`, латиница + кириллица, регистрируется как Inter через FontFace, +~75 КБ в base64), интерфейс — Inter.
-  Эскизы -1/-2 в этой части больше не эталон.
-- **Ветки как на Reddit ✅.** Ответы по-настоящему вложены (подпись «Replying to» убрана): от аватара вниз идёт
-  линия, к каждому ответу — скруглённый «локоть», линия заканчивается на последнем ответе. Сворачивание — кружок −
-  на линии (Hide replies) или клик по самой линии; у каждой открытой ветки свой. Свёрнутая ветка — как на сайте:
-  строка «View N replies» под действиями с кружком + на линии (кнопкой для читалок служит текст).
-  Сортировка — своё меню (`SortMenu`, listbox: стрелки, Enter/Space, Escape, клик мимо) вместо нативного select,
-  выпадающий список которого рисовался в системном стиле.
-- **Голоса ✅** (по просьбе пользователя; в спецификации были отложены). `score` и `viewerVote` в модели,
-  `NgfCommentVoteMutation { commentId, value: UPVOTE | DOWNVOTE }` и `NgfCommentDeleteVoteMutation { commentId }`
-  (схема — из ошибки валидации, значения — из бандла, проверено на несуществующем комментарии). В строке действий
-  ▲ счёт ▼; контроллеру передаётся нажатая стрелка, а «поставить или снять» решается по настоящему голосу.
-  Первая страница читается без cookie и голосов читателя не знает (из-за этого был баг «+2 при снятии»), поэтому
-  перед первым голосом за её комментарий она один раз перечитывается через API с сессией (`viewerVote`; в ответе
-  мутации этого поля нет). Голос показывается сразу только когда известно, что читатель вошёл (сайт уже принял его
-  голос/комментарий или вернул его голос); иначе — после ответа, так что отказ «Sign in on Mobalytics to vote.» не
-  мелькает +1. Хвостик линии у последнего ответа убран (перекрытие от начала дуги), «локти» 1.5 px.
-- **Линии веток тоньше и с подсветкой ✅.** 1 px, «локоть» точно на линии родителя; наведение на линию или кружок
-  подсвечивает её и «локти» к прямым ответам (`:has()`, переменные `--rail` на комментарии и `--branch` на блоке ответов).
-- **C7. Боковая панель ✅.** Кнопка с иконкой в правой части tab bar: на всех разделах при ширине окна ≥ 1180 px —
-  Open / Close comments panel (`aria-expanded`, подсвечена, когда открыта); на узком окне — Open comments: вкладка
-  Comments с кнопкой «Back to <раздел>». Панель — `aside`
-  справа, `clamp(360px, 32vw, 480px)`, своя прокрутка, шапка «Comments N» + Expand + Close; лента та же, состояние
-  (поиск, фильтр, свёрнутые ветки, ответ, сортировка) поднято в `useCommentsUi` и общее для панели и вкладки. Разделы
-  уступают правую колонку явным `besideComments`: Gear прячет Priority, Skills ставит описание скилла под список,
-  Overview убирает At a Glance (сохранённое состояние не трогается), Passives / Atlas Tree — колонку порядка и
-  заметок (встроенное дерево сайта следует за своей областью через ResizeObserver), Progression — Quest Rewards. Expand → вкладка с «Back to …», Back возвращает
-  раздел с открытой панелью; Close и Escape (если вложенный контрол не обработал его сам) закрывают, фокус — на
-  кнопку; окно сузилось при открытой панели → вкладка с Back. Hash панель не меняет, между перезагрузками не помнится.
-- **Портреты вместо пустых аватаров ✅** (`lib/comments/portraits.ts`). 30 портретов с CDN сайта: 8 классов
-  (`classes/icon/<class>.jpg`) и 22 асценданси (`ascendancies/icon/poe-2-<slug>.jpg`, список — из `poe2Ascendancies`
-  справочника); в коде только адреса. Портрет выбирается по FNV-1a от id аккаунта — у человека всегда один и тот же;
-  свой аватар главнее; не загрузился — следующий, затем инициал. Аватары — скруглённые квадраты 36 / 30 px от той
-  же `--avatar`, что и линии веток.
-- **C8. Проверка и выпуск ✅ (кроме ручных проверок).** Вживую в Chrome: переход между билдами внутри SPA во время
-  догрузки — лента и счётчик нового билда, страница старого не прилипает. Изменить размер окна инструментом не удалось
-  (окно развёрнуто), узкое окно покрыто тестами. Документы: CHANGELOG (Unreleased → Comments), README (вкладка
-  Comments, клавиши 1–7, приватность), PRIVACY.md (чтение ленты с сессией, публикация только по нажатию).
-  Руками: Firefox (лента, ответ, голос, панель рядом с деревом), 1280×720 / 1920×1080 / 125 %, клавиатура (Tab по
-  ленте, меню сортировки, Escape), длинные ветки. Перед выпуском решить, нужно ли менять `data_collection_permissions`
-  в манифесте Firefox: расширение теперь по нажатию пользователя отправляет его текст на mobalytics.gg.
+### Steps
+- **C1. Research and synthetic fixtures ✅** — the findings above. `tests/fixtures/comments.ts`: messages,
+  a tombstone, a payload, the widget, `withComments(doc)`, GraphQL answers; `tests/comments-fixtures.test.ts` checks
+  that `scrubBuildDocument` removes them and that they don't change how the build parses.
+- **C2. Model and seed parsing ✅** (`lib/comments/model.ts`, `parse-comments.ts`). `parseCommentsSeed(doc)`:
+  no widget / an empty or failed payload → `unavailable` (not zero), `isDisabled` → `disabled`, otherwise `ready`
+  with `resourceId`, `sort`, `canSort`, `total` and the list. `parseCommentsPayload(payload, authorId)` also fits API
+  pages (C3): roots in the site's order, replies per parent oldest first, duplicates by id collapsed, tombstones,
+  spoilers with a label, the author by `doc.author.id`, avatars https only, junk records skipped.
+  `LoadResult` carries `comments` next to `build`. **No "edited":** `updatedAt` moves with votes
+  (on all 58 voted of 247 comments), and the site has no edit marker.
+- **C3. Source and controller ✅** (`lib/comments/source.ts`, `controller.ts`). Source: `NgfCommentsQuery` and
+  `NgfCommentRepliesQuery` through `pageFetch` (same-origin), errors reduced to `{ message, retryAfterSeconds }`
+  (`HTTP 429` + Retry-After, the site's code, `network error`, `unexpected answer`), cancelling — AbortError. A
+  controller per build: the first page from the document, `loadMore`, `loadReplies` (replies oldest first, the second
+  level too), `setSort` (the list only changes when the new page arrives, pages in the old order are dropped), `retry`
+  for `unavailable` (the first page through the API), `dispose`; one request per kind, no retries before `retryAt`.
+  An `unavailable` seed now carries `resourceId`/`authorId`/`total`. Live check in Chrome (the dev hook
+  `poe2-build-guide:comments`): sample build — 10 → 18 roots, a second-level reply loaded; a build with author
+  replies — 14 of their messages recognised. Firefox — check by hand.
+- **C4. Comments tab ✅** (`ui/comments/`: `CommentsPanel`, `CommentThread`, `CommentCard`, `use-comments`,
+  `comments.css`; `lib/comments/time.ts`). The tab is last, always visible, doesn't reset the variant, the site's
+  `#comments` opens it; the tab shows the site's counter. `PageController` creates a comments controller for each
+  loaded build and closes it on leaving. Cards after sketch -2: avatar / initials, name, Build author, "2 hours ago"
+  (the full date in title), the body through `<RichText>` (comments may hold item chips) with plain text as a
+  fallback, folding after ~8 lines, spoilers behind a button. Deleted ones as on the site: hidden without replies,
+  with replies — "This comment was deleted by its author." / "…removed by a moderator.". Threads open by themselves to
+  the third level of replies (after the user's feedback), deeper — View N replies; a root can be folded (Hide
+  replies). Missing replies of open threads load by themselves, beyond that — Load more replies; a reply to a reply —
+  at the same indent with "Replying to @name" (a button to the parent); a thread gets Author replied. **Also here from
+  C6:** Load more comments and page errors (with "The site asked to wait N s."). States: No comments yet, disabled,
+  unavailable (+ Try again through the API), Loading comments…. Checked live: 10 → 20 roots, an author reply with the
+  badge and line, second-level replies.
+- **C5. Going to the site ✅** (`lib/page/original-comments.ts`). "Reply on Mobalytics" in the tab's footer (and with
+  an empty list), "Open on Mobalytics" in the unavailable state; disabled — no buttons. Original mode in the same tab
+  (ArrowUpRight), then `revealOriginalComments`: waits for `[data-testid="comment-widget-general"]` up to 5 s
+  (MutationObserver), scrolls the window so the widget's top is 72 px from the edge (the site's sticky header is
+  56 px), for Reply puts the caret in the site's field (`role=textbox`, only there when signed in) — writes and sends
+  nothing. Open guide returns to Comments (the hash doesn't change). No `Open thread`: the comments' `data-id` in the
+  site's DOM comes and goes between loads — there is no reliable thread anchor.
+- **C5a. Comments and replies from the extension ✅.** Auth is the visitor's session cookie, not a token: in the
+  browser the site's GraphQL client sends `Authorization` only in the desktop app (`IS_DESKTOP`), and the "Bearer" in
+  the bundle is Firebase. Checked with a harmless mutation removing a vote from a comment that doesn't exist: without a
+  cookie — `FORBIDDEN: not authenticated`, with one — `NOT_FOUND`. `content` — Lexical as the site's editor makes it
+  (a paragraph per line, `textFormat`/`textStyle` on paragraph), taken from the user's test comment; `sourceUrl` — the
+  build's address without the hash. `source.post` (`NgfCreateCommentMutation` / `NgfCreateReplyMutation`),
+  `controller.post` (your own comment goes first, a reply at the end of its thread, counters +1; `FORBIDDEN` →
+  signed-out, `rejectionReason` → rejected, the site's delay).
+  UI: an "Add a comment" field, one line high, above the list; Reply on every live comment opens a field under it (one
+  at a time, focused, Cancel / Escape), sending only by the button or Ctrl+Enter, a 1000-character limit, the text
+  survives an error; signed out — "Sign in on Mobalytics to comment." with a way to the site. The footer button is
+  "Open on Mobalytics" (without focusing the site's field). Publishing live from the extension is checked by the user.
+- **C6. Navigating the discussion ✅** (`lib/comments/filter.ts`, the panel). Infinite scroll (at the user's request)
+  instead of Load more: an end-of-list marker + IntersectionObserver (root — the list, 400 px margin), the observer is
+  recreated on every new page; on an error — no auto-retry, Try again. Sorting Newest / Oldest / Top (a select that
+  shows the chosen one while loading, on an error — "Couldn't sort the comments"), hidden when `canSort: false`.
+  Search over loaded texts and names (`filterThreads`): threads with matches, the path to a matching reply opens over a
+  folded one, highlighting through the CSS Custom Highlight API (`::highlight()` in the shadow root's styles, the text
+  is left alone). All comments / Author replied chips (`aria-pressed`), hidden without `canIdentifyAuthor`. While
+  searching/filtering it doesn't load by itself: "Searching loaded comments only (N of M). Load more", empty — "No
+  matches in loaded comments". While search or the filter is on, missing replies load for every loaded thread down to
+  the auto-open depth (otherwise an author reply deeper than the first level in a hidden thread wasn't found). Checked
+  live; in a background automation tab the observer stays silent while the browser draws no frames
+  (`visibilityState: hidden`) — in a normal tab it works.
+- **A feed instead of cards (after user feedback: "read it like a thread feed", like Reddit) ✅.** The bar is one row
+  of ~40 px with no heading (the name and count are on the tab): chips, search 200→260 px on focus, sorting as text
+  (Newest / Oldest / Top), an Open on Mobalytics icon; the bar and the input field are the first items of the
+  scrolling list and scroll away with the feed; no footer — the list takes the full height.
+  A column up to 960 px; comments without borders, threads parted by a thin rule, avatars 28 / 24 px, "name · time" in
+  one line, grey 12 px actions (accent only for the author and recovery buttons), replies hang off a line from the
+  avatar's centre. Comment text and the input field use the reading font Noto Sans 15/23 px (`--font-reading`,
+  `@fontsource-variable/noto-sans`, latin + cyrillic, registered like Inter through FontFace, +~75 KB in base64), the
+  interface — Inter. Sketches -1/-2 are no longer the reference for this part.
+- **Reddit-style threads ✅.** Replies are truly nested ("Replying to" dropped): a line runs down from the avatar, a
+  rounded "elbow" leads to each reply, the line ends at the last reply. Folding — a − circle on the line (Hide
+  replies) or a click on the line itself; each open thread has its own. A folded thread, as on the site: a "View N
+  replies" row under the actions with a + circle on the line (the text serves as the button for screen readers).
+  Sorting — our own menu (`SortMenu`, listbox: arrows, Enter/Space, Escape, click outside) instead of a native select,
+  whose dropdown was drawn in the system style.
+- **Votes ✅** (at the user's request; the spec had deferred them). `score` and `viewerVote` in the model,
+  `NgfCommentVoteMutation { commentId, value: UPVOTE | DOWNVOTE }` and `NgfCommentDeleteVoteMutation { commentId }`
+  (the schema from a validation error, the values from the bundle, checked on a comment that doesn't exist). In the
+  actions row ▲ score ▼; the controller gets the arrow pressed, and "set or remove" is decided by the actual vote.
+  The first page is read without a cookie and doesn't know the reader's votes (the cause of the "+2 on removal" bug),
+  so before the first vote on one of its comments it is re-read once through the API with the session (`viewerVote`;
+  the mutation's answer lacks that field). A vote shows at once only when the reader is known to be signed in (the
+  site already took their vote/comment or returned their vote); otherwise after the answer, so a "Sign in on
+  Mobalytics to vote." refusal doesn't flash a +1. The line's tail at the last reply is gone (covered from the start of
+  the curve), "elbows" 1.5 px.
+- **Thinner thread lines with highlighting ✅.** 1 px, the "elbow" exactly on the parent's line; hovering the line or
+  circle highlights it and the "elbows" to direct replies (`:has()`, the `--rail` variable on the comment and
+  `--branch` on the replies block).
+- **C7. Side panel ✅.** An icon button on the right of the tab bar: on every section with a window ≥ 1180 px wide —
+  Open / Close comments panel (`aria-expanded`, highlighted when open); on a narrow window — Open comments: the
+  Comments tab with a "Back to <section>" button. The panel is an `aside`
+  on the right, `clamp(360px, 32vw, 480px)`, with its own scrolling, a "Comments N" header + Expand + Close; the same
+  feed, state (search, filter, folded threads, reply, sorting) lifted into `useCommentsUi` and shared by the panel and
+  the tab. Sections give up their right column through an explicit `besideComments`: Gear hides Priority, Skills puts
+  the skill description under the list, Overview drops At a Glance (the saved state is left alone), Passives / Atlas
+  Tree — the order and notes column (the site's embedded tree follows its area through a ResizeObserver),
+  Progression — Quest Rewards. Expand → the tab with "Back to …", Back returns to the section with the panel open;
+  Close and Escape (unless a nested control handled it) close it, focus goes to the button; the window narrowing with
+  the panel open → the tab with Back. The panel doesn't change the hash and isn't remembered across reloads.
+- **Portraits instead of empty avatars ✅** (`lib/comments/portraits.ts`). 30 portraits from the site's CDN:
+  8 classes (`classes/icon/<class>.jpg`) and 22 ascendancies (`ascendancies/icon/poe-2-<slug>.jpg`, the list from the
+  game data's `poe2Ascendancies`); only the addresses are in the code. A portrait is picked by FNV-1a of the account
+  id — a person always gets the same one; their own avatar comes first; if it fails to load — the next one, then
+  initials. Avatars are rounded squares of 36 / 30 px from the same `--avatar` as the thread lines. A separate
+  workflow (`portraits.yml`, `scripts/check-links.mjs`) checks weekly that all 30 links still answer with an image.
+- **The panel as one of the section's cards ✅.** The panel has the cards' border, radius and surface; the variant
+  chips got a card of their own, so both columns start level. With the panel open the whole view scrolls as one, with
+  the scrollbar at the window's right: a grid row as tall as the taller column (`minmax(min-content, 1fr)`), and the
+  comments card runs down beside the section however long it is, its feed laid over the card so a long discussion
+  never stretches the page. The embedded trees follow scrolling of any container around them (capture-phase listener
+  on the shadow root).
+- **C8. Check and release ✅ (except manual checks).** Live in Chrome: moving between builds inside the SPA while
+  loading — the new build's feed and counter, the old one's page doesn't stick. Resizing the window with the tool
+  didn't work (the window is maximised), the narrow window is covered by tests. Docs: CHANGELOG (Unreleased →
+  Comments), README (the Comments tab, keys 1–7, privacy), PRIVACY.md (reading the feed with the session, posting
+  only on a press). By hand: Firefox (feed, reply, vote, the panel next to the tree), 1280×720 / 1920×1080 / 125 %,
+  keyboard (Tab through the feed, the sort menu, Escape), long threads. Before the release, decide whether
+  `data_collection_permissions` in the Firefox manifest has to change: the extension now sends the user's text to
+  mobalytics.gg when they press the button.
 
-Упрощения против спецификации (сознательно): без отдельной таблицы capabilities сверх реально найденных флагов,
-без Refresh и восстановления якоря чтения при смене ширины в первой версии, вложенность — два уровня, как у сайта.
+Simplifications against the spec (deliberate): no separate capabilities table beyond the flags actually found, no
+Refresh and no restoring the reading anchor on a width change in the first version, nesting — two levels, as on the site.
 
-## Будущие фичи
+## Future features
 
-### Билды из профилей игроков (после комментариев)
-Внешний PR #9 (juddisjudd) делал это, но шёл в `main` мимо `dev` и менял переводы строк — решили сделать самим.
-Находки из него, проверить заново:
-- Два вида адресов: `/poe-2/profile/<автор>/builds/<slug>` — билд есть в HTML, запрос state
-  `ngf-ug-normal-document-page`, поле `userGeneratedDocumentBySlugifiedName`; `/poe-2/profile/<автор>/builds/<uuid>` —
-  в HTML билда нет даже без входа, сайт грузит его после открытия запросом `Poe2UgNormalDocumentByIdQuery`
-  (`userGeneratedDocumentById`). PR перехватывал этот ответ скриптом в MAIN world (`document_start`, обёртка `fetch`).
-- Ключ билда для запоминания вкладок: у гайдов slug, у профильных — `<автор>/<slug или id>` (slug уникален только
-  в пределах автора).
-- Комментарии там, вероятно, работают так же (`resourceId` = `Poe2:UG:<doc.id>`) — проверить вживую.
-- В репозитории нет `.gitattributes`: файлы с CRLF и LF вперемешку, редактор участника перевёл часть в LF и дал
-  конфликты на весь файл. До приёма чужих PR — нормализовать и закрепить переводы строк.
+### Builds from player profiles (after comments)
+An outside PR #9 (juddisjudd) did this, but it went to `main` past `dev` and changed line endings — we decided to do it
+ourselves. Its findings, to check again:
+- Two kinds of addresses: `/poe-2/profile/<author>/builds/<slug>` — the build is in the HTML, state query
+  `ngf-ug-normal-document-page`, field `userGeneratedDocumentBySlugifiedName`; `/poe-2/profile/<author>/builds/<uuid>` —
+  the HTML has no build even signed out, the site loads it after opening with the `Poe2UgNormalDocumentByIdQuery`
+  query (`userGeneratedDocumentById`). The PR caught that answer with a MAIN world script (`document_start`, a `fetch` wrapper).
+- The build key for remembering tabs: a slug for guides, `<author>/<slug or id>` for profile builds (a slug is unique
+  only within its author).
+- Comments there probably work the same way (`resourceId` = `Poe2:UG:<doc.id>`) — check live.
+- The repository has no `.gitattributes`: CRLF and LF files are mixed, a contributor's editor turned some into LF and
+  produced whole-file conflicts. Before taking outside PRs — normalise and pin the line endings.
 
-### Резисты и ES (beta)
-Расчёт по предметам (моды уникальных — диапазон мин–макс, моды рар из билда) и пассивкам
-(`bakedDescriptions`). Вывод в сводке Gear с пометкой **beta** и подсказкой «приблизительно».
-- Тесты: разбор строк модов (`+(20-30)% to Fire Resistance`, `+X to maximum Energy Shield`, `% increased`),
-  суммирование, неизвестные моды игнорируются.
-- Проверка: сверка с Path of Building / калькулятором на одном билде (если есть PoB-код в гайде).
+### Resistances and ES (beta)
+Computed from items (unique mods — the min–max range, rare mods from the build) and passives
+(`bakedDescriptions`). Shown in the Gear summary marked **beta** with an "approximate" tooltip.
+- Tests: parsing mod lines (`+(20-30)% to Fire Resistance`, `+X to maximum Energy Shield`, `% increased`),
+  summing, unknown mods ignored.
+- Check: compare with Path of Building / a calculator on one build (if the guide has a PoB code).
