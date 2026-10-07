@@ -224,20 +224,34 @@
  * scrolls on its own, and the comments card, as tall as the view, moves with it like any other card.
  */
 .build-view__body--docked {
-  align-items: flex-start;
+  display: grid;
+  /*
+   * One row as tall as the taller column and at least the view. A flex line, or a grid row sized `auto`, stops at the
+   * view's height in a container of fixed height; a min-content minimum doesn't.
+   */
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(min-content, 1fr);
   overflow-y: auto;
 }
 
 .build-view__body--docked > .build-view__panel {
   /* Cards beside each other keep 12 px between them. */
   padding-right: 12px;
-  min-height: 100%;
   overflow: visible;
   box-sizing: border-box;
 }
 
+/*
+ * The comments card runs as tall as the section beside it, and at least as tall as the view, so no empty space is left
+ * under it. Its feed is laid over the card rather than inside its flow, so a long discussion never stretches the page.
+ */
 .build-view__body--docked > .build-view__aside {
-  height: calc(100% - 48px);
+  position: relative;
+}
+
+.build-view__aside > .comments {
+  position: absolute;
+  inset: 0;
 }
 
 /* A tab-bar toggle that is on, e.g. the open comments panel. */
