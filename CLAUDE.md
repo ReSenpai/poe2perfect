@@ -42,6 +42,8 @@ version's section of `CHANGELOG.md` as its notes, and submits to the stores.
 
 - `npm test` · `npm run typecheck` · `npm run build` — all must pass before a step is done.
 - `node scripts/release-notes.mjs <version>` — the release notes a tag would publish; worth a look before tagging.
+- `node --experimental-strip-types scripts/check-links.mjs` — checks the commenter portraits linked from the
+  Mobalytics CDN still answer; the "Portrait links" workflow runs it weekly, apart from the required check.
 - `npm run dev` — dev server on :3000; the user loaded `.output/chrome-mv3-dev` unpacked in Chrome,
   it auto-reloads on save (verified). Keep the dev server running while verifying in the browser.
 - Content-script marker for quick checks: `document.documentElement.getAttribute('data-poe2-build-guide')`.
