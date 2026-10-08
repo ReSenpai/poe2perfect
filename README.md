@@ -151,3 +151,10 @@ pick the folder with `manifest.json`.
 
 Stack: WXT, Preact, TypeScript, Vitest with happy-dom. The plan and findings about the site's data live in
 `docs/PLAN.md`; the design system in `reference/DESIGN.md`. Icons are generated into `public/icon/`.
+
+## Thanks
+
+People who helped poe2perfect along — with code, research, testing or support:
+
+- [Judd](https://github.com/juddisjudd) — worked out how the site serves builds published from player profiles
+  ([#9](https://github.com/ReSenpai/poe2perfect/pull/9)), the groundwork for opening them in the guide in 1.4.0.
