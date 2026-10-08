@@ -1,6 +1,6 @@
 import { fireEvent, render, waitFor } from '@testing-library/preact';
 import { describe, expect, it } from 'vitest';
-import { Icon } from './Icon';
+import { Icon, pictureRefused } from './Icon';
 
 const ICON = 'https://cdn.mobalytics.gg/assets/poe-2/images/game/Art/2DItems/Rings/AmethystRing.avif';
 
@@ -25,9 +25,24 @@ describe('Icon', () => {
 
   // A refusal the browser already holds arrives before any handler is attached, and the picture would sit broken.
   it('stands in for a picture the browser had already given up on', async () => {
-    const { container } = render(<Icon src={ICON} class="item-slot__icon" check={() => Promise.reject(new Error('cached refusal'))} />);
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" refused={() => true} />);
 
     await waitFor(() => expect(container.querySelector('.item-slot__icon.icon--missing')).not.toBeNull());
+  });
+
+  it("keeps waiting for a picture still on its way: only a finished load with no picture is a refusal", () => {
+    const image = (complete: boolean, naturalWidth: number) => ({ complete, naturalWidth }) as HTMLImageElement;
+
+    expect(pictureRefused(image(false, 0))).toBe(false);
+    expect(pictureRefused(image(true, 64))).toBe(false);
+    expect(pictureRefused(image(true, 0))).toBe(true);
+  });
+
+  // Firefox left lazy pictures in the overlay unloaded until the tab was drawn again; the site has them cached anyway.
+  it('loads the picture straight away rather than lazily', () => {
+    const { container } = render(<Icon src={ICON} class="item-slot__icon" />);
+
+    expect(container.querySelector('img')!.hasAttribute('loading')).toBe(false);
   });
 
   it('leaves the same box for an entity that has no picture at all', () => {

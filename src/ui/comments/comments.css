@@ -281,10 +281,15 @@
   border-width: 3px;
 }
 
+/* Firefox: the Comments tab keeps its wider bar, the side panel's is thin like the other cards'. */
 @supports not selector(::-webkit-scrollbar) {
   .comments__list {
     scrollbar-width: auto;
     scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  .comments--side .comments__list {
+    scrollbar-width: thin;
   }
 }
 

@@ -14,6 +14,11 @@
   item, so there is no need to hover each rune in turn.
 - Clicking a rune on an item card copies its name, ready for the game's own search, as gems already do.
 
+### Firefox
+- Skill icons, the build's art and other pictures showed up only after switching tabs; they now load as the guide
+  opens.
+- Scrollbars are thin and in the guide's colours, as in Chrome, instead of the system's wide ones.
+
 ### Comments
 - A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under
   the comment they answer along a thread line, as on Reddit, and open by themselves three levels deep. A minus on the

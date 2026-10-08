@@ -17,8 +17,12 @@ const STAND_IN = {
   rune: Diamond,
 };
 
-/** Settles once the browser has the picture, and refuses when it has given up on it — a cached refusal included. */
-const decoded = (image: HTMLImageElement) => image.decode();
+/**
+ * Whether the browser has already given up on the picture — a cached refusal arrives before any handler is attached:
+ * its load is over and there is no picture. A picture still on its way is not a refusal (Firefox turns `decode()`
+ * down for one, which left a stand-in where the picture would have arrived).
+ */
+export const pictureRefused = (image: HTMLImageElement) => image.complete && image.naturalWidth === 0;
 
 export interface IconProps {
   src: string | null | undefined;
@@ -27,8 +31,8 @@ export interface IconProps {
   kind?: IconKind;
   /** What to leave behind when there is no picture: a stand-in in its place, or nothing at all. */
   missing?: 'box' | 'none';
-  /** How the picture is known to have arrived; injected in tests. */
-  check?: (image: HTMLImageElement) => Promise<unknown>;
+  /** How a picture the browser has already given up on is told; injected in tests. */
+  refused?: (image: HTMLImageElement) => boolean;
 }
 
 /**
@@ -36,7 +40,7 @@ export interface IconProps {
  * picture that does not arrive leaves a stand-in of the same size — an item, gem, passive or rune shape — rather
  * than the browser's broken-image mark.
  */
-export function Icon({ src, class: className, alt = '', kind, missing = 'box', check = decoded }: IconProps) {
+export function Icon({ src, class: className, alt = '', kind, missing = 'box', refused = pictureRefused }: IconProps) {
   const [failed, setFailed] = useState(false);
   const image = useRef<HTMLImageElement | null>(null);
 
@@ -46,13 +50,8 @@ export function Icon({ src, class: className, alt = '', kind, missing = 'box', c
   // about once it is on the page as well.
   useEffect(() => {
     const element = image.current;
-    if (!element || failed) return;
-    let watching = true;
-    check(element).catch(() => watching && setFailed(true));
-    return () => {
-      watching = false;
-    };
-  }, [src, failed, check]);
+    if (element && !failed && refused(element)) setFailed(true);
+  }, [src, failed, refused]);
 
   if (!src || failed) {
     if (missing === 'none') return null;
@@ -64,5 +63,7 @@ export function Icon({ src, class: className, alt = '', kind, missing = 'box', c
     );
   }
 
-  return <img ref={image} class={className} src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} />;
+  // Not lazy: Firefox left lazy pictures in the overlay unloaded until the tab was drawn again, and the site's own
+  // page has already put them in the browser's cache.
+  return <img ref={image} class={className} src={src} alt={alt} onError={() => setFailed(true)} />;
 }

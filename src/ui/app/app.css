@@ -26,6 +26,14 @@
   display: none;
 }
 
+/* Firefox has no WebKit scrollbar pseudo-elements: the standard properties give it the same thin, quiet bars. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+}
+
 .overlay {
   position: fixed;
   inset: 0;
