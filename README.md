@@ -151,3 +151,20 @@ pick the folder with `manifest.json`.
 
 Stack: WXT, Preact, TypeScript, Vitest with happy-dom. The plan and findings about the site's data live in
 `docs/PLAN.md`; the design system in `reference/DESIGN.md`. Icons are generated into `public/icon/`.
+
+## Thanks
+
+Thank you to everyone who helped poe2perfect along — with code, research, testing or support!
+
+<!-- One cell per person: their GitHub avatar and name, and in a line what they helped with. -->
+<table>
+  <tr>
+    <td align="center" valign="top" width="120">
+      <a href="https://github.com/juddisjudd">
+        <img src="https://github.com/juddisjudd.png?size=160" width="80" height="80" alt="Judd" /><br />
+        <sub><b>Judd</b></sub>
+      </a><br />
+      <sub>Profile builds research (<a href="https://github.com/ReSenpai/poe2perfect/pull/9">#9</a>)</sub>
+    </td>
+  </tr>
+</table>
