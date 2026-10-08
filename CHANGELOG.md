@@ -9,6 +9,10 @@
 - The passive and atlas trees now show for a build with a single variant; they stayed on "The site didn't show a
   passive tree" before.
 
+### Gear
+- An item's tooltip now shows what its runes and soul cores give it — only the bonus for that kind of item, with the
+  same rune counted once ("Perfect Iron Rune ×3: …") — so there is no need to hover each rune in turn.
+
 ### Comments
 - A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under
   the comment they answer along a thread line, as on Reddit, and open by themselves three levels deep. A minus on the

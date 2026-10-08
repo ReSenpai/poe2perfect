@@ -78,12 +78,35 @@ describe('itemTooltip', () => {
       sections: [
         { title: null, lines: ['+(7-13)% to Chaos Resistance'], tone: 'implicit' },
         { title: null, lines: ['+(60-100) to maximum Mana', 'You can apply an additional Curse', 'Double Activation Delay'], tone: 'mod' },
-        { title: 'Sockets', lines: ['Soul Core of Tacati'], tone: 'muted' },
+        { title: 'Sockets', lines: ['Soul Core of Tacati: +11% to Chaos Resistance'], tone: 'effect' },
       ],
       note: 'Modifier values are ranges',
       flavour: 'They screamed her name',
       corrupted: true,
     });
+  });
+
+  it("shows what each rune gives this item, so nobody has to hover the runes one by one, and counts the same rune once", () => {
+    const iron: Socketable = {
+      slug: 'soulcore-runeenhance',
+      name: 'Perfect Iron Rune',
+      iconUrl: null,
+      effects: ['Martial Weapon: 20% increased Physical Damage', 'Armour: 20% increased Armour, Evasion and Energy Shield'],
+    };
+    const idol: Socketable = { slug: 'idol', name: 'Idol of Thruldana', iconUrl: null, effects: ['Targets can be affected by +1 of your Poisons', 'Armour: 25% reduced Poison Duration'] };
+    const robe: Item = { ...ITEM, itemClass: 'body-armour' };
+
+    expect(itemTooltip(robe, [iron, iron, idol, iron]).sections.at(-1)).toEqual({
+      title: 'Sockets',
+      lines: ['Perfect Iron Rune ×3: 20% increased Armour, Evasion and Energy Shield', 'Idol of Thruldana: Targets can be affected by +1 of your Poisons', '25% reduced Poison Duration'],
+      tone: 'effect',
+    });
+  });
+
+  it("names a rune alone when its bonus for this item isn't known", () => {
+    const shard: Socketable = { slug: 'shard', name: 'Raven-Touched Shard', iconUrl: null, effects: ['Helmet: Raven-Touched'] };
+
+    expect(itemTooltip({ ...ITEM, itemClass: 'gloves' }, [shard]).sections.at(-1)).toEqual({ title: 'Sockets', lines: ['Raven-Touched Shard'], tone: 'effect' });
   });
 
   it('keeps it short for a plain base item', () => {
