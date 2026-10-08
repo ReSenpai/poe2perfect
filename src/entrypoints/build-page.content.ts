@@ -133,7 +133,7 @@ export default defineContentScript({
         listenForPageReport(document, { event: 'poe2-build-guide:screenshot', attribute: 'data-poe2-build-guide-screenshot' }, async () => {
           const { saveScreenshot } = await import('@/lib/dev/screenshot');
           const name = document.documentElement.getAttribute('data-poe2-build-guide-screenshot-name') ?? 'screenshot';
-          return saveScreenshot(document, name, (message) => browser.runtime.sendMessage(message));
+          return saveScreenshot(name, (message) => browser.runtime.sendMessage(message));
         }),
       );
     }

@@ -10,11 +10,12 @@ const firefoxBuild = process.env.FIREFOX_BUILD ? Number(process.env.FIREFOX_BUIL
 export default defineConfig({
   srcDir: 'src',
   // One manifest for Chrome and Firefox; Firefox adds its id and settings (src/lib/build/manifest.ts).
-  manifest: ({ browser, mode }) => ({
-    ...manifestFor(browser, version, firefoxBuild),
-    // Dev only: lets the dev background take screenshots of the tab for the store and README (captureVisibleTab).
-    ...(mode === 'development' ? { host_permissions: ['<all_urls>'] } : {}),
-  }),
+  manifest: ({ browser, mode }) => {
+    const manifest = manifestFor(browser, version, firefoxBuild);
+    if (mode !== 'development') return manifest;
+    // Dev only: the dev background takes screenshots of the tab for the store and README and saves them to Downloads.
+    return { ...manifest, permissions: [...manifest.permissions, 'downloads'], host_permissions: ['<all_urls>'] };
+  },
   // Manifest V3 in Firefox too (WXT builds MV2 for it by default), so both browsers follow the same rules.
   manifestVersion: 3,
   // The sources ZIP addons.mozilla.org asks for: what builds the extension, not store material or notes.
