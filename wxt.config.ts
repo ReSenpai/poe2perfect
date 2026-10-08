@@ -18,8 +18,19 @@ export default defineConfig({
   },
   // Manifest V3 in Firefox too (WXT builds MV2 for it by default), so both browsers follow the same rules.
   manifestVersion: 3,
-  // The sources ZIP addons.mozilla.org asks for: what builds the extension, not store material or notes.
-  zip: { excludeSources: ['store/**', 'docs/images/**', 'reference/**'] },
+  // The sources ZIP addons.mozilla.org asks for: what builds the extension, not store material or notes. The store and
+  // Boosty image scripts live in this folder but outside git (.git/info/exclude), so they stay out here too.
+  zip: {
+    excludeSources: [
+      'store/**',
+      'docs/images/**',
+      'reference/**',
+      'scripts/__pycache__/**',
+      'scripts/brand.py',
+      'scripts/make-store-assets.py',
+      'scripts/make-boosty-*.py',
+    ],
+  },
   // Dev build is loaded manually into the everyday Chrome (mobalytics sits behind Cloudflare).
   webExt: { disabled: true },
   hooks: {
