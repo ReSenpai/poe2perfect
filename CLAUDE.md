@@ -35,8 +35,8 @@ version's section of `CHANGELOG.md` as its notes, and submits to the stores.
   the archives keep the package version in their names.
 - AMO signs a listed version only after review, an unlisted one at once, and takes each number once per add-on.
   So a package for users to install while a review is pending is signed unlisted under a fourth number
-  (`FIREFOX_BUILD=1` → `1.3.0.1`): Actions → "Sign the Firefox package", which attaches the `.xpi` to that release.
-  Raise the build number to sign the same version again.
+  (`FIREFOX_BUILD=1` → `1.4.0.1`): the release tag does it as its last step and attaches the `.xpi` to the release.
+  To sign the same version again (e.g. that step failed), Actions → "Sign the Firefox package" with build 2 or higher.
 
 ## Commands
 
