@@ -154,7 +154,17 @@ Stack: WXT, Preact, TypeScript, Vitest with happy-dom. The plan and findings abo
 
 ## Thanks
 
-People who helped poe2perfect along — with code, research, testing or support:
+Thank you to everyone who helped poe2perfect along — with code, research, testing or support!
 
-- [Judd](https://github.com/juddisjudd) — worked out how the site serves builds published from player profiles
-  ([#9](https://github.com/ReSenpai/poe2perfect/pull/9)), the groundwork for opening them in the guide in 1.4.0.
+<!-- One cell per person: their GitHub avatar and name, and in a line what they helped with. -->
+<table>
+  <tr>
+    <td align="center" valign="top" width="120">
+      <a href="https://github.com/juddisjudd">
+        <img src="https://github.com/juddisjudd.png?size=160" width="80" height="80" alt="Judd" /><br />
+        <sub><b>Judd</b></sub>
+      </a><br />
+      <sub>Profile builds research (<a href="https://github.com/ReSenpai/poe2perfect/pull/9">#9</a>)</sub>
+    </td>
+  </tr>
+</table>
