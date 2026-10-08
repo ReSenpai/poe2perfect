@@ -7,6 +7,8 @@ names on purpose — renaming them would break stored state and dev hooks.
 - Plan and data findings: `docs/PLAN.md` — read before starting a step, tick steps off when done.
 - Design: `reference/DESIGN.md`, screen layouts: `reference/interface.md`, concept art in `reference/`.
 - Sample build: https://mobalytics.gg/poe-2/builds/chaos-dot-lich-starter-deadrabbit
+- Line endings are LF in every text file (`.gitattributes` with `eol=lf`, `.editorconfig`); edit scripts need no
+  CRLF handling any more.
 
 ## Workflow (user requirements)
 
