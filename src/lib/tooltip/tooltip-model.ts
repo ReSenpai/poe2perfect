@@ -19,6 +19,8 @@ export type TooltipAccent =
 export interface TooltipSection {
   title: string | null;
   lines: string[];
+  /** Lines set apart above the ones that follow, e.g. a rune's name above its bonus. */
+  headings?: number[];
   tone: 'mod' | 'effect' | 'muted' | 'implicit';
 }
 
@@ -52,7 +54,6 @@ const EMPTY: Omit<TooltipModel, 'title' | 'accent'> = {
 };
 
 export function itemTooltip(item: Item, socketables: Socketable[] = []): TooltipModel {
-  const socketLines = socketLinesFor(item, socketables);
   return {
     ...EMPTY,
     title: item.name,
@@ -65,7 +66,7 @@ export function itemTooltip(item: Item, socketables: Socketable[] = []): Tooltip
       section('Grants Skill', item.grantedSkills.map((skill) => (skill.level ? `Level ${skill.level} ${skill.name}` : skill.name)), 'effect'),
       section(null, item.implicits, 'implicit'),
       section(null, item.modifiers, 'mod'),
-      section('Sockets', socketLines, 'effect'),
+      socketsSection(item, socketables),
     ].filter(isPresent),
     note: item.modifiersSource === 'static' || item.modifiersSource === 'affixes' ? 'Modifier values are ranges' : null,
     flavour: item.flavourText,
@@ -74,21 +75,19 @@ export function itemTooltip(item: Item, socketables: Socketable[] = []): Tooltip
 }
 
 /**
- * What the item's runes and soul cores give it, so the bonuses read without hovering each one: the same socketable
- * counted once, then its lines for this kind of item. One whose bonus here isn't known is named alone.
+ * What the item's runes and soul cores give it, so the bonuses read without hovering each one: every socketable in
+ * turn, its name set apart above its lines for this kind of item. One whose bonus here isn't known is named alone.
  */
-function socketLinesFor(item: Item, socketables: Socketable[]): string[] {
-  const counted = new Map<string, { socketable: Socketable; count: number }>();
+function socketsSection(item: Item, socketables: Socketable[]): TooltipSection | null {
+  if (socketables.length === 0) return null;
+  const lines: string[] = [];
+  const headings: number[] = [];
   for (const socketable of socketables) {
-    const seen = counted.get(socketable.slug);
-    if (seen) seen.count++;
-    else counted.set(socketable.slug, { socketable, count: 1 });
+    headings.push(lines.length);
+    lines.push(socketable.name ?? socketable.slug);
+    lines.push(...socketableEffectsOn(socketable, item.itemClass).flatMap(splitLines));
   }
-  return [...counted.values()].flatMap(({ socketable, count }) => {
-    const name = `${socketable.name ?? socketable.slug}${count > 1 ? ` ×${count}` : ''}`;
-    const effects = socketableEffectsOn(socketable, item.itemClass);
-    return effects.length > 0 ? effects.map((effect, i) => (i === 0 ? `${name}: ${effect}` : effect)) : [name];
-  });
+  return { title: 'Sockets', lines, headings, tone: 'effect' };
 }
 
 export function gemTooltip(gem: Gem): TooltipModel {

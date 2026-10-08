@@ -2,7 +2,9 @@ import { Scale } from 'lucide-preact';
 import { useMemo } from 'preact/hooks';
 import type { EntityInfo, EquipmentSlot, ItemRef, Variant } from '@/lib/build/model';
 import { gemTooltip, itemTooltip, socketableTooltip } from '@/lib/tooltip/tooltip-model';
+import { copyText } from '@/lib/ui/clipboard';
 import { type SheetSlot, sheetSlots, slotIconKind, slotLabel } from '@/lib/ui/slots';
+import { CopyNotice, copyLabel, useCopyName } from '@/ui/common/copy-name';
 import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
@@ -17,13 +19,17 @@ export function GearPanel({
   variant,
   entities,
   besideComments = false,
+  copy = copyText,
 }: {
   variant: Variant;
   entities: Record<string, EntityInfo>;
   /** The comments panel takes Gear Priority's column for the time being. */
   besideComments?: boolean;
+  /** Injected in tests; a rune's name goes to the clipboard, ready for the game's own search. */
+  copy?: (text: string) => Promise<boolean>;
 }) {
   const renderEntity = useMemo(() => entityChipRenderer(entities), [entities]);
+  const { notice, copyName } = useCopyName(copy);
   const hasEquipment = variant.equipment.length > 0;
 
   if (!hasEquipment && !variant.equipmentNotes) {
@@ -40,12 +46,12 @@ export function GearPanel({
           <section class="card gear__slots" aria-label="Equipment">
             <div class="gear__armour">
               {armour.map((s) => (
-                <ItemSlotCard key={key(s)} sheetSlot={s} size="large" />
+                <ItemSlotCard key={key(s)} sheetSlot={s} size="large" onCopy={copyName} />
               ))}
             </div>
             <div class="gear__other">
               {other.map((s) => (
-                <ItemSlotCard key={key(s)} sheetSlot={s} size="compact" />
+                <ItemSlotCard key={key(s)} sheetSlot={s} size="compact" onCopy={copyName} />
               ))}
             </div>
           </section>
@@ -54,6 +60,7 @@ export function GearPanel({
       ) : (
         <p class="panel-empty">{EMPTY}</p>
       )}
+      <CopyNotice notice={notice} />
       {variant.equipmentNotes && (
         <section class="card gear__notes">
           <h2 class="card__title">Author's Notes</h2>
@@ -64,7 +71,7 @@ export function GearPanel({
   );
 }
 
-function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large' | 'compact' }) {
+function ItemSlotCard({ sheetSlot, size, onCopy }: { sheetSlot: SheetSlot; size: 'large' | 'compact'; onCopy: (name: string) => void }) {
   const label = slotLabel(sheetSlot.slot, sheetSlot.weaponSet);
   if (!sheetSlot.equipped) {
     return (
@@ -116,16 +123,37 @@ function ItemSlotCard({ sheetSlot, size }: { sheetSlot: SheetSlot; size: 'large'
         </div>
         {socketables.length > 0 && (
           <span class="item-slot__sockets">
-            {socketables.map((socketable, i) => (
-              <WithTooltip key={i} model={socketableTooltip(socketable)}>
+            {socketables.map((socketable, i) => {
+              const icon = (
                 <Icon
                   src={socketable.iconUrl}
                   class={`item-slot__socket${socketable.iconUrl ? '' : ' item-slot__socket--empty'}`}
-                  alt={socketable.name ?? ''}
+                  alt=""
                   kind={socketable.iconUrl ? 'rune' : undefined}
                 />
-              </WithTooltip>
-            ))}
+              );
+              const name = socketable.name;
+              return (
+                <WithTooltip key={i} model={socketableTooltip(socketable)}>
+                  {name ? (
+                    // A click copies the rune's name for the game's own search; it doesn't reach the item card.
+                    <button
+                      type="button"
+                      class="item-slot__socket-copy"
+                      aria-label={copyLabel(name)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCopy(name);
+                      }}
+                    >
+                      {icon}
+                    </button>
+                  ) : (
+                    icon
+                  )}
+                </WithTooltip>
+              );
+            })}
           </span>
         )}
       </div>

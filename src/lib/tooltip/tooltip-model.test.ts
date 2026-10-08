@@ -78,7 +78,7 @@ describe('itemTooltip', () => {
       sections: [
         { title: null, lines: ['+(7-13)% to Chaos Resistance'], tone: 'implicit' },
         { title: null, lines: ['+(60-100) to maximum Mana', 'You can apply an additional Curse', 'Double Activation Delay'], tone: 'mod' },
-        { title: 'Sockets', lines: ['Soul Core of Tacati: +11% to Chaos Resistance'], tone: 'effect' },
+        { title: 'Sockets', lines: ['Soul Core of Tacati', '+11% to Chaos Resistance'], headings: [0], tone: 'effect' },
       ],
       note: 'Modifier values are ranges',
       flavour: 'They screamed her name',
@@ -86,7 +86,7 @@ describe('itemTooltip', () => {
     });
   });
 
-  it("shows what each rune gives this item, so nobody has to hover the runes one by one, and counts the same rune once", () => {
+  it('shows what each rune gives this item, so nobody has to hover the runes one by one: its name in grey, then its bonus', () => {
     const iron: Socketable = {
       slug: 'soulcore-runeenhance',
       name: 'Perfect Iron Rune',
@@ -96,9 +96,18 @@ describe('itemTooltip', () => {
     const idol: Socketable = { slug: 'idol', name: 'Idol of Thruldana', iconUrl: null, effects: ['Targets can be affected by +1 of your Poisons', 'Armour: 25% reduced Poison Duration'] };
     const robe: Item = { ...ITEM, itemClass: 'body-armour' };
 
-    expect(itemTooltip(robe, [iron, iron, idol, iron]).sections.at(-1)).toEqual({
+    expect(itemTooltip(robe, [iron, idol, iron]).sections.at(-1)).toEqual({
       title: 'Sockets',
-      lines: ['Perfect Iron Rune ×3: 20% increased Armour, Evasion and Energy Shield', 'Idol of Thruldana: Targets can be affected by +1 of your Poisons', '25% reduced Poison Duration'],
+      lines: [
+        'Perfect Iron Rune',
+        '20% increased Armour, Evasion and Energy Shield',
+        'Idol of Thruldana',
+        'Targets can be affected by +1 of your Poisons',
+        '25% reduced Poison Duration',
+        'Perfect Iron Rune',
+        '20% increased Armour, Evasion and Energy Shield',
+      ],
+      headings: [0, 2, 5],
       tone: 'effect',
     });
   });
@@ -106,7 +115,7 @@ describe('itemTooltip', () => {
   it("names a rune alone when its bonus for this item isn't known", () => {
     const shard: Socketable = { slug: 'shard', name: 'Raven-Touched Shard', iconUrl: null, effects: ['Helmet: Raven-Touched'] };
 
-    expect(itemTooltip({ ...ITEM, itemClass: 'gloves' }, [shard]).sections.at(-1)).toEqual({ title: 'Sockets', lines: ['Raven-Touched Shard'], tone: 'effect' });
+    expect(itemTooltip({ ...ITEM, itemClass: 'gloves' }, [shard]).sections.at(-1)).toEqual({ title: 'Sockets', lines: ['Raven-Touched Shard'], headings: [0], tone: 'effect' });
   });
 
   it('keeps it short for a plain base item', () => {

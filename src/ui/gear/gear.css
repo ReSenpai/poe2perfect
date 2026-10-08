@@ -306,6 +306,21 @@
   border-radius: 50%;
 }
 
+/* A rune copies its name when clicked, ready for the game's own search. */
+.item-slot__socket-copy {
+  display: flex;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.item-slot__socket-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .item-slot__socket {
   width: 18px;
   height: 18px;

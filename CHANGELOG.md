@@ -10,8 +10,9 @@
   passive tree" before.
 
 ### Gear
-- An item's tooltip now shows what its runes and soul cores give it — only the bonus for that kind of item, with the
-  same rune counted once ("Perfect Iron Rune ×3: …") — so there is no need to hover each rune in turn.
+- An item's tooltip now shows what its runes and soul cores give it: each one's name, then its bonus for that kind of
+  item, so there is no need to hover each rune in turn.
+- Clicking a rune on an item card copies its name, ready for the game's own search, as gems already do.
 
 ### Comments
 - A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under

@@ -163,6 +163,15 @@
   color: var(--text-muted);
 }
 
+/* A line set apart above the ones under it, e.g. a rune's name above its bonus. */
+.tooltip__section li.tooltip__heading {
+  color: var(--text-muted);
+}
+
+.tooltip__section li.tooltip__heading:not(:first-child) {
+  margin-top: 6px;
+}
+
 /* What the base item gives, above the rolled modifiers; the next section's own line sets it apart. */
 .tooltip__section--implicit li {
   color: var(--rarity-magic);

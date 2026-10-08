@@ -14,7 +14,7 @@ const MODEL: TooltipModel = {
   description: 'A crown of thorns.',
   sections: [
     { title: null, lines: ['+(60-100) to maximum Mana'], tone: 'mod' },
-    { title: 'Sockets', lines: ['Idol of Egrin'], tone: 'muted' },
+    { title: 'Sockets', lines: ['Idol of Egrin', 'Enemies you Curse take 6% increased Damage'], headings: [0], tone: 'effect' },
   ],
   note: 'Modifier values are ranges',
   flavour: 'They screamed her name',
@@ -78,6 +78,14 @@ describe('WithTooltip', () => {
     ]) {
       expect(tooltip.textContent).toContain(text);
     }
+  });
+
+  it('sets heading lines apart from the lines under them, e.g. a rune above its bonus', () => {
+    renderTrigger();
+    fireEvent.focus(trigger());
+
+    expect(screen.getByText('Idol of Egrin').classList.contains('tooltip__heading')).toBe(true);
+    expect(screen.getByText('Enemies you Curse take 6% increased Damage').classList.contains('tooltip__heading')).toBe(false);
   });
 
   it('does not open when the pointer leaves before the delay', () => {
