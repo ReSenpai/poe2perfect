@@ -37,6 +37,9 @@ manifest changes (permissions, matches) need the reload button on the extension 
   pass before a pull request.
 - Every string the user sees is in English.
 - Layouts stay compact: a tab should fit one screen, cards fill the height they are given.
+- Pull requests go to the `dev` branch; `main` takes releases.
+- Text files use LF line endings (`.gitattributes`, `.editorconfig`). Git converts CRLF on commit, so a pull request
+  shows only the lines you changed.
 
 ## Test fixtures
 

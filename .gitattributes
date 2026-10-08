@@ -1,0 +1,17 @@
+# Text files are kept with LF line endings, in the repository and in every checkout, on every system. An editor that
+# saves CRLF does no harm: Git turns it back into LF when the file is added. Without this, a file saved with other
+# line endings showed up in a diff as rewritten from the first line to the last.
+* text=auto eol=lf
+
+# Binary files: never touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.xpi binary
