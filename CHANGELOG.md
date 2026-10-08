@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 ### Builds from player profiles
 - Builds published from a player's profile (`mobalytics.gg/poe-2/profile/<player>/builds/…`) now open in the guide

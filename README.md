@@ -50,9 +50,9 @@ gem to copy its name for the in-game search; hover a gem in the priority list to
 
 Every slot on one screen, with sockets, runes, granted skills and the author's gear priority. Tooltips read like the
 game's own and show the base item's modifier above the rolled ones; the scales icon opens the item on the official
-trade site with its filters already set.
+trade site with its filters already set. Here with the build's comments open beside it, as on any tab.
 
-![Gear: every slot on one screen with an item tooltip open](docs/images/gear.jpg)
+![Gear: every slot on one screen, with the build's comments in a side panel](docs/images/gear.jpg)
 
 ### Passives and Atlas Tree
 
@@ -74,6 +74,10 @@ The build's discussion from the original page, read like a thread: answers nest 
 author's replies stand out, and more comments load as you scroll. Search them, sort them, keep only the threads the
 author answered in, and write, reply or vote right there as your own Mobalytics account. The comment icon in the tab
 bar opens the same feed as a side panel next to whatever tab you are reading.
+
+![Comments: the build's discussion as a thread feed, with search, sorting and a reply box](docs/images/comments.jpg)
+
+<sub>Commenters' names, pictures and words are blurred in these pictures; in the guide they read as on the site.</sub>
 
 ### And also
 
