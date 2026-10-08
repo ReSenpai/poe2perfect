@@ -1,4 +1,5 @@
 import type { EntityInfo, Gem, Item, NameValue, Passive, PassiveKind, Socketable } from '@/lib/build/model';
+import { socketableEffectsOn } from '@/lib/build/socketables';
 
 export type TooltipAccent =
   | 'unique'
@@ -18,6 +19,8 @@ export type TooltipAccent =
 export interface TooltipSection {
   title: string | null;
   lines: string[];
+  /** Lines set apart above the ones that follow, e.g. a rune's name above its bonus. */
+  headings?: number[];
   tone: 'mod' | 'effect' | 'muted' | 'implicit';
 }
 
@@ -51,8 +54,6 @@ const EMPTY: Omit<TooltipModel, 'title' | 'accent'> = {
 };
 
 export function itemTooltip(item: Item, socketables: Socketable[] = []): TooltipModel {
-  // Socketables list names only: their effects differ per item type and have their own tooltips.
-  const socketLines = socketables.map((s) => s.name ?? s.slug);
   return {
     ...EMPTY,
     title: item.name,
@@ -65,12 +66,28 @@ export function itemTooltip(item: Item, socketables: Socketable[] = []): Tooltip
       section('Grants Skill', item.grantedSkills.map((skill) => (skill.level ? `Level ${skill.level} ${skill.name}` : skill.name)), 'effect'),
       section(null, item.implicits, 'implicit'),
       section(null, item.modifiers, 'mod'),
-      section('Sockets', socketLines, 'muted'),
+      socketsSection(item, socketables),
     ].filter(isPresent),
     note: item.modifiersSource === 'static' || item.modifiersSource === 'affixes' ? 'Modifier values are ranges' : null,
     flavour: item.flavourText,
     corrupted: item.corrupted,
   };
+}
+
+/**
+ * What the item's runes and soul cores give it, so the bonuses read without hovering each one: every socketable in
+ * turn, its name set apart above its lines for this kind of item. One whose bonus here isn't known is named alone.
+ */
+function socketsSection(item: Item, socketables: Socketable[]): TooltipSection | null {
+  if (socketables.length === 0) return null;
+  const lines: string[] = [];
+  const headings: number[] = [];
+  for (const socketable of socketables) {
+    headings.push(lines.length);
+    lines.push(socketable.name ?? socketable.slug);
+    lines.push(...socketableEffectsOn(socketable, item.itemClass).flatMap(splitLines));
+  }
+  return { title: 'Sockets', lines, headings, tone: 'effect' };
 }
 
 export function gemTooltip(gem: Gem): TooltipModel {

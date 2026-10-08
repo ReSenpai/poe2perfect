@@ -1,5 +1,7 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey, isBuildPageUrl } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
+import type { CommentsController } from '@/lib/comments/controller';
+import type { CommentsSeed } from '@/lib/comments/model';
 import type { LoadResult } from './build-loader';
 import type { FetchProgress } from './fetch-html';
 
@@ -9,13 +11,14 @@ interface ActiveBase {
   active: true;
   mode: PageMode;
   url: string;
-  slug: string;
+  /** The build's key (`getBuildKey`): another page of the same build doesn't reload it. */
+  key: string;
 }
 
 export type PageState =
   | { active: false; mode: PageMode }
   | (ActiveBase & { status: 'loading'; progress?: FetchProgress })
-  | (ActiveBase & { status: 'ready'; build: Build })
+  | (ActiveBase & { status: 'ready'; build: Build; comments: CommentsController | null })
   | (ActiveBase & { status: 'error'; message: string });
 
 export interface PageController {
@@ -35,23 +38,30 @@ export function createPageController({
   load,
   initialMode,
   onModeChange,
+  createComments,
 }: {
   load: (url: string, onProgress: (progress: FetchProgress) => void) => Promise<LoadResult>;
   initialMode: PageMode;
   onModeChange?: (mode: PageMode) => void;
+  /** The discussion of a loaded build, started from its page's comments; closed when the reader leaves the build. */
+  createComments?: (seed: CommentsSeed) => CommentsController;
 }): PageController {
   let state: PageState = { active: false, mode: initialMode };
   let loadId = 0;
   const listeners = new Set<(state: PageState) => void>();
 
   const set = (next: PageState) => {
+    // A build's discussion lives as long as the build is shown.
+    if (state.active && state.status === 'ready' && state.comments && !(next.active && next.status === 'ready' && next.comments === state.comments)) {
+      state.comments.dispose();
+    }
     state = next;
     listeners.forEach((listener) => listener(state));
   };
 
-  const start = (url: string, slug: string) => {
+  const start = (url: string, key: string) => {
     const id = ++loadId;
-    set({ active: true, mode: state.mode, url, slug, status: 'loading' });
+    set({ active: true, mode: state.mode, url, key, status: 'loading' });
     const report = (progress: FetchProgress) => {
       if (id !== loadId || !state.active || state.status !== 'loading') return;
       set({ ...state, progress });
@@ -60,8 +70,12 @@ export function createPageController({
       .catch((error: unknown): LoadResult => ({ ok: false, message: error instanceof Error ? error.message : String(error) }))
       .then((result) => {
         if (id !== loadId || !state.active) return;
-        const base = { active: true as const, mode: state.mode, url: state.url, slug };
-        set(result.ok ? { ...base, status: 'ready', build: result.build } : { ...base, status: 'error', message: result.message });
+        const base = { active: true as const, mode: state.mode, url: state.url, key };
+        set(
+          result.ok
+            ? { ...base, status: 'ready', build: result.build, comments: createComments?.(result.comments) ?? null }
+            : { ...base, status: 'error', message: result.message },
+        );
       });
   };
 
@@ -69,21 +83,21 @@ export function createPageController({
     getState: () => state,
 
     handleUrl(url) {
-      const slug = getBuildSlug(url);
-      if (!slug) {
+      const key = isBuildPageUrl(url) ? getBuildKey(url) : null;
+      if (!key) {
         loadId++;
         if (state.active) set({ active: false, mode: state.mode });
         return;
       }
-      if (state.active && state.slug === slug) {
+      if (state.active && state.key === key) {
         state = { ...state, url };
         return;
       }
-      start(url, slug);
+      start(url, key);
     },
 
     retry() {
-      if (state.active && state.status === 'error') start(state.url, state.slug);
+      if (state.active && state.status === 'error') start(state.url, state.key);
     },
 
     setMode(mode) {

@@ -31,6 +31,18 @@ describe('registerFonts', () => {
     ]);
   });
 
+  it('registers a source under its own family when it names one, e.g. the reading font', () => {
+    const fontSet = fakeFontSet();
+
+    registerFonts({
+      fontSet,
+      FontFace: FakeFontFace as unknown as typeof FontFace,
+      sources: [...SOURCES, { family: 'PoE2 Guide Noto Sans', dataUrl: `data:font/woff2;base64,${btoa('noto')}`, unicodeRange: 'U+0000-00FF' }],
+    });
+
+    expect(fontSet.faces.map((face) => face.family)).toEqual([FONT_FAMILY, FONT_FAMILY, 'PoE2 Guide Noto Sans']);
+  });
+
   it('registers once per font set', () => {
     const fontSet = fakeFontSet();
     const options = { fontSet, FontFace: FakeFontFace as unknown as typeof FontFace, sources: SOURCES };

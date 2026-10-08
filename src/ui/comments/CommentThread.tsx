@@ -1,0 +1,239 @@
+import { ArrowBigDown, ArrowBigUp, Minus, Plus } from 'lucide-preact';
+import { useEffect, useState } from 'preact/hooks';
+import { hasMissingReplies, type CommentsController, type CommentsState, type PostOutcome } from '@/lib/comments/controller';
+import type { Comment, Vote } from '@/lib/comments/model';
+import { CommentCard } from './CommentCard';
+import { CommentComposer } from './CommentComposer';
+
+type Ready = Extract<CommentsState, { status: 'ready' }>;
+
+/** Comments above this depth show their answers from the start, so a thread reads down to its third level of answers. */
+export const OPEN_BELOW_DEPTH = 3;
+
+export interface ThreadProps {
+  state: Ready;
+  controller: CommentsController;
+  now: number;
+  /** Whether a comment's answers are shown: open by depth unless the reader toggled it. Shared by every thread. */
+  isOpen: (id: string) => boolean;
+  onToggle: (id: string) => void;
+  /** The comment whose reply box is open, if any; one at a time. */
+  replyingTo: string | null;
+  onReply: (id: string | null) => void;
+  /** Where a signed-out visitor can sign in. */
+  onSignIn?: () => void;
+}
+
+const repliesLabel = (n: number) => (n === 1 ? 'View 1 reply' : n > 1 ? `View ${n} replies` : 'View replies');
+const repliesElementId = (id: string) => `comment-replies-${id}`;
+
+const hasReplies = (state: Ready, id: string) => (state.list.comments[id]?.replyCount ?? 0) > 0 || (state.list.replies[id]?.length ?? 0) > 0;
+
+/** Whether to show a comment: the site leaves out deleted ones nobody answered. */
+export const isShown = (state: Ready, id: string) => {
+  const comment = state.list.comments[id];
+  return Boolean(comment) && (!comment!.deleted || hasReplies(state, id));
+};
+
+/**
+ * A comment with its answers nested under it, as on Reddit: a line runs down from the avatar along the answers, each
+ * answer hooks onto it, and the line or the ±-circle on it folds the branch.
+ */
+export function CommentThread({ id, ...props }: ThreadProps & { id: string }) {
+  const { state, now, isOpen, onToggle } = props;
+  const comment = state.list.comments[id]!;
+  const open = isOpen(id) && hasReplies(state, id);
+  const authorReplied = comment.depth === 0 && descendants(state, id).some((child) => state.list.comments[child]?.author?.isBuildAuthor);
+
+  return (
+    <CommentCard comment={comment} now={now} open={open}>
+      {open && <div class="thread__rail" aria-hidden="true" onClick={() => onToggle(id)} />}
+      <Actions id={id} {...props}>
+        {authorReplied && <span class="comment__author-replied">Author replied</span>}
+      </Actions>
+      {open && (
+        <div class="thread__replies" id={repliesElementId(id)}>
+          <Replies parentId={id} {...props} />
+        </div>
+      )}
+    </CommentCard>
+  );
+}
+
+/**
+ * The loaded answers to `parentId`, then how loading them is going. Answers the page left out are asked for as soon as
+ * they are shown; further pages wait for "Load more replies".
+ */
+function Replies({ parentId, ...props }: ThreadProps & { parentId: string }) {
+  const { state, controller } = props;
+  const ids = (state.list.replies[parentId] ?? []).filter((id) => isShown(state, id));
+  const thread = state.replies[parentId];
+  const load = thread?.load ?? { status: 'idle' };
+  const queried = Boolean(thread?.page);
+  const missing = hasMissingReplies(state, parentId);
+
+  useEffect(() => {
+    if (!queried && load.status === 'idle' && missing) controller.loadReplies(parentId);
+  }, [controller, parentId, queried, load.status, missing]);
+
+  return (
+    <>
+      {ids.map((id) => (
+        <CommentThread key={id} id={id} {...props} />
+      ))}
+      {load.status === 'loading' && (
+        <p class="thread__status" role="status">
+          <span class="spinner spinner--small" aria-hidden="true" />
+          Loading replies…
+        </p>
+      )}
+      {load.status === 'error' && (
+        <p class="thread__status thread__status--error" role="alert">
+          {`Couldn't load replies (${load.message}).`}
+          <button type="button" class="comment__link" onClick={() => controller.loadReplies(parentId)}>
+            Try again
+          </button>
+        </p>
+      )}
+      {load.status === 'idle' && queried && missing && (
+        <button type="button" class="comment__link thread__more" onClick={() => controller.loadReplies(parentId)}>
+          Load more replies
+        </button>
+      )}
+    </>
+  );
+}
+
+/** A comment's controls: the fold on its line, Reply, and the reply box once opened. */
+function Actions({ id, children, ...props }: ThreadProps & { id: string; children?: preact.ComponentChildren }) {
+  const { state, controller, isOpen, onToggle, replyingTo, onReply, onSignIn } = props;
+  const comment = state.list.comments[id]!;
+  const canReply = !comment.deleted;
+  const folds = hasReplies(state, id) && isOpen(id);
+  // A deleted comment has no votes or Reply: folded, its row would stand empty, so it goes.
+  const hasRow = folds || !comment.deleted || Boolean(children);
+
+  const post = (text: string): Promise<PostOutcome> => controller.post(id, text);
+  const done = () => {
+    onReply(null);
+    if (!isOpen(id)) onToggle(id);
+  };
+
+  return (
+    <>
+      {hasRow && (
+        <div class="comment__actions">
+          {folds && <Fold id={id} {...props} />}
+          {!comment.deleted && <Votes comment={comment} controller={controller} onSignIn={onSignIn} />}
+          {canReply && (
+            <button type="button" class="comment__link comment__reply" aria-expanded={replyingTo === id} onClick={() => onReply(replyingTo === id ? null : id)}>
+              Reply
+            </button>
+          )}
+          {children}
+        </div>
+      )}
+      {hasReplies(state, id) && !isOpen(id) && <Unfold id={id} {...props} />}
+      {canReply && replyingTo === id && (
+        <CommentComposer
+          label={`Reply to ${comment.author?.name ?? 'this comment'}`}
+          placeholder="Write a reply…"
+          submitLabel="Send reply"
+          onSubmit={post}
+          onDone={done}
+          onCancel={() => onReply(null)}
+          onSignIn={onSignIn}
+          autoFocus
+        />
+      )}
+    </>
+  );
+}
+
+/** Up and down arrows around the score, as on Reddit; pressing the lit arrow again takes the vote back. */
+function Votes({ comment, controller, onSignIn }: { comment: Comment; controller: CommentsController; onSignIn?: () => void }) {
+  const [failure, setFailure] = useState<Extract<PostOutcome, { ok: false }> | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const cast = async (press: Vote) => {
+    if (busy) return;
+    setFailure(null);
+    setBusy(true);
+    const outcome = await controller.vote(comment.id, press);
+    setBusy(false);
+    if (!outcome.ok) setFailure(outcome);
+  };
+
+  return (
+    <>
+      <div class={`votes${comment.viewerVote ? ` votes--${comment.viewerVote}` : ''}`} role="group" aria-label="Votes" aria-busy={busy}>
+        <button type="button" class="votes__button votes__button--up" aria-label="Upvote" title="Upvote" aria-pressed={comment.viewerVote === 'up'} onClick={() => void cast('up')}>
+          <ArrowBigUp size={16} aria-hidden="true" />
+        </button>
+        <span class="votes__score">{comment.score}</span>
+        <button
+          type="button"
+          class="votes__button votes__button--down"
+          aria-label="Downvote"
+          title="Downvote"
+          aria-pressed={comment.viewerVote === 'down'}
+          onClick={() => void cast('down')}
+        >
+          <ArrowBigDown size={16} aria-hidden="true" />
+        </button>
+      </div>
+      {failure && (
+        <p class="comment__vote-error" role="alert">
+          {failure.reason === 'signed-out' ? 'Sign in on Mobalytics to vote.' : `Couldn't vote (${failure.message}).`}
+          {failure.reason === 'signed-out' && onSignIn && (
+            <button type="button" class="comment__link" onClick={onSignIn}>
+              Sign in on Mobalytics
+            </button>
+          )}
+        </p>
+      )}
+    </>
+  );
+}
+
+/** The minus on the thread line of an open branch: folds its answers away. */
+function Fold({ id, onToggle }: ThreadProps & { id: string }) {
+  return (
+    <button
+      type="button"
+      class="thread__fold"
+      aria-label="Hide replies"
+      title="Hide replies"
+      aria-expanded="true"
+      aria-controls={repliesElementId(id)}
+      onClick={() => onToggle(id)}
+    >
+      <Minus size={10} strokeWidth={3} aria-hidden="true" />
+    </button>
+  );
+}
+
+/**
+ * A folded branch, as the site shows it: "View N replies" under the actions, with a plus on the thread line beside it.
+ * The words are the control; the plus repeats it for the pointer.
+ */
+function Unfold({ id, state, onToggle }: ThreadProps & { id: string }) {
+  const comment = state.list.comments[id]!;
+  const label = repliesLabel(Math.max(comment.replyCount, state.list.replies[id]?.length ?? 0));
+  return (
+    <div class="thread__folded">
+      <button type="button" class="thread__fold" aria-hidden="true" tabIndex={-1} title={label} onClick={() => onToggle(id)}>
+        <Plus size={10} strokeWidth={3} aria-hidden="true" />
+      </button>
+      <button type="button" class="comment__link thread__unfold" aria-expanded="false" onClick={() => onToggle(id)}>
+        {label}
+      </button>
+    </div>
+  );
+}
+
+/** Every loaded comment below `id`. */
+function descendants(state: Ready, id: string): string[] {
+  const direct = state.list.replies[id] ?? [];
+  return direct.flatMap((child) => [child, ...descendants(state, child)]);
+}

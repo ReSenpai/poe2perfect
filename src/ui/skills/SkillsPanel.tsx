@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import type { Attributes, EntityInfo, Gem, GemPriorityEntry, Skill, Variant } from '@/lib/build/model';
 import { gemAttribute, gemTooltip } from '@/lib/tooltip/tooltip-model';
 import { copyText } from '@/lib/ui/clipboard';
+import { CopyNotice, copyLabel, useCopyName } from '@/ui/common/copy-name';
 import { Icon } from '@/ui/common/Icon';
 import { RichText } from '@/ui/rich-text/RichText';
 import { entityChipRenderer } from '@/ui/tooltip/EntityTooltipChip';
@@ -14,9 +15,12 @@ export function SkillsPanel({
   variant,
   entities,
   copy = copyText,
+  besideComments = false,
 }: {
   variant: Variant;
   entities: Record<string, EntityInfo>;
+  /** The comments panel takes the side column: the skill details move under the list instead of leaving. */
+  besideComments?: boolean;
   /** Injected in tests; a gem name goes to the clipboard, ready for the game's own search. */
   copy?: (text: string) => Promise<boolean>;
 }) {
@@ -34,7 +38,7 @@ export function SkillsPanel({
   return (
     <div class="skills">
       {skill ? (
-        <div class="skills__columns">
+        <div class={besideComments ? 'skills__columns skills__columns--stacked' : 'skills__columns'}>
           <div class="skills__main">
             <section class="card skills__list">
               <div class="skills__heading">
@@ -63,11 +67,7 @@ export function SkillsPanel({
       ) : (
         <p class="panel-empty">{EMPTY}</p>
       )}
-      {notice && (
-        <p class="skills__copied" role="status">
-          {notice}
-        </p>
-      )}
+      <CopyNotice notice={notice} />
       {variant.skillNotes && (
         <section class="card skills__notes">
           <h2 class="card__title">Author's Notes</h2>
@@ -77,25 +77,6 @@ export function SkillsPanel({
     </div>
   );
 }
-
-/** Copies a gem name and says so for a moment, so the click has a visible answer. */
-function useCopyName(copy: (text: string) => Promise<boolean>) {
-  const [notice, setNotice] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => () => clearTimeout(timer.current), []);
-
-  const copyName = async (name: string) => {
-    const copied = await copy(name);
-    setNotice(copied ? `Copied \u201c${name}\u201d` : "Couldn't copy the name");
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setNotice(null), 2000);
-  };
-
-  return { notice, copyName };
-}
-
-const copyLabel = (name: string) => `Copy \u201c${name}\u201d`;
 
 /** A gem the gem priority points at: a support inside its skill, or an active skill on its own. */
 export interface GemPointer {

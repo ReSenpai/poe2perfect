@@ -3,8 +3,12 @@ name: Release
 # A tag v<version> (v1.3.0, or v1.3.0-beta.1 for a pre-release) builds the Chrome and Firefox packages and the sources
 # archive and publishes them as a GitHub release, with the version's section of CHANGELOG.md as its notes.
 #
-# Pre-releases: with the AMO_JWT_ISSUER and AMO_JWT_SECRET secrets set, the Firefox package is signed on
-# addons.mozilla.org (unlisted) and the signed .xpi is attached, for testers.
+# Firefox package to install from the release: with the AMO_JWT_ISSUER and AMO_JWT_SECRET secrets set, the Firefox
+# package is signed on addons.mozilla.org (unlisted) and the signed .xpi is attached to the release.
+#   Pre-releases are signed under their own number (1.3.0-beta.1 → 1.2.999.1).
+#   Releases are signed under a fourth number (1.4.0 → 1.4.0.1): their own number goes to the listed channel, where
+#   AMO signs only after review and takes each number once. The listed review can take days; this .xpi lets Firefox
+#   users install the version meanwhile. To sign it again, run "Sign the Firefox package" with build 2 or higher.
 #
 # Releases: each store gets the new version for review once it is switched on by a repository variable —
 #   Chrome Web Store: PUBLISH_CHROME=true, variables CHROME_EXTENSION_ID, CHROME_PUBLISHER_ID,
@@ -109,3 +113,26 @@ jobs:
             --firefox-channel listed \
             --firefox-jwt-issuer "$AMO_JWT_ISSUER" \
             --firefox-jwt-secret "$AMO_JWT_SECRET"
+
+      # Last, so a slow or failed signing never holds back the release or the store submissions above. The same code
+      # is built again under the fourth number (FIREFOX_BUILD=1 → 1.4.0.1): only .output/firefox-mv3 changes, the
+      # archives already attached and submitted keep the release's own number.
+      - name: Sign for Firefox users (unlisted, build 1)
+        if: env.PRERELEASE == 'false' && env.AMO_JWT_ISSUER != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FIREFOX_BUILD=1 npm run build:firefox
+          signed=$(node -p "require('./.output/firefox-mv3/manifest.json').version")
+          if [ "$signed" != "$VERSION.1" ]; then echo "::error::Expected $VERSION.1 to sign, got $signed"; exit 1; fi
+          npx --yes web-ext@8 sign \
+            --channel unlisted \
+            --source-dir .output/firefox-mv3 \
+            --artifacts-dir .output/signed \
+            --upload-source-code ".output/poe2perfect-$VERSION-sources.zip" \
+            --api-key "$AMO_JWT_ISSUER" \
+            --api-secret "$AMO_JWT_SECRET"
+          # AMO names the file by an internal id; users get it by the extension's name.
+          mv .output/signed/*.xpi ".output/signed/poe2perfect-$VERSION-firefox.xpi"
+          gh release upload "$GITHUB_REF_NAME" ".output/signed/poe2perfect-$VERSION-firefox.xpi" --clobber
+          echo "### Signed $signed and attached it to $GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"

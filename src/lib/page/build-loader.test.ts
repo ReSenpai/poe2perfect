@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { StaticDataResult } from '@/lib/data/static-data';
+import { commentsPayload, commentsWidget, rawComment } from '../../../tests/fixtures/comments';
 import { createBuildLoader } from './build-loader';
 
-function pageHtml(name: string) {
-  const doc = { id: name, data: { name, buildVariants: { values: [] } }, content: [] };
+function pageHtml(name: string, content: unknown[] = []) {
+  const doc = { id: name, data: { name, buildVariants: { values: [] } }, content, comments: { stats: { totalComments: content.length } } };
   const state = {
     poe2State: {
       apollo: {
@@ -34,7 +35,27 @@ function setup(overrides: Partial<Parameters<typeof createBuildLoader>[0]> = {})
   return { deps, load: createBuildLoader(deps) };
 }
 
+const BY_ID = 'https://mobalytics.gg/poe-2/profile/some-player/builds/e4321b1e-aa41-4c49-855d-97ffba18f5f5#gear';
+const byIdDocument = { id: 'e4321b1e-aa41-4c49-855d-97ffba18f5f5', data: { name: '[0.5] Whirling Assault', buildVariants: { values: [] } }, content: [] };
+
 describe('createBuildLoader', () => {
+  it('takes a profile build addressed by id from what the site loaded, as no HTML holds it', async () => {
+    const waitForDocument = vi.fn(async () => byIdDocument);
+    const { deps, load } = setup({ waitForDocument });
+
+    const result = await load(BY_ID);
+
+    expect(waitForDocument).toHaveBeenCalledWith('e4321b1e-aa41-4c49-855d-97ffba18f5f5');
+    expect(result).toMatchObject({ ok: true, build: { title: 'Whirling Assault' } });
+    expect(deps.fetchHtml).not.toHaveBeenCalled();
+  });
+
+  it("asks for a reload when the site never handed the build over, e.g. it took it from a cache the guide didn't see", async () => {
+    const { load } = setup({ waitForDocument: vi.fn(async () => null) });
+
+    expect(await load(BY_ID)).toEqual({ ok: false, message: "The site didn't hand over this build. Reload the page, then try again." });
+  });
+
   it('passes on how the fetch is going, so the guide can show progress', async () => {
     const fetchHtml = vi.fn(async (_url: string, onProgress?: (progress: { attempt: number; attempts: number }) => void) => {
       onProgress?.({ attempt: 2, attempts: 4 });
@@ -55,6 +76,21 @@ describe('createBuildLoader', () => {
 
     expect(result).toMatchObject({ ok: true, build: { title: 'Build A', patch: '0.5.5', hasStaticData: true } });
     expect(deps.fetchHtml).not.toHaveBeenCalled();
+  });
+
+  it("hands over the page's first comments next to the build", async () => {
+    const widget = commentsWidget({ payload: commentsPayload({ comments: [rawComment({ id: 'r1' })] }) });
+    const { load } = setup({ initialDocument: parse(pageHtml('[0.5.5] Build A', [widget])) });
+
+    const result = await load(BUILD_A);
+
+    expect(result).toMatchObject({ ok: true, comments: { status: 'ready', total: 1, list: { rootIds: ['r1'] } } });
+  });
+
+  it('reports comments as unavailable when the page has none to read', async () => {
+    const { load } = setup();
+
+    expect(await load(BUILD_A)).toMatchObject({ ok: true, comments: { status: 'unavailable' } });
   });
 
   it('fetches the page when the current document holds no build, as for a signed-in user', async () => {

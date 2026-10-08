@@ -174,7 +174,7 @@ function safeHref(url: unknown): string | null {
   return /^https?:\/\//i.test(value) ? value : null;
 }
 
-function safeHttpsUrl(url: unknown): string | null {
+export function safeHttpsUrl(url: unknown): string | null {
   const value = str(url);
   return value && /^https:\/\//i.test(value) ? value : null;
 }

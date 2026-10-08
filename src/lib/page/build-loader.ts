@@ -1,18 +1,23 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildKey, getBuildRef } from '@/lib/build-url';
 import type { Build } from '@/lib/build/model';
 import { parseBuild } from '@/lib/build/parse-build';
-import { extractBuildDocument } from '@/lib/data/preloaded-state';
+import type { CommentsSeed } from '@/lib/comments/model';
+import { parseCommentsSeed } from '@/lib/comments/parse-comments';
+import { type ExtractResult, extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
-import type { RawStaticData } from '@/lib/data/types';
+import type { RawBuildDocument, RawStaticData } from '@/lib/data/types';
 import type { FetchProgress, HtmlFetcher } from './fetch-html';
 
-export type LoadResult = { ok: true; build: Build } | { ok: false; message: string };
+/** `comments` is the discussion's first page from the same document; it never holds the build back. */
+export type LoadResult = { ok: true; build: Build; comments: CommentsSeed } | { ok: false; message: string };
 
 export interface BuildLoaderDeps {
   initialUrl: string;
   initialDocument: Document;
   fetchHtml: HtmlFetcher;
   readStaticData: () => Promise<StaticDataResult>;
+  /** A profile build addressed by id, as the site loads it after the page opens (null if it never does). */
+  waitForDocument?: (id: string) => Promise<RawBuildDocument | null>;
 }
 
 /**
@@ -24,8 +29,9 @@ export function createBuildLoader({
   initialDocument,
   fetchHtml,
   readStaticData,
+  waitForDocument = async () => null,
 }: BuildLoaderDeps): (url: string, onProgress?: (progress: FetchProgress) => void) => Promise<LoadResult> {
-  const initialSlug = getBuildSlug(initialUrl);
+  const initialKey = getBuildKey(initialUrl);
   let staticData: Promise<RawStaticData | null> | null = null;
 
   const loadStaticData = () => {
@@ -38,11 +44,18 @@ export function createBuildLoader({
   };
 
   return async (url, onProgress) => {
-    const slug = getBuildSlug(url);
-    if (!slug) return { ok: false, message: 'Not a build page' };
+    const ref = getBuildRef(url);
+    if (!ref) return { ok: false, message: 'Not a build page' };
+
+    // No page's HTML holds a profile build addressed by id: the site loads it after the page opens.
+    if (ref.kind === 'profile' && ref.id) {
+      const doc = await waitForDocument(ref.id);
+      if (!doc) return { ok: false, message: "The site didn't hand over this build. Reload the page, then try again." };
+      return { ok: true, build: parseBuild(doc, await loadStaticData()), comments: parseCommentsSeed(doc) };
+    }
 
     // The page's own document only has the build for signed-out visitors; otherwise fetch the page.
-    let extracted = slug === initialSlug ? extractBuildDocument(initialDocument) : null;
+    let extracted: ExtractResult | null = ref.key === initialKey ? extractBuildDocument(initialDocument) : null;
     if (!extracted?.ok) {
       try {
         extracted = extractBuildDocument(await fetchHtml(url, onProgress));
@@ -63,6 +76,6 @@ export function createBuildLoader({
       return { ok: false, message: `The site's page has changed in a way the guide can't read yet. (${extracted.error.code})` };
     }
 
-    return { ok: true, build: parseBuild(extracted.doc, await loadStaticData()) };
+    return { ok: true, build: parseBuild(extracted.doc, await loadStaticData()), comments: parseCommentsSeed(extracted.doc) };
   };
 }

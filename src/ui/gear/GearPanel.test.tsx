@@ -162,6 +162,22 @@ describe('GearPanel', () => {
     expect(implicit?.textContent).toBe('+(7-13)% to Chaos Resistance');
   });
 
+  it("copies a rune's name when it is clicked, and says so", async () => {
+    const copy = vi.fn(async () => true);
+    render(
+      <TooltipProvider>
+        <GearPanel variant={ENDGAME} entities={BUILD.entities} copy={copy} />
+      </TooltipProvider>,
+    );
+    const helmet = ENDGAME.equipment.find((slot) => slot.slot === 'helmet')!;
+    const name = helmet.socketables[0]!.name!;
+
+    fireEvent.click(screen.getByRole('button', { name: `Copy “${name}”` }));
+
+    expect(copy).toHaveBeenCalledWith(name);
+    expect(await screen.findByRole('status')).toHaveProperty('textContent', `Copied “${name}”`);
+  });
+
   it('opens a tooltip for a rune socketed in an item', () => {
     renderPanel();
 

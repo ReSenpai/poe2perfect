@@ -45,6 +45,24 @@ const showKeyPassives = () => {
 const tree = () => screen.getByRole('region', { name: 'Passive tree' });
 
 describe('PassivesPanel', () => {
+  it('keeps the tree over its place whichever container around it scrolls, e.g. the whole view beside the comments', () => {
+    const embed = fakeEmbed();
+    const { container } = render(
+      <div class="build-view__body">
+        <section class="build-view__panel">
+          <TooltipProvider>
+            <PassivesPanel variant={LOW_LIFE} variantIndex={LOW_LIFE_INDEX} entities={BUILD.entities} embedTree={embed.embedTree} treeFocus={fakeFocus()} />
+          </TooltipProvider>
+        </section>
+      </div>,
+    );
+
+    fireEvent.scroll(container.querySelector('.build-view__panel')!);
+    fireEvent.scroll(container.querySelector('.build-view__body')!);
+
+    expect(embed.handle.sync).toHaveBeenCalledTimes(2);
+  });
+
   it('lists the passives in the order the author takes them', () => {
     renderPanel();
     showKeyPassives();

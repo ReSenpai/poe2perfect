@@ -1,6 +1,42 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
+
+### Builds from player profiles
+- Builds published from a player's profile (`mobalytics.gg/poe-2/profile/<player>/builds/…`) now open in the guide
+  too, with every tab and their comments, whether the address carries the build's name or its id. Thanks to Judd
+  (juddisjudd) for working out how the site serves them.
+- The passive and atlas trees now show for a build with a single variant; they stayed on "The site didn't show a
+  passive tree" before.
+
+### Gear
+- An item's tooltip now shows what its runes and soul cores give it: each one's name, then its bonus for that kind of
+  item, so there is no need to hover each rune in turn.
+- Clicking a rune on an item card copies its name, ready for the game's own search, as gems already do.
+
+### Firefox
+- Skill icons, the build's art and other pictures showed up only after switching tabs; they now load as the guide
+  opens.
+- Scrollbars are thin and in the guide's colours, as in Chrome, instead of the system's wide ones.
+
+### Comments
+- A new Comments tab shows the build's discussion from the original page, read as a thread feed: answers nest under
+  the comment they answer along a thread line, as on Reddit, and open by themselves three levels deep. A minus on the
+  line folds a branch; a folded one says how many replies wait there. The build author is marked in words, deleted
+  comments with answers stay as "[deleted]", spoilers wait behind a button, and long comments fold after a few lines.
+- More comments load as you scroll. Search the loaded comments (matches are highlighted and their threads open),
+  sort by newest, oldest or top, or keep only the threads the build author answered in.
+- Write a comment, reply to any comment and vote, right from the guide, as your own Mobalytics account. Nothing is
+  sent until you press the button; a signed-out visitor is pointed to signing in on the site.
+- Read the comments beside any other tab: the comment icon in the tab bar opens them as a side panel, which takes the
+  place of that tab's side column (gear priority, the passive order, the quest rewards…) for as long as it is open.
+  On a narrow window, or from the panel's own button, they open as the Comments tab, with a way back.
+- Comment text is set in Noto Sans, a calmer face for long reading; the rest of the guide keeps Inter.
+- A commenter without an avatar gets the portrait of a class or ascendancy instead of a bare letter, picked from
+  their account so it is always the same one for them.
+- Beside the comments, the section's blocks and the comments panel line up as one set of cards: the variant chips
+  have a card of their own, everything scrolls together with one scrollbar at the window's right, and the comments
+  card runs down beside the section however long it is.
 
 ## 1.3.0
 

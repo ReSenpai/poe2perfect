@@ -16,7 +16,10 @@ Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 
 ## What does it do?
 
-- **Tabs instead of one long page.** Overview, Skills, Gear, Passives, Atlas Tree and Progression, each on one screen.
+- **Tabs instead of one long page.** Overview, Skills, Gear, Passives, Atlas Tree, Progression and Comments, each on
+  one screen.
+- **The build's comments as a thread feed**, beside any tab or on their own: search, sort, see where the author
+  answered, and write, reply or vote as your own Mobalytics account.
 - **Game-style tooltips** for items, gems, passives, runes and anything the author mentions in the text.
 - **Straight to the game.** Click a gem to copy its name for the in-game search; open any item on the official
   trade site with its filters already set.
@@ -25,14 +28,16 @@ Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 ## Installation
 
 **[Add poe2perfect to Chrome](https://chromewebstore.google.com/detail/poe2perfect/iaalfjcbfnidaiogadcgcdcfgmekpnce)**,
-then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds). It works whether or not you are
-signed in to the site.
+then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds), from the catalogue or from a
+player's profile. It works whether or not you are signed in to the site.
 
-**Firefox** 140 or newer, from 1.3.0. The add-on is awaiting review on addons.mozilla.org; until it is listed, install
-the signed package from the [latest release](https://github.com/ReSenpai/poe2perfect/releases/latest):
-download `poe2perfect-<version>-firefox.xpi`, then open `about:addons` → the gear icon → *Install Add-on From File*.
-It is signed by Mozilla, so it stays installed between restarts. It does not update itself, so once the listing is
-live, install the add-on from addons.mozilla.org to get later versions.
+**[Add poe2perfect to Firefox](https://addons.mozilla.org/en-US/firefox/addon/poe2perfect/)** — Firefox 140 or
+newer. Firefox keeps it up to date.
+
+A new version reaches addons.mozilla.org after Mozilla's review, which can take a few days. To try it sooner, each
+[release](https://github.com/ReSenpai/poe2perfect/releases/latest) also carries a Mozilla-signed package: download
+`poe2perfect-<version>-firefox.xpi`, then open `about:addons` → the gear icon → *Install Add-on From File*. That copy
+does not update itself: for later versions, install the add-on from addons.mozilla.org again.
 
 ## A look at every tab
 
@@ -47,9 +52,9 @@ gem to copy its name for the in-game search; hover a gem in the priority list to
 
 Every slot on one screen, with sockets, runes, granted skills and the author's gear priority. Tooltips read like the
 game's own and show the base item's modifier above the rolled ones; the scales icon opens the item on the official
-trade site with its filters already set.
+trade site with its filters already set. Here with the build's comments open beside it, as on any tab.
 
-![Gear: every slot on one screen with an item tooltip open](docs/images/gear.jpg)
+![Gear: every slot on one screen, with the build's comments in a side panel](docs/images/gear.jpg)
 
 ### Passives and Atlas Tree
 
@@ -65,16 +70,26 @@ points and new nodes — with the campaign quest rewards beside it.
 
 ![Progression: what each stage changes, with the quest rewards beside it](docs/images/progression.jpg)
 
+### Comments
+
+The build's discussion from the original page, read like a thread: answers nest under the comment they answer, the
+author's replies stand out, and more comments load as you scroll. Search them, sort them, keep only the threads the
+author answered in, and write, reply or vote right there as your own Mobalytics account. The comment icon in the tab
+bar opens the same feed as a side panel next to whatever tab you are reading.
+
+![Comments: the build's discussion as a thread feed, with search, sorting and a reply box](docs/images/comments.jpg)
+
+<sub>Commenters' names, pictures and words are blurred in these pictures; in the guide they read as on the site.</sub>
+
 ### And also
 
-- **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–6 switch tabs.
+- **Build variants** (Act 1, Endgame…) switch with one click; number keys 1–7 switch tabs.
 - **Picks up where you left off**: each build reopens on the tab and act you were reading. A build you open for the
   first time starts on Overview.
 - **The original is one click away**, and the header collapses to leave the build more room.
 
 ## Roadmap
 
-- The build's totals — life, resistances, damage — added up inside the guide itself.
 - More testing on builds of every class — builds that look wrong are the most useful bug reports.
 
 ## Feedback
@@ -95,7 +110,8 @@ Support is voluntary. It does not unlock features, access to the extension or an
 ## Privacy and permissions
 
 The extension runs only on mobalytics.gg, sends nothing anywhere else and keeps its display preferences in your
-browser. See [PRIVACY.md](PRIVACY.md).
+browser. Comments, replies and votes you post from the guide go to mobalytics.gg as your own account, only when you
+press the button. See [PRIVACY.md](PRIVACY.md).
 
 - Permission: `storage` only (local display preferences: guide or original page, collapsed panels, and the tab and
   variant last read in each of the last 30 builds).

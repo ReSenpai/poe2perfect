@@ -170,6 +170,17 @@
   color: var(--accent);
 }
 
+/* A number beside a tab's name, e.g. how many comments the guide has. */
+.tabs__count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs__tab[aria-selected='true'] .tabs__count {
+  color: inherit;
+  opacity: 0.8;
+}
+
 .tabs__tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
@@ -180,6 +191,78 @@
   min-height: 0;
   overflow-y: auto;
   padding: 24px;
+}
+
+/* The section and, beside it, the comments panel, each scrolling on its own. */
+.build-view__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.build-view__body > .build-view__panel {
+  min-width: 0;
+}
+
+/* The comments panel is one more card of the section: same border, radius and surface, aligned with its content. */
+.build-view__aside {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: clamp(360px, 32vw, 480px);
+  min-height: 0;
+  margin: 24px 24px 24px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+/*
+ * Beside the comments the whole view scrolls as one, with its scrollbar at the window's right: the section no longer
+ * scrolls on its own, and the comments card, as tall as the view, moves with it like any other card.
+ */
+.build-view__body--docked {
+  display: grid;
+  /*
+   * One row as tall as the taller column and at least the view. A flex line, or a grid row sized `auto`, stops at the
+   * view's height in a container of fixed height; a min-content minimum doesn't.
+   */
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(min-content, 1fr);
+  overflow-y: auto;
+}
+
+.build-view__body--docked > .build-view__panel {
+  /* Cards beside each other keep 12 px between them. */
+  padding-right: 12px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/*
+ * The comments card runs as tall as the section beside it, and at least as tall as the view, so no empty space is left
+ * under it. Its feed is laid over the card rather than inside its flow, so a long discussion never stretches the page.
+ */
+.build-view__body--docked > .build-view__aside {
+  position: relative;
+}
+
+.build-view__aside > .comments {
+  position: absolute;
+  inset: 0;
+}
+
+/* A tab-bar toggle that is on, e.g. the open comments panel. */
+.icon-button--on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* The tab lays out its own margins and scrolls edge to edge (the comments feed). */
+.build-view__panel--flush {
+  padding: 0;
 }
 
 .empty-state {
@@ -220,6 +303,11 @@
 
 .overview--glance-collapsed {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* The comments panel stands where At a Glance was. */
+.overview--no-glance {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 1000px) {

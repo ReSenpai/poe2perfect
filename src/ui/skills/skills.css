@@ -23,9 +23,9 @@
   border-radius: 4px;
 }
 
-/* Says the name is on the clipboard, then gets out of the way. The panel is taller than the window, so the
-   note is placed against the window rather than the panel, where it would sit below the fold. */
-.skills__copied {
+/* Says a name is on the clipboard (a gem's, a rune's), then gets out of the way. A panel can be taller than the
+   window, so the note is placed against the window rather than the panel, where it would sit below the fold. */
+.copy-notice {
   position: fixed;
   right: 24px;
   bottom: 24px;
@@ -45,6 +45,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
   gap: 12px;
+}
+
+/* Beside the comments panel the skill details go under the list rather than away. */
+.skills__columns--stacked {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 1000px) {

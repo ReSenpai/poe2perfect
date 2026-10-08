@@ -18,10 +18,13 @@ export function OverviewPanel({
   build,
   glanceCollapsed,
   onGlanceCollapsedChange,
+  besideComments = false,
 }: {
   build: Build;
   glanceCollapsed?: boolean;
   onGlanceCollapsedChange?: (collapsed: boolean) => void;
+  /** The comments panel takes At a Glance's column; its collapsed state is kept as it was. */
+  besideComments?: boolean;
 }) {
   const renderEntity = useMemo(() => entityChipRenderer(build.entities), [build.entities]);
   const [localCollapsed, setLocalCollapsed] = useState(false);
@@ -32,7 +35,7 @@ export function OverviewPanel({
   };
 
   return (
-    <div class={collapsed ? 'overview overview--glance-collapsed' : 'overview'}>
+    <div class={besideComments ? 'overview overview--no-glance' : collapsed ? 'overview overview--glance-collapsed' : 'overview'}>
       <div class="overview__texts">
         {build.sections.length === 0 ? (
           <p class="panel-empty">The author hasn't added a build description.</p>
@@ -45,7 +48,7 @@ export function OverviewPanel({
           ))
         )}
       </div>
-      {collapsed ? (
+      {besideComments ? null : collapsed ? (
         // Collapsed, the whole rail expands the card again; there is nothing else to click there.
         <section class="card glance glance--collapsed" aria-label="At a glance">
           <button

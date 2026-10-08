@@ -1,0 +1,26 @@
+name: Portrait links
+
+# Commenters without an avatar get a class portrait linked from the Mobalytics CDN. This catches the site moving or
+# renaming them. It runs apart from the required CI check, so a CDN hiccup never blocks a pull request.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths: [src/lib/comments/portraits.ts, scripts/check-links.mjs]
+  push:
+    branches: [main, dev]
+    paths: [src/lib/comments/portraits.ts, scripts/check-links.mjs]
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --experimental-strip-types scripts/check-links.mjs

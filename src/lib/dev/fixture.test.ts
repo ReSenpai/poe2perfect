@@ -95,6 +95,43 @@ describe('captureFixture', () => {
     });
   });
 
+  it("names a profile build's file after its key, with the profile in front", async () => {
+    const url = 'https://mobalytics.gg/poe-2/profile/some-player/builds/frost-witch';
+
+    const result = await captureFixture({ url, loadPage: async () => pageHtml(DOC), readStaticData: async () => STATIC_OK, now: () => NOW });
+
+    expect(result).toMatchObject({ ok: true, fileName: 'some-player--frost-witch.json', fixture: { meta: { slug: 'some-player/frost-witch', url } } });
+  });
+
+  it('takes a profile build addressed by id from what the site loaded, since its page holds no build', async () => {
+    const id = 'e4321b1e-aa41-4c49-855d-97ffba18f5f5';
+    const loadPage = vi.fn();
+    const waitForDocument = vi.fn(async () => DOC);
+
+    const result = await captureFixture({
+      url: `https://mobalytics.gg/poe-2/profile/some-player/builds/${id}`,
+      loadPage,
+      waitForDocument,
+      readStaticData: async () => STATIC_OK,
+      now: () => NOW,
+    });
+
+    expect(waitForDocument).toHaveBeenCalledWith(id);
+    expect(loadPage).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: true, fileName: `some-player--${id}.json`, fixture: { build: DOC } });
+  });
+
+  it('fails when the site never handed over a build addressed by id', async () => {
+    const result = await captureFixture({
+      url: 'https://mobalytics.gg/poe-2/profile/some-player/builds/e4321b1e-aa41-4c49-855d-97ffba18f5f5',
+      loadPage: vi.fn(),
+      waitForDocument: async () => null,
+      readStaticData: async () => STATIC_OK,
+    });
+
+    expect(result).toEqual({ ok: false, message: 'Сайт не передал этот билд — перезагрузите страницу и попробуйте снова' });
+  });
+
   it('fails on a non-build URL without loading the page', async () => {
     const loadPage = vi.fn();
 

@@ -29,6 +29,13 @@ describe('site passive tree', () => {
     expect(found?.section.classList.contains('passive-tree')).toBe(true);
   });
 
+  it('finds the tree of a build with a single variant, which the site shows without variant tabs', () => {
+    document.body.innerHTML = `<main>${treeWidgetHtml({ variantIndex: 0, titles: [] })}</main>`;
+
+    expect(findTreeSection(document)).toMatchObject({ variantIndex: 0 });
+    expect(findVariantSection(document)).toBeNull();
+  });
+
   it('finds nothing on a page without a passive tree', () => {
     document.body.innerHTML = '<main><section><span id="abc-equipment-0"></span></section></main>';
 

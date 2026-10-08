@@ -172,7 +172,9 @@ function TooltipCard({ model }: { model: TooltipModel }) {
           {section.title && <p class="tooltip__section-title">{section.title}</p>}
           <ul>
             {section.lines.map((line, j) => (
-              <li key={j}>{line}</li>
+              <li key={j} class={section.headings?.includes(j) ? 'tooltip__heading' : undefined}>
+                {line}
+              </li>
             ))}
           </ul>
         </div>

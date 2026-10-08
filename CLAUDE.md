@@ -35,13 +35,15 @@ version's section of `CHANGELOG.md` as its notes, and submits to the stores.
   the archives keep the package version in their names.
 - AMO signs a listed version only after review, an unlisted one at once, and takes each number once per add-on.
   So a package for users to install while a review is pending is signed unlisted under a fourth number
-  (`FIREFOX_BUILD=1` → `1.3.0.1`): Actions → "Sign the Firefox package", which attaches the `.xpi` to that release.
-  Raise the build number to sign the same version again.
+  (`FIREFOX_BUILD=1` → `1.4.0.1`): the release tag does it as its last step and attaches the `.xpi` to the release.
+  To sign the same version again (e.g. that step failed), Actions → "Sign the Firefox package" with build 2 or higher.
 
 ## Commands
 
 - `npm test` · `npm run typecheck` · `npm run build` — all must pass before a step is done.
 - `node scripts/release-notes.mjs <version>` — the release notes a tag would publish; worth a look before tagging.
+- `node --experimental-strip-types scripts/check-links.mjs` — checks the commenter portraits linked from the
+  Mobalytics CDN still answer; the "Portrait links" workflow runs it weekly, apart from the required check.
 - `npm run dev` — dev server on :3000; the user loaded `.output/chrome-mv3-dev` unpacked in Chrome,
   it auto-reloads on save (verified). Keep the dev server running while verifying in the browser.
 - Content-script marker for quick checks: `document.documentElement.getAttribute('data-poe2-build-guide')`.
@@ -49,6 +51,8 @@ version's section of `CHANGELOG.md` as its notes, and submits to the stores.
   `data-poe2-build-guide-capture` on `<html>` for a JSON report.
 - Live parser check (dev build): `document.dispatchEvent(new Event('poe2-build-guide:parse'))`, then poll
   `data-poe2-build-guide-parse` on `<html>` for a `BuildSummary` JSON.
+- Live comments check (dev build): `document.dispatchEvent(new Event('poe2-build-guide:comments'))`, then poll
+  `data-poe2-build-guide-comments` for counts (seed, one more page, one missing thread, author's messages).
 - Rich text preview (dev build): `document.dispatchEvent(new Event('poe2-build-guide:preview'))` toggles a
   panel with every guide text rendered by `<RichText>` (shadow root `poe2-build-guide-preview`).
 - Shadow-root UI CSS is passed inline (`import css from '...css?inline'`, `createShadowRootUi({ css })`);
@@ -86,6 +90,9 @@ to 1.0.0 and a copy of that material.
   key `poe-2|<hash>`, ~17.5 MB. Never commit it whole — fixtures hold only the needed subset.
 - `curl` is blocked by Cloudflare — capture fixtures from the real browser.
 - The site is an SPA: client-side navigation does not refresh `__PRELOADED_STATE__`.
+- Profile builds `/poe-2/profile/<profile>/builds/<slug or id>`: by slug the HTML holds the build (state query
+  `ngf-ug-normal-document-page`); by id no HTML does — the page-world script `document-relay.content.ts` catches the
+  site's own `userGeneratedDocumentById` answer (details in `docs/PLAN.md`, profile builds).
 - Signed-in users get a client-rendered page: `__PRELOADED_STATE__` is ~500 bytes with no queries. Build pages are
   therefore fetched with `credentials: 'omit'` (signed-out HTML carries the full state); the current document is only
   used when it actually holds the build.

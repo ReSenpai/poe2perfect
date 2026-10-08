@@ -10,22 +10,24 @@ const VARIANT_WIDGETS = ['passive-tree', 'atlas-tree', 'equipment', 'skill-gems'
 
 /**
  * The site's passive or atlas tree widget. The site remounts the whole section when the variant changes (and has no
- * atlas section for a variant without an atlas tree), so look it up again after each change.
+ * atlas section for a variant without an atlas tree), so look it up again after each change. A build with a single
+ * variant has no variant tabs on it.
  */
 export function findTreeSection(doc: Document, kind: TreeKind = 'passive-tree'): WidgetSection | null {
-  return findWidget(doc, [kind]);
+  return findWidget(doc, [kind], false);
 }
 
 /** Any widget that shows the site's current variant and has tabs to change it. */
 export function findVariantSection(doc: Document): WidgetSection | null {
-  return findWidget(doc, VARIANT_WIDGETS);
+  return findWidget(doc, VARIANT_WIDGETS, true);
 }
 
-function findWidget(doc: Document, kinds: string[]): WidgetSection | null {
+function findWidget(doc: Document, kinds: string[], withTabs: boolean): WidgetSection | null {
   const pattern = new RegExp(`-(?:${kinds.join('|')})-(\\d+)$`);
   for (const anchor of doc.querySelectorAll<HTMLElement>('span[id]')) {
     const match = pattern.exec(anchor.id);
-    if (match && anchor.parentElement?.querySelector('[role=tab]')) return { section: anchor.parentElement, variantIndex: Number(match[1]) };
+    const section = anchor.parentElement;
+    if (match && section && (!withTabs || section.querySelector('[role=tab]'))) return { section, variantIndex: Number(match[1]) };
   }
   return null;
 }

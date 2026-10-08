@@ -28,6 +28,8 @@
   --gem-int: #5b8def;
 
   --font: 'PoE2 Guide Inter', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Long reading (comments): calmer letterforms than the UI font. */
+  --font-reading: 'PoE2 Guide Noto Sans', 'Noto Sans', var(--font);
   --radius-card: 8px;
   --radius-control: 6px;
 }

@@ -1,4 +1,4 @@
-import { getBuildSlug } from '@/lib/build-url';
+import { getBuildRef } from '@/lib/build-url';
 import { extractBuildDocument } from '@/lib/data/preloaded-state';
 import type { StaticDataResult } from '@/lib/data/static-data';
 import { pickStaticSubset } from '@/lib/data/static-subset';
@@ -19,35 +19,52 @@ export interface CaptureOptions {
   url: string;
   loadPage: () => Promise<Document | string>;
   readStaticData: () => Promise<StaticDataResult>;
+  /** A profile build addressed by id, which no page's HTML holds: as the site loaded it (see `document-relay`). */
+  waitForDocument?: (id: string) => Promise<RawBuildDocument | null>;
   now?: () => Date;
 }
 
 /** Dev tool: snapshot of a build page's data for use as a test fixture. */
-export async function captureFixture({ url, loadPage, readStaticData, now = () => new Date() }: CaptureOptions): Promise<CaptureResult> {
-  const slug = getBuildSlug(url);
-  if (!slug) return { ok: false, message: 'Это не страница билда' };
+export async function captureFixture({
+  url,
+  loadPage,
+  readStaticData,
+  waitForDocument = async () => null,
+  now = () => new Date(),
+}: CaptureOptions): Promise<CaptureResult> {
+  const ref = getBuildRef(url);
+  if (!ref) return { ok: false, message: 'Это не страница билда' };
+  const slug = ref.key;
 
-  let page: Document | string;
-  try {
-    page = await loadPage();
-  } catch (error) {
-    return { ok: false, message: `Не удалось загрузить страницу: ${error instanceof Error ? error.message : String(error)}` };
-  }
-
-  const extracted = extractBuildDocument(page);
-  if (!extracted.ok) {
-    return { ok: false, message: `Не удалось прочитать билд (${extracted.error.code}): ${extracted.error.message}` };
+  let doc: RawBuildDocument;
+  if (ref.kind === 'profile' && ref.id) {
+    const received = await waitForDocument(ref.id);
+    if (!received) return { ok: false, message: 'Сайт не передал этот билд — перезагрузите страницу и попробуйте снова' };
+    doc = received;
+  } else {
+    let page: Document | string;
+    try {
+      page = await loadPage();
+    } catch (error) {
+      return { ok: false, message: `Не удалось загрузить страницу: ${error instanceof Error ? error.message : String(error)}` };
+    }
+    const extracted = extractBuildDocument(page);
+    if (!extracted.ok) {
+      return { ok: false, message: `Не удалось прочитать билд (${extracted.error.code}): ${extracted.error.message}` };
+    }
+    doc = extracted.doc;
   }
 
   // Fixtures live in a public repository: no guide wording or other people's comments.
-  const build = scrubBuildDocument(extracted.doc);
+  const build = scrubBuildDocument(doc);
   const warnings: string[] = [];
   const staticResult = await readStaticData();
   if (!staticResult.ok) warnings.push('Справочник сайта недоступен — фикстура без staticData');
 
   return {
     ok: true,
-    fileName: `${slug}.json`,
+    // A profile build's key holds a slash; the file stays one file.
+    fileName: `${slug.replaceAll('/', '--')}.json`,
     warnings,
     fixture: {
       meta: {

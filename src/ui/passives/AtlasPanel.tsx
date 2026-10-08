@@ -15,12 +15,15 @@ export function AtlasPanel({
   entities = {},
   embedTree = embedIntoPage,
   treeFocus,
+  besideComments = false,
 }: {
   variant: Variant;
   variantIndex: number;
   entities?: Record<string, EntityInfo>;
   embedTree?: EmbedTree;
   treeFocus?: TreeFocus;
+  /** The comments panel takes the side column (order and notes) for the time being; the tree gets the room. */
+  besideComments?: boolean;
 }) {
   const { atlas, atlasNotes } = variant;
   const focus = useTreeFocus('atlas-tree', treeFocus);
@@ -29,7 +32,7 @@ export function AtlasPanel({
   const showNotes = side === 'notes' && atlasNotes !== null;
 
   return (
-    <div class="passives">
+    <div class={besideComments ? 'passives passives--single' : 'passives'}>
       {atlas ? (
         <SiteTree kind="atlas-tree" variantIndex={variantIndex} embedTree={embedTree} />
       ) : (
@@ -42,35 +45,37 @@ export function AtlasPanel({
           </div>
         </section>
       )}
-      <aside class="card passives__side">
-        <div class="passives__heading">
-          {atlasNotes ? (
-            <SideTabs label="Atlas side panel" idPrefix="atlas-side" keysText="Atlas" keysLabel="Key atlas passives" view={side} onSelect={setSide} />
-          ) : (
-            <h2 class="card__title">Key Atlas Passives</h2>
-          )}
-          {atlas && !showNotes && <span class="passives__points">{atlas.pointCount} points</span>}
-        </div>
-        <div
-          class="passives__lists"
-          {...(atlasNotes ? { role: 'tabpanel', 'aria-labelledby': showNotes ? 'atlas-side-notes' : 'atlas-side-keys' } : {})}
-        >
-          {showNotes ? (
-            <RichText value={atlasNotes} renderEntity={renderEntity} class="passives__notes" />
-          ) : !atlas || atlas.groups.length === 0 ? (
-            <p class="passives__empty">
-              {atlas ? "The author hasn't taken atlas notables in this variant." : "The author hasn't suggested atlas passives for this variant yet."}
-            </p>
-          ) : (
-            atlas.groups.map((group) => (
-              <div key={group.id} class="passives__group">
-                <p class="passives__label">{group.label}</p>
-                <PassiveRows passives={group.passives} label={`${group.label} passives`} focus={focus} />
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
+      {!besideComments && (
+        <aside class="card passives__side">
+          <div class="passives__heading">
+            {atlasNotes ? (
+              <SideTabs label="Atlas side panel" idPrefix="atlas-side" keysText="Atlas" keysLabel="Key atlas passives" view={side} onSelect={setSide} />
+            ) : (
+              <h2 class="card__title">Key Atlas Passives</h2>
+            )}
+            {atlas && !showNotes && <span class="passives__points">{atlas.pointCount} points</span>}
+          </div>
+          <div
+            class="passives__lists"
+            {...(atlasNotes ? { role: 'tabpanel', 'aria-labelledby': showNotes ? 'atlas-side-notes' : 'atlas-side-keys' } : {})}
+          >
+            {showNotes ? (
+              <RichText value={atlasNotes} renderEntity={renderEntity} class="passives__notes" />
+            ) : !atlas || atlas.groups.length === 0 ? (
+              <p class="passives__empty">
+                {atlas ? "The author hasn't taken atlas notables in this variant." : "The author hasn't suggested atlas passives for this variant yet."}
+              </p>
+            ) : (
+              atlas.groups.map((group) => (
+                <div key={group.id} class="passives__group">
+                  <p class="passives__label">{group.label}</p>
+                  <PassiveRows passives={group.passives} label={`${group.label} passives`} focus={focus} />
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
