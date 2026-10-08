@@ -31,11 +31,13 @@ Build shown throughout: Navira's Fracturing Varashta by MisoxShiru.</sub>
 then open any PoE 2 build on [mobalytics.gg](https://mobalytics.gg/poe-2/builds), from the catalogue or from a
 player's profile. It works whether or not you are signed in to the site.
 
-**Firefox** 140 or newer, from 1.3.0. The add-on is awaiting review on addons.mozilla.org; until it is listed, install
-the signed package from the [latest release](https://github.com/ReSenpai/poe2perfect/releases/latest):
-download `poe2perfect-<version>-firefox.xpi`, then open `about:addons` → the gear icon → *Install Add-on From File*.
-It is signed by Mozilla, so it stays installed between restarts. It does not update itself, so once the listing is
-live, install the add-on from addons.mozilla.org to get later versions.
+**[Add poe2perfect to Firefox](https://addons.mozilla.org/en-US/firefox/addon/poe2perfect/)** — Firefox 140 or
+newer. Firefox keeps it up to date.
+
+A new version reaches addons.mozilla.org after Mozilla's review, which can take a few days. To try it sooner, each
+[release](https://github.com/ReSenpai/poe2perfect/releases/latest) also carries a Mozilla-signed package: download
+`poe2perfect-<version>-firefox.xpi`, then open `about:addons` → the gear icon → *Install Add-on From File*. That copy
+does not update itself: for later versions, install the add-on from addons.mozilla.org again.
 
 ## A look at every tab
 
