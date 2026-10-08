@@ -90,7 +90,6 @@ bar opens the same feed as a side panel next to whatever tab you are reading.
 
 ## Roadmap
 
-- The build's totals — life, resistances, damage — added up inside the guide itself.
 - More testing on builds of every class — builds that look wrong are the most useful bug reports.
 
 ## Feedback
